@@ -1,0 +1,37 @@
+[
+  {
+    "id": "2026-08-21-cap-theorem",
+    "date": "2026-08-21",
+    "title": "CAP Theorem",
+    "category": "system-design",
+    "questionCount": 4
+  },
+  {
+    "id": "2026-08-22-load-balancing",
+    "date": "2026-08-22",
+    "title": "Load Balancing",
+    "category": "system-design",
+    "questionCount": 4
+  },
+  {
+    "id": "2026-08-23-caching-strategies",
+    "date": "2026-08-23",
+    "title": "Caching Strategies",
+    "category": "system-design",
+    "questionCount": 4
+  },
+  {
+    "id": "2026-08-24-database-replication",
+    "date": "2026-08-24",
+    "title": "Database Replication",
+    "category": "system-design",
+    "questionCount": 4
+  },
+  {
+    "id": "2026-08-25-rate-limiting",
+    "date": "2026-08-25",
+    "title": "Rate Limiting",
+    "category": "system-design",
+    "questionCount": 4
+  }
+]

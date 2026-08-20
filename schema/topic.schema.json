@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/chatura-c/focus-gate-content/main/schema/topic.schema.json",
+  "title": "Focus Gate Topic",
+  "description": "Schema for a single topics/<id>.json file in focus-gate-content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "date", "title", "category", "lesson", "questions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "YYYY-MM-DD-slug, must match the filename (without .json) and the date field.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "date": {
+      "type": "string",
+      "description": "ISO date this topic is scheduled for, YYYY-MM-DD.",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable topic title, e.g. 'CAP Theorem'."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Topic category, e.g. 'system-design'."
+    },
+    "lesson": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain text or markdown lesson body, several paragraphs, teachable standalone."
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Quiz questions for this topic. Seed topics must include at least one of each type.",
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "question": {
+      "oneOf": [
+        { "$ref": "#/$defs/mcqQuestion" },
+        { "$ref": "#/$defs/trueFalseQuestion" },
+        { "$ref": "#/$defs/fillBlankQuestion" },
+        { "$ref": "#/$defs/orderingQuestion" }
+      ]
+    },
+    "mcqQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "prompt", "options", "answer", "explanation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "const": "mcq" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "options": {
+          "type": "array",
+          "description": "Answer choices shown to the user, in order.",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 2
+        },
+        "answer": {
+          "type": "integer",
+          "description": "Zero-based index into `options` giving the correct choice.",
+          "minimum": 0
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "trueFalseQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "prompt", "answer", "explanation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "const": "true_false" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "answer": {
+          "type": "boolean",
+          "description": "Whether `prompt` is a true statement."
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "fillBlankQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "prompt", "answer", "explanation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "const": "fill_blank" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "answer": {
+          "type": "string",
+          "description": "Canonical correct answer string (matched case-insensitively by the app).",
+          "minLength": 1
+        },
+        "acceptable": {
+          "type": "array",
+          "description": "Optional additional strings accepted as correct, alongside `answer`.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "orderingQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "prompt", "items", "answer", "explanation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "const": "ordering" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "items": {
+          "type": "array",
+          "description": "Items in the order presented to the user (should be shuffled, not pre-sorted).",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 2
+        },
+        "answer": {
+          "type": "array",
+          "description": "Zero-based indices into `items` giving the correct order. Same length as `items`, each index used exactly once.",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 2
+        },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "2026-08-23-caching-strategies",
+  "date": "2026-08-23",
+  "title": "Caching Strategies",
+  "category": "system-design",
+  "lesson": "Caching stores a copy of data that's expensive to compute or slow to fetch somewhere closer and faster to reach, trading a risk of staleness for lower latency and reduced load on the backing store (usually a database). The value of a caching strategy comes down to how it decides what gets cached, when, and how it stays in sync with the source of truth.\n\nCache-aside, also called lazy loading, is the most common pattern: application code checks the cache first on a read, and on a cache miss reads from the database and writes the result into the cache for next time. It's simple and the cache only ever holds data that's actually been requested, but it has two well-known sharp edges — the first request after an eviction pays the full database latency (and if many clients miss at once, that's a 'thundering herd' hammering the database simultaneously), and the cache can go stale if the underlying row changes without anything invalidating or updating the cached copy.\n\nWrite-through and write-back handle writes differently. Write-through writes to the cache and the database together as part of the same operation, so the cache is never out of sync with the database — at the cost of extra write latency, since every write now touches two stores instead of one. Write-back (write-behind) instead writes to the cache immediately and asynchronously flushes to the database later, giving very low write latency, but it introduces a window where the only copy of a recent write lives in the cache — if that cache node crashes before the flush completes, the write is lost. Write-back systems need careful durability design (e.g. replicated cache, write-ahead buffering) to make that risk acceptable.\n\nWhen a cache is full, its eviction policy decides what to remove to make room. LRU (least recently used) evicts whichever item hasn't been accessed for the longest time, which works well for most access patterns and is cheap to approximate. LFU (least frequently used) evicts the item with the fewest total accesses, which handles skewed 'hot key' patterns better than LRU but requires more bookkeeping to track access counts. FIFO evicts strictly by insertion order regardless of how often an item is used, which is simple but can evict hot data that just happens to be old. TTL-based expiration removes items after a fixed lifetime independent of usage, and is commonly layered on top of one of the above to bound staleness even for frequently-accessed keys.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In a cache-aside pattern, what happens on a cache read miss?",
+      "options": [
+        "The request is rejected until the cache is manually warmed",
+        "The application reads from the database and writes the result into the cache",
+        "The cache automatically pulls the value from the database in the background",
+        "The write is buffered until the next flush cycle"
+      ],
+      "answer": 1,
+      "explanation": "Cache-aside puts the cache-population logic in the application: on a miss, it reads through to the database and then populates the cache itself."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Write-back caching guarantees no data loss if the cache node crashes before flushing to the database.",
+      "answer": false,
+      "explanation": "Write-back acknowledges the write as soon as it hits the cache, so a crash before the asynchronous flush to the database loses that write."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "An eviction policy that discards the item that hasn't been accessed for the longest time is called ____.",
+      "answer": "LRU",
+      "acceptable": ["least recently used"],
+      "explanation": "LRU (least recently used) tracks access recency and evicts the item that has gone the longest without being touched."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of a cache-aside read on a cache miss, earliest first.",
+      "items": [
+        "Application writes the fetched value into the cache",
+        "Application checks the cache for the key",
+        "Application returns the value to the caller",
+        "On a miss, the application queries the database"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "Cache-aside always checks the cache first, only falls through to the database on a miss, populates the cache with the result, then returns it to the caller."
+    }
+  ]
+}

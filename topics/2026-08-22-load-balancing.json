@@ -1,0 +1,50 @@
+{
+  "id": "2026-08-22-load-balancing",
+  "date": "2026-08-22",
+  "title": "Load Balancing",
+  "category": "system-design",
+  "lesson": "A load balancer sits in front of a pool of backend servers and distributes incoming traffic across them, so no single server has to absorb the full request volume. Beyond spreading load, it also improves availability and fault tolerance: it health-checks backends continuously and stops routing traffic to any that stop responding, so a single server failing doesn't take down the whole service.\n\nSeveral algorithms decide which backend gets the next request. Round robin cycles through backends in a fixed order — simple and even, but it ignores how loaded each backend actually is. Weighted round robin fixes the case where backends have different capacity by sending proportionally more traffic to the beefier ones. Least connections routes each new request to whichever backend currently has the fewest active connections, which handles uneven request durations much better than round robin (a backend stuck on a few slow requests won't keep getting piled on). IP hash (or consistent hashing on some client key) deterministically maps a given client to the same backend every time, which is useful for session affinity ('sticky sessions') without needing a shared session store.\n\nLoad balancers also differ by which OSI layer they operate at. A Layer 4 (L4) load balancer works at the transport layer, routing based only on IP address and port from TCP/UDP packets, without looking at the payload. It's fast and cheap because it never has to parse the application protocol, but it also can't make routing decisions based on anything inside the request — it doesn't know it's HTTP at all. A Layer 7 (L7) load balancer terminates the connection and actually parses the application protocol (typically HTTP), so it can route based on URL path, headers, cookies, or hostname, terminate TLS, rewrite requests, and apply retry or circuit-breaking logic. That flexibility costs more CPU per request than L4 forwarding.\n\nIn either case, health checks are what make the pool trustworthy: active health checks periodically probe each backend (e.g. hitting a `/healthz` endpoint), while passive checks watch live traffic for errors or timeouts and pull a backend out of rotation reactively. Production setups also handle connection draining (letting in-flight requests finish on a backend being removed) and often layer DNS-level balancing (spreading traffic across regions) on top of a proxy-level L4/L7 balancer within each region. Common implementations include hardware/cloud load balancers (AWS ELB/ALB) and software ones like HAProxy, nginx, and Envoy.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which load balancing algorithm routes each new connection to whichever backend currently has the fewest active connections?",
+      "options": [
+        "Round robin",
+        "Least connections",
+        "IP hash",
+        "Weighted round robin"
+      ],
+      "answer": 1,
+      "explanation": "Least connections tracks each backend's current active connection count and sends new traffic to the least-loaded one."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "An L4 load balancer can inspect HTTP headers and route requests based on URL path.",
+      "answer": false,
+      "explanation": "L4 load balancers operate at the transport layer on raw TCP/UDP packets and never parse the HTTP payload, so path- or header-based routing requires L7."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A load balancer that terminates TLS and can route traffic based on HTTP headers, cookies, or URL paths is operating at layer ____ of the OSI model.",
+      "answer": "7",
+      "acceptable": ["seven", "L7", "application layer"],
+      "explanation": "Parsing and routing on HTTP-level content requires terminating the connection at the application layer, which is Layer 7."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of a client request passing through an L7 load balancer, earliest first.",
+      "items": [
+        "Load balancer selects a backend using its algorithm",
+        "Load balancer forwards the request to the chosen backend and relays the response",
+        "Client opens a TCP connection and completes the TLS handshake with the load balancer",
+        "Load balancer terminates TLS and parses the HTTP request"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "The connection and TLS handshake must complete before the load balancer can parse the HTTP request, pick a backend, and forward the traffic."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "2026-08-21-cap-theorem",
+  "date": "2026-08-21",
+  "title": "CAP Theorem",
+  "category": "system-design",
+  "lesson": "CAP theorem describes a hard tradeoff faced by any distributed data store: Consistency, Availability, and Partition tolerance can't all be fully guaranteed at once. Consistency here means linearizable consistency — every read sees the most recent successful write, or an error, never a stale value. Availability means every request to a non-failed node gets a non-error response, though not necessarily the latest data. Partition tolerance means the system keeps operating even when network messages between nodes are delayed or dropped, splitting the cluster into groups that can't talk to each other.\n\nIn practice, partition tolerance isn't optional for a genuinely distributed system — networks fail, packets get dropped, and a system spanning multiple machines or data centers will eventually see a partition whether it wants one or not. That means the real, actionable choice CAP forces is between consistency and availability during a partition. Systems that choose consistency (CP) will refuse to serve requests on the minority side of a partition rather than risk returning stale or conflicting data — ZooKeeper, etcd, and HBase behave this way. Systems that choose availability (AP) keep answering requests on both sides of the partition even though the two sides may now disagree — Cassandra and DynamoDB default to this, though both offer tunable consistency levels per request.\n\nConcretely, a CP system under partition will reject writes (and often reads) on whichever side can't reach a quorum of nodes, trading availability for a guarantee that nothing inconsistent is ever returned. An AP system instead keeps both sides live, letting them accumulate diverging versions of the same records; once the partition heals, it must reconcile those divergent writes using techniques like vector clocks, last-write-wins timestamps, or CRDTs. Neither choice is universally correct — it depends on whether your application would rather show an error or show possibly-stale data.\n\nIt's also worth knowing CAP only describes behavior during an actual partition; the PACELC extension notes that even without a partition, distributed systems still trade latency for consistency (the \"else, Latency vs Consistency\" half of PACELC). And CAP's framing as a single global binary choice is a simplification — many real systems use quorum-based reads and writes (N replicas, W required for a write, R required for a read) that let each individual request tune its own point on the consistency/availability spectrum rather than locking the whole system into one mode.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Under a network partition, a CP system will:",
+      "options": [
+        "Continue serving reads and writes on every node",
+        "Reject requests on the minority side to preserve consistency",
+        "Always favor availability over consistency",
+        "Shut down entirely until the partition heals"
+      ],
+      "answer": 1,
+      "explanation": "CP systems sacrifice availability on the minority side of a partition so every acknowledged read/write stays consistent."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "CAP theorem says a distributed system can only ever provide two of consistency, availability, and partition tolerance, at all times, in every configuration.",
+      "answer": false,
+      "explanation": "Partition tolerance isn't optional for a distributed system, so the real tradeoff during a partition is consistency vs. availability, not a free pick of any two."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A CP system that requires a majority of replicas to agree before acknowledging a write is using a ____.",
+      "answer": "quorum",
+      "acceptable": ["quorum write", "majority quorum"],
+      "explanation": "Requiring a majority (quorum) of replicas to agree is how CP systems keep reads and writes consistent despite node failures."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these events for an AP system during and after a network partition, earliest first.",
+      "items": [
+        "The two sides accumulate diverging versions of the same data",
+        "Once the partition heals, the system must reconcile the diverging writes",
+        "A network partition splits the cluster into two groups of nodes",
+        "An AP system keeps accepting reads and writes independently on each side of the partition"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "The partition happens first, then each side keeps serving traffic independently, the two sides drift apart, and reconciliation only happens once the partition heals."
+    }
+  ]
+}

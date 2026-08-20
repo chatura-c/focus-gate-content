@@ -1,0 +1,50 @@
+{
+  "id": "2026-08-25-rate-limiting",
+  "date": "2026-08-25",
+  "title": "Rate Limiting",
+  "category": "system-design",
+  "lesson": "Rate limiting caps how many requests a client (or the system as a whole) is allowed to make in a given period. It protects a service from being overwhelmed by traffic spikes or abusive clients, enforces fair usage or per-tier quotas, and lets a system shed excess load gracefully by rejecting requests instead of degrading or falling over under uncontrolled demand.\n\nThe token bucket algorithm models a bucket that holds tokens up to some fixed capacity, refilled at a steady rate over time. Each incoming request must consume one token to proceed; if the bucket is empty, the request is rejected or delayed. Because tokens accumulate during idle periods up to the bucket's capacity, this algorithm naturally allows a short burst of traffic above the average rate — as long as enough tokens have built up — while still enforcing that average rate over the long run.\n\nThe leaky bucket algorithm is often visualized as a bucket with a small hole in the bottom: requests pour in and the bucket drains, i.e. processes requests, at a strictly constant rate regardless of how bursty the incoming traffic is. This gives a perfectly smooth output rate, which is valuable when downstream systems can't handle any burstiness at all, but it means bursts get queued (adding latency) or dropped rather than being let through the way a token bucket would allow.\n\nA third family, sliding window, addresses a specific flaw in naive fixed-window counters: a fixed window resets its count to zero at a clock boundary (e.g. every new minute), which lets a client send a full window's worth of requests right at the end of one window and another full window's worth right at the start of the next, achieving nearly double the intended rate in a short burst around the boundary. A sliding window log tracks the exact timestamp of every request and counts how many fall within the trailing window, giving an exact count at the cost of memory proportional to request volume. A sliding window counter approximates this more cheaply by combining the current window's count with a weighted fraction of the previous window's count, smoothing out the boundary problem without storing every individual timestamp.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why can a fixed-window rate limiter allow roughly double the intended request rate at window boundaries?",
+      "options": [
+        "It resets the token count to zero on every request",
+        "A client can send a full window's worth of requests at the very end of one window and another full window's worth at the very start of the next",
+        "It uses UDP, which doesn't guarantee delivery order",
+        "Fixed windows only count successful requests"
+      ],
+      "answer": 1,
+      "explanation": "Because the counter resets at a hard clock boundary, a burst straddling the boundary can pack two full windows' worth of allowance into a short span of time."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A token bucket rate limiter can allow short bursts of traffic above the average configured rate, as long as tokens have accumulated.",
+      "answer": true,
+      "explanation": "Idle periods let tokens accumulate up to the bucket's capacity, so a client can spend that saved-up capacity in a burst that temporarily exceeds the steady-state refill rate."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A rate limiting algorithm that processes requests at a strictly constant rate, queuing or discarding bursts instead of letting them through, is called the ____ algorithm.",
+      "answer": "leaky bucket",
+      "acceptable": ["leaky bucket algorithm"],
+      "explanation": "The leaky bucket drains at a fixed constant rate regardless of how requests arrive, which is what smooths out bursts instead of allowing them through."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of handling one request under token bucket rate limiting, earliest first.",
+      "items": [
+        "The limiter checks whether enough tokens are available in the bucket",
+        "The limiter removes the required tokens and forwards the request",
+        "The bucket accumulates tokens over time, up to its capacity, at the configured refill rate",
+        "A request arrives at the rate limiter"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "Tokens accumulate continuously in the background; when a request arrives, the limiter checks token availability before deciding whether to remove tokens and forward it."
+    }
+  ]
+}

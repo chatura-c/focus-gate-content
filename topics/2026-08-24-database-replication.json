@@ -1,0 +1,50 @@
+{
+  "id": "2026-08-24-database-replication",
+  "date": "2026-08-24",
+  "title": "Database Replication",
+  "category": "system-design",
+  "lesson": "Database replication is the practice of copying data from one database to one or more other databases, so the same data lives on multiple machines. It's used to protect against data loss if a machine fails, to scale read throughput beyond what one machine can serve, and to enable failover so the system can keep running if the primary database goes down.\n\nThe most common setup is leader-follower (also called primary-replica or master-slave) replication. All writes go to a single leader, which applies them locally and then streams the changes to its followers, typically via a replication log (e.g. a write-ahead log shipped to each replica, which replays it to stay in sync). Followers can serve read traffic, which is how this pattern scales reads horizontally — add more followers, handle more concurrent readers — while writes stay funneled through the one leader, which keeps write ordering simple and unambiguous.\n\nHow the leader waits on followers before confirming a write to the client is the synchronous-vs-asynchronous tradeoff. In synchronous replication, the leader waits for a follower's acknowledgment before telling the client the write succeeded, which guarantees that any acknowledged write already exists on at least one other node — but it adds latency and can stall writes entirely if that follower is slow or unreachable. In asynchronous replication, the leader confirms the write to the client immediately and propagates it to followers in the background; this keeps write latency low, but it opens a window called replication lag, where a leader crash before a follower catches up can silently lose the most recently acknowledged writes. A common middle ground is semi-synchronous replication, where the leader waits for acknowledgment from just one follower (not all of them) before confirming, balancing durability against latency.\n\nWhen the leader fails, the system needs a failover process: a failure detector notices the leader has stopped sending heartbeats, the remaining followers (or an external coordinator) elect a new leader, and clients and remaining followers are redirected to it. This has to be done carefully to avoid split-brain, where two nodes each believe they're the leader and accept conflicting writes, and to reconcile any writes that were in flight or hadn't yet replicated to the newly promoted leader at the moment of failure.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What distinguishes synchronous replication from asynchronous replication in a leader-follower setup?",
+      "options": [
+        "Synchronous replication uses TCP while asynchronous uses UDP",
+        "Synchronous replication has the leader wait for follower acknowledgment before confirming the write to the client",
+        "Synchronous replication only works with a single follower",
+        "Asynchronous replication guarantees zero replication lag"
+      ],
+      "answer": 1,
+      "explanation": "The defining difference is whether the leader blocks on a follower's ack before telling the client the write succeeded (synchronous) or confirms immediately and replicates in the background (asynchronous)."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Asynchronous replication can lose recently acknowledged writes if the leader fails before a follower catches up.",
+      "answer": true,
+      "explanation": "Because the leader confirms the write before any follower has it, a leader crash during the replication lag window can lose writes that were already reported as successful."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The delay between a write being applied on the leader and being applied on a follower is called replication ____.",
+      "answer": "lag",
+      "acceptable": ["replication lag"],
+      "explanation": "Replication lag is the gap between when the leader applies a write and when a given follower has applied the same write."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of a leader failover, earliest first.",
+      "items": [
+        "A new leader is elected from the remaining followers using consensus or a coordinator",
+        "The failure detector notices missed heartbeats from the leader",
+        "Clients and the remaining followers are redirected to point at the new leader",
+        "The leader process crashes or becomes network-partitioned from the cluster"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "Failover starts with the leader actually going down, is noticed via missed heartbeats, resolved by electing a new leader, and finished by redirecting traffic to it."
+    }
+  ]
+}
