@@ -16,13 +16,13 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 3 | 2026-08-23 | Caching Strategies       | `2026-08-23-caching-strategies`     |
 | 4 | 2026-08-24 | Database Replication     | `2026-08-24-database-replication`   |
 | 5 | 2026-08-25 | Rate Limiting            | `2026-08-25-rate-limiting`          |
+| 6 | 2026-08-20 | Consistent Hashing       | `2026-08-20-consistent-hashing`     |
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Consistent hashing
 - Message queues (pub/sub, at-least-once vs exactly-once delivery)
 - Database sharding / partitioning
 - CDNs

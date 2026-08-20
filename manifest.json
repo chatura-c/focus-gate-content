@@ -1,5 +1,12 @@
 [
   {
+    "id": "2026-08-20-consistent-hashing",
+    "date": "2026-08-20",
+    "title": "Consistent Hashing",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
     "id": "2026-08-21-cap-theorem",
     "date": "2026-08-21",
     "title": "CAP Theorem",

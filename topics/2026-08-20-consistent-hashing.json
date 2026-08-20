@@ -1,0 +1,63 @@
+{
+  "id": "2026-08-20-consistent-hashing",
+  "date": "2026-08-20",
+  "title": "Consistent Hashing",
+  "category": "system-design",
+  "lesson": "A common way to spread keys across N servers is naive modulo hashing: pick a server with hash(key) % N. This works fine until N changes. Add or remove even one server, and the modulus changes for every key, so nearly all of them now map to a different server than before. For a cache, that means almost the entire cache goes cold at once; for a data store, it means a massive, disruptive rebalance triggered by a routine scaling event.\n\nConsistent hashing fixes this by hashing servers and keys into the same space and arranging that space as a ring (imagine hash values from 0 up to some maximum, wrapping back to 0). Each server is hashed to a position on the ring; each key is also hashed to a position, and is owned by the first server found walking clockwise from the key's position. When a server is added, it only takes over the keys between itself and the previous server on the ring — everyone else's keys are untouched. When a server is removed, only its keys move, and they move to the next server clockwise. Instead of nearly all keys reshuffling, on average only about K/N keys move for K total keys and N servers.\n\nA plain ring with few servers hashed to single points tends to distribute keys unevenly — one server might end up owning a disproportionately large arc of the ring just by the luck of where its hash landed, creating a hotspot. The standard fix is virtual nodes: each physical server is hashed to many points on the ring (dozens or hundreds), not just one. Keys are still assigned by walking clockwise to the nearest point, but because each server now owns many small, scattered arcs instead of one large one, the load evens out across servers, and adding or removing a server perturbs many small arcs spread across many other servers rather than dumping a large single arc onto one neighbor.\n\nConsistent hashing shows up wherever a fleet of stateful nodes needs to survive members joining and leaving without wholesale reshuffling: distributed caches like memcached (hashing on the client to pick which cache server owns a key), distributed databases like Cassandra and DynamoDB (hashing to place a partition/row on a node in the ring), and some load balancers that want to keep routing the same client to the same backend as the backend pool resizes.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main problem with plain hash(key) % N when the number of servers N changes?",
+      "options": [
+        "It requires more memory than consistent hashing",
+        "Almost every key remaps to a different server, since the modulus itself changed",
+        "It only works for numeric keys",
+        "It cannot be used with more than 10 servers"
+      ],
+      "answer": 1,
+      "explanation": "Because the modulus N is baked into every key's assignment, changing N shifts the result for nearly all keys, not just the ones that need to move."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In consistent hashing, adding one new server to the ring causes roughly K/N keys to move, rather than nearly all K keys.",
+      "answer": true,
+      "explanation": "Only the keys that fall between the new server's ring position and the previous server are reassigned; every other key's owner is unaffected."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To avoid uneven load when only a few points are hashed onto the ring, each physical server is hashed to many points instead of one; these extra points are called ____.",
+      "answer": "virtual nodes",
+      "acceptable": ["virtual node", "vnodes", "vnode"],
+      "explanation": "Giving each physical server many scattered points on the ring, or virtual nodes, smooths out the uneven arcs that a single hash point per server tends to produce."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "On a consistent hashing ring, which server is responsible for a given key?",
+      "options": [
+        "The server whose hash value is numerically closest to the key's hash, in either direction",
+        "The server chosen at random each time the key is requested",
+        "The first server encountered walking clockwise from the key's position on the ring",
+        "The server with the lowest hash value on the entire ring"
+      ],
+      "answer": 2,
+      "explanation": "The convention is to walk clockwise from the key's ring position and assign ownership to the first server position reached."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of what happens when a new server is added to a consistent hashing ring, earliest first.",
+      "items": [
+        "The new server's position(s) are hashed onto the ring",
+        "Keys previously owned by the next server clockwise, that now fall before the new server's position, are identified",
+        "Those identified keys are transferred to the new server",
+        "All other keys on the ring keep their existing owners, unaffected"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Only after the new server is placed on the ring can the specific keys that now precede it be identified and moved; every other key's owner never changes."
+    }
+  ]
+}
