@@ -17,6 +17,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 4 | 2026-08-24 | Database Replication     | `2026-08-24-database-replication`   |
 | 5 | 2026-08-25 | Rate Limiting            | `2026-08-25-rate-limiting`          |
 | 6 | 2026-08-20 | Consistent Hashing       | `2026-08-20-consistent-hashing`     |
+| 7 | 2026-08-21 | Database Sharding        | `2026-08-21-database-sharding`      |
+| 8 | 2026-08-21 | CDNs                      | `2026-08-21-cdns`                   |
 
 ## Candidate next topics
 
@@ -24,8 +26,6 @@ Not yet covered — the generation job should pick from here (or an equally well
 system-design concept not listed) before repeating anything above:
 
 - Message queues (pub/sub, at-least-once vs exactly-once delivery)
-- Database sharding / partitioning
-- CDNs
 - Database indexing (B-trees, when an index helps vs. hurts)
 - Eventual consistency
 - Circuit breakers

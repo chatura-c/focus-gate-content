@@ -14,6 +14,20 @@
     "questionCount": 4
   },
   {
+    "id": "2026-08-21-database-sharding",
+    "date": "2026-08-21",
+    "title": "Database Sharding",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-21-cdns",
+    "date": "2026-08-21",
+    "title": "CDNs",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
     "id": "2026-08-22-load-balancing",
     "date": "2026-08-22",
     "title": "Load Balancing",

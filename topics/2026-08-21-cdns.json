@@ -1,0 +1,70 @@
+{
+  "id": "2026-08-21-cdns",
+  "date": "2026-08-21",
+  "title": "CDNs",
+  "category": "system-design",
+  "lesson": "A content delivery network (CDN) is a geographically distributed network of edge servers, often called points of presence or PoPs, that cache and serve content from a location physically close to the requesting user instead of every request traveling all the way back to a single origin server. This shortens the network round trip, cutting latency, and offloads traffic that would otherwise all land on the origin. CDNs originally focused on static assets like images, CSS, JavaScript bundles, and video, but modern CDNs also accelerate dynamic, per-request content through techniques like edge compute and optimized TLS/TCP connection handling near the user.\n\nRouting a client to a nearby edge server is typically done via DNS-based routing or anycast IP addressing, both of which resolve a request to whichever PoP is closest or best-performing for that client. When a request hits an edge server, the server checks whether it already holds a valid cached copy of the resource. On a hit, it serves that copy directly. On a miss, it fetches the resource from the origin (or sometimes an intermediate regional cache), stores a copy locally according to the response's cache-control headers and TTL, and then returns it to the client, the same underlying caching strategies covered earlier, just applied at a globally distributed layer in front of the origin rather than a single cache next to one application server.\n\nBecause the same content is duplicated across potentially hundreds of edge locations, invalidating or updating it is slower and more involved than invalidating a single cache: a purge request has to propagate to every PoP that might hold a copy, which takes time and isn't instantaneous. For this reason, teams often prefer short TTLs combined with versioned, cache-busting URLs, for example naming a bundle app.a1b2c3.js with a hash of its contents in the filename, over actively purging. A new filename is simply a fresh cache miss everywhere it's requested, so the new version is served immediately without waiting on purge propagation, while the old filename can be left to expire naturally.\n\nBeyond raw latency reduction, CDNs reduce load on the origin server, help absorb sudden traffic spikes, and can provide a degree of protection against volumetric abuse since attack traffic gets partially absorbed across many edge nodes rather than hitting the origin directly. The tradeoff is that content across edges is only eventually consistent, since a change to the origin doesn't appear at every PoP at the same instant, plus the added cost and complexity of tuning cache-control behavior correctly for every type of content served.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main latency benefit a CDN provides?",
+      "options": [
+        "It eliminates the need for an origin server entirely",
+        "It serves content from a server that is geographically closer to the requesting user",
+        "It guarantees every edge copy is updated at the exact same instant as the origin",
+        "It replaces the need for a database"
+      ],
+      "answer": 1,
+      "explanation": "A CDN's edge servers sit physically closer to end users than a single origin server, so the network round trip, and therefore latency, is shorter."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "CDNs can only cache static assets like images and CSS files; they cannot help accelerate dynamic, per-request content.",
+      "answer": false,
+      "explanation": "Modern CDNs also accelerate dynamic content through techniques like edge compute and optimized TLS/TCP handling near the user, not just static asset caching."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A CDN's individual, geographically distributed server locations are commonly referred to as ____.",
+      "answer": "points of presence",
+      "acceptable": ["pops", "PoPs", "edge locations", "edge servers"],
+      "explanation": "\"Point of presence\" (PoP) is the standard term for a CDN's regional server location that serves nearby users."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do teams often prefer versioned, cache-busting URLs over actively purging a CDN cache when content changes?",
+      "options": [
+        "Purging is not supported by any CDN provider",
+        "A new versioned filename is a fresh cache miss everywhere, so the update is served immediately without waiting on purge propagation across every edge node",
+        "Versioned filenames are required by the HTTP specification",
+        "It removes the need for TTLs entirely"
+      ],
+      "answer": 1,
+      "explanation": "Because a versioned filename has never been cached before, it's an automatic miss at every edge, sidestepping the delay of propagating an invalidation to every PoP."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of handling a request that misses the cache at a CDN edge server, earliest first.",
+      "items": [
+        "Finding no valid cached copy, the edge server fetches the resource from the origin",
+        "The client's request is routed to a nearby edge server",
+        "The edge server stores the response according to its cache-control settings and returns it to the client",
+        "The edge server checks whether it already holds a valid cached copy"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "Routing to a nearby PoP happens first, then the cache lookup, and only on a miss does the edge server fetch from the origin before caching and returning the response."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "When origin content changes, every CDN edge copy is guaranteed to reflect that change at the exact same instant.",
+      "answer": false,
+      "explanation": "Propagating an update or purge across a globally distributed set of edge nodes takes time, so there is a window where different edges may serve stale content while others already serve the fresh version."
+    }
+  ]
+}
