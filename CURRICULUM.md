@@ -19,14 +19,18 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 6 | 2026-08-20 | Consistent Hashing       | `2026-08-20-consistent-hashing`     |
 | 7 | 2026-08-21 | Database Sharding        | `2026-08-21-database-sharding`      |
 | 8 | 2026-08-21 | CDNs                      | `2026-08-21-cdns`                   |
+| 9 | 2026-08-26 | Message Queues            | `2026-08-26-message-queues`         |
+| 10 | 2026-08-26 | Database Indexing        | `2026-08-26-database-indexing`      |
+
+Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
+so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
+an existing `date` already present in `manifest.json`.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Message queues (pub/sub, at-least-once vs exactly-once delivery)
-- Database indexing (B-trees, when an index helps vs. hurts)
 - Eventual consistency
 - Circuit breakers
 - Idempotency (idempotency keys, safe retries)

@@ -54,5 +54,19 @@
     "title": "Rate Limiting",
     "category": "system-design",
     "questionCount": 4
+  },
+  {
+    "id": "2026-08-26-message-queues",
+    "date": "2026-08-26",
+    "title": "Message Queues",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-26-database-indexing",
+    "date": "2026-08-26",
+    "title": "Database Indexing",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

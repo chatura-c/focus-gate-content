@@ -1,0 +1,70 @@
+{
+  "id": "2026-08-26-database-indexing",
+  "date": "2026-08-26",
+  "title": "Database Indexing",
+  "category": "system-design",
+  "lesson": "Without an index, a database answering a query has to perform a full table scan, reading every single row to check whether it matches the query's filter. That's fine for a tiny table, but on a table with millions of rows it's ruinously slow. An index is a separate, auxiliary data structure that lets the database jump straight to the matching rows instead, the same way a book's index lets a reader jump to a page instead of reading the entire book cover to cover looking for a term.\n\nThe most common index structure is the B-tree, a balanced, sorted tree structure where every lookup, insert, and delete takes roughly the same, small number of steps, O(log n), regardless of how large the table grows. Because the keys are stored in sorted order, a B-tree index is efficient not just for exact-match lookups but for range queries too, such as finding every row with a timestamp between two dates. Some indexes are clustered, meaning the table's actual row data is physically stored in that sorted order, while others are non-clustered, a separate structure whose leaf entries just point back to where the full row lives, meaning a lookup may need one traversal to find the pointer and a second read to fetch the actual row, unless the index itself contains every column the query needs, called a covering index, which can skip that second read entirely.\n\nAn index helps most when a query filters, sorts, or joins on the indexed column, and when that column is selective, meaning it narrows the result down to a small fraction of the table's rows. A composite index built across multiple columns, say (last_name, first_name), follows a left-to-right prefix rule: it speeds up queries that filter on last_name alone or on last_name and first_name together, but does nothing for a query that filters on first_name alone, since the tree is sorted by the leading column first.\n\nIndexes aren't free, though, and adding one to every column is a real anti-pattern rather than a safe default. Every insert, update, or delete on the table also has to update every index defined on it, so more indexes mean slower writes and extra storage, a direct tradeoff against faster reads. An index can also fail to help even when it exists: on a low-cardinality column, one with only a handful of distinct values like a boolean flag, or on a query expected to match a large fraction of the table's rows, the query optimizer often decides a full scan is actually cheaper than doing a huge number of individual index lookups, and skips the index entirely.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does a database index primarily solve?",
+      "options": [
+        "It avoids a full table scan by letting the database jump directly to matching rows",
+        "It permanently sorts the physical order of every table in the database",
+        "It removes the need for the database to store the underlying row data",
+        "It makes every write to the table instantaneous"
+      ],
+      "answer": 0,
+      "explanation": "An index is an auxiliary structure that lets lookups skip scanning every row, unlike a full table scan which checks every row for a match."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Adding more indexes to a table makes writes to that table faster, since the database has more structures to choose from.",
+      "answer": false,
+      "explanation": "Every insert, update, or delete has to update every index on the table too, so more indexes mean slower writes, not faster ones."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The most common index data structure is a balanced, sorted tree that gives lookups, inserts, and deletes roughly O(log n) performance, called a ____.",
+      "answer": "b-tree",
+      "acceptable": ["btree", "b tree", "b-tree index"],
+      "explanation": "A B-tree keeps keys in sorted, balanced form so any lookup takes a small, roughly constant number of steps even as the table grows."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A composite index is built on (last_name, first_name). Which query does it speed up?",
+      "options": [
+        "A query filtering only on first_name",
+        "A query filtering only on last_name",
+        "A query filtering on a completely unrelated column",
+        "No query, since composite indexes only work when every column is used together"
+      ],
+      "answer": 1,
+      "explanation": "Composite indexes follow a left-to-right prefix rule, so a query using the leading column, last_name, can use the index even without first_name, but a query using only first_name cannot."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A query optimizer will always use an available index rather than a full table scan, regardless of the column's selectivity or the fraction of rows the query matches.",
+      "answer": false,
+      "explanation": "On a low-selectivity column or a query matching a large fraction of the table, the optimizer often decides a full scan is cheaper than many individual index lookups and skips the index."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of how a database uses a non-clustered index to answer a query, earliest first.",
+      "items": [
+        "The database follows the pointer to fetch the actual row from the table",
+        "The query optimizer decides an available index can be used for this query",
+        "The B-tree is traversed to find the matching key entry",
+        "The matching leaf entry is read, giving a pointer to the row's physical location"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The optimizer first chooses to use the index, the tree is traversed to the matching key, the leaf entry yields a pointer, and only then is the actual row fetched from the table."
+    }
+  ]
+}

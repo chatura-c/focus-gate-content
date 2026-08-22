@@ -1,0 +1,70 @@
+{
+  "id": "2026-08-26-message-queues",
+  "date": "2026-08-26",
+  "title": "Message Queues",
+  "category": "system-design",
+  "lesson": "A message queue is an intermediary that sits between a producer, the service creating work, and a consumer, the service that eventually does that work, storing messages until they're processed. Instead of a producer calling a consumer directly and waiting for a response, it just drops a message on the queue and moves on. This decouples the two services in time and in failure: the producer doesn't need the consumer to be available right now, and a consumer outage doesn't lose work, it just delays it, since the message sits safely in the queue until a consumer is ready to pick it up.\n\nQueues also smooth out bursty traffic. If requests spike far beyond what downstream consumers can handle in real time, a synchronous system falls over or drops requests. A queue absorbs the burst instead, buffering messages and letting a fixed pool of consumers drain them at a sustainable rate, exactly the same buffering role a queue plays in any producer-consumer system, just applied across service boundaries. Multiple consumer instances can also read from the same queue as competing consumers, each message going to exactly one of them, which is a natural way to horizontally scale processing capacity independent of the producer.\n\nDelivery isn't perfectly reliable in practice, so most queue systems describe their guarantee as at-least-once rather than exactly-once: a consumer pulls a message, and only once it finishes processing and sends an acknowledgment does the queue permanently remove that message. If the consumer crashes or times out before acknowledging, the queue assumes the message wasn't handled and redelivers it, which means the same message can occasionally be processed more than once. Because of that, consumers are generally written to be idempotent, safe to process the same message twice without a bad outcome, rather than relying on the queue to guarantee true exactly-once delivery, which is far harder to provide efficiently at scale.\n\nA message that a consumer repeatedly fails to process, say it keeps throwing an error, shouldn't be redelivered forever, since that can block the queue or waste resources retrying something that will never succeed. Most systems cap retries and then route the message to a dead-letter queue, a separate holding area for messages that couldn't be processed, so it can be inspected and fixed manually instead of silently vanishing or looping indefinitely. This is also where the point-to-point queue pattern, one consumer per message, is often contrasted with a pub/sub topic, where the same message is broadcast to every subscriber rather than consumed by just one, useful when several independent services all need to react to the same event.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main benefit a message queue provides between a producer and a consumer service?",
+      "options": [
+        "It guarantees every message is processed exactly once with no possibility of duplication",
+        "It decouples the two services so the producer doesn't need the consumer to be available immediately",
+        "It eliminates the need for the consumer service to exist at all",
+        "It makes every request synchronous so the producer always gets an immediate response"
+      ],
+      "answer": 1,
+      "explanation": "A queue lets a producer hand off work and continue without waiting on the consumer, so the two services are decoupled in time and can fail independently."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "At-least-once delivery guarantees a message is never processed more than one time.",
+      "answer": false,
+      "explanation": "At-least-once delivery means a message may be redelivered and processed again if the consumer crashes before acknowledging it, so consumers need to be idempotent to handle occasional duplicates."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A message that repeatedly fails processing and exceeds its retry limit is typically routed to a special holding queue called a ____.",
+      "answer": "dead-letter queue",
+      "acceptable": ["dead letter queue", "dlq", "dead-letter", "dead letter"],
+      "explanation": "A dead-letter queue holds messages that couldn't be successfully processed after repeated attempts, so they can be inspected manually instead of retrying forever."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How does a point-to-point queue differ from a pub/sub topic?",
+      "options": [
+        "A queue delivers each message to exactly one consumer, while a topic broadcasts each message to every subscriber",
+        "A queue can only hold one message at a time, while a topic can hold unlimited messages",
+        "A topic requires synchronous delivery, while a queue is always asynchronous",
+        "There is no meaningful difference between the two patterns"
+      ],
+      "answer": 0,
+      "explanation": "In a point-to-point queue each message is consumed by exactly one of possibly many competing consumers, while a pub/sub topic broadcasts the same message to every subscriber."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of a message's lifecycle in an at-least-once queue, earliest first.",
+      "items": [
+        "The consumer acknowledges that it finished processing the message",
+        "A producer publishes a message to the queue",
+        "The queue permanently removes the acknowledged message",
+        "A consumer receives and begins processing the message"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "A message is published, delivered to a consumer, processed and acknowledged, and only then permanently removed from the queue."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Running multiple consumer instances as competing consumers on the same queue is a common way to scale message processing capacity horizontally.",
+      "answer": true,
+      "explanation": "Each message still goes to only one consumer, so adding more consumer instances lets a queue's backlog be drained faster without changing the producer."
+    }
+  ]
+}
