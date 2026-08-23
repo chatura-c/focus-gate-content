@@ -68,5 +68,19 @@
     "title": "Database Indexing",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-08-27-eventual-consistency",
+    "date": "2026-08-27",
+    "title": "Eventual Consistency",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-27-circuit-breakers",
+    "date": "2026-08-27",
+    "title": "Circuit Breakers",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

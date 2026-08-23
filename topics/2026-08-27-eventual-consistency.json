@@ -1,0 +1,70 @@
+{
+  "id": "2026-08-27-eventual-consistency",
+  "date": "2026-08-27",
+  "title": "Eventual Consistency",
+  "category": "system-design",
+  "lesson": "Eventual consistency is a weaker consistency model than strict, strong consistency: it guarantees that if no new writes happen to a given piece of data, every replica will eventually converge to the same value, but it makes no promise about how long that convergence takes or what a read might see in the meantime. This is the consistency side of the AP choice in CAP theorem, prioritizing availability and partition tolerance over having every replica agree at every instant. A strongly consistent system makes every read reflect the latest acknowledged write, even if that means blocking or rejecting requests during a partition; an eventually consistent system instead lets every replica keep answering reads and writes independently, and reconciles them later.\n\nReplicas converge through background mechanisms rather than blocking the original write. In anti-entropy, replicas periodically compare data (often via a compact summary like a Merkle tree) and exchange whatever differs. In read repair, a client's read that touches multiple replicas can detect a stale one and push the newer value to it as a side effect of the read itself. In hinted handoff, if a replica that should have received a write is temporarily unreachable, another node holds onto the write as a \"hint\" and forwards it once the target comes back. None of these require the original write to wait for every replica to be updated first.\n\nBecause replicas can receive conflicting writes to the same key, especially across partitions, the system needs a way to resolve conflicts once they're detected. The simplest approach is last-write-wins, comparing timestamps and keeping whichever write is newest, which is easy to implement but silently discards one of the writes even if that isn't the outcome a user wanted. More careful approaches use vector clocks to detect when two writes are genuinely concurrent (neither one \"happened before\" the other) versus when one is a clear successor to the other, surfacing true conflicts instead of guessing. CRDTs (conflict-free replicated data types) go further, structuring the data itself, such as a grow-only counter or a set with add and remove tracked separately, so that any order of merging replicas produces the same, mathematically well-defined result without needing an explicit conflict-resolution step at all.\n\nEventual consistency is a good fit where a brief window of staleness is harmless and availability matters more: a social media like count, a product's view count, a DNS record propagating across resolvers, or a shopping cart that just needs to converge before checkout. It's a poor fit anywhere a stale read causes real harm, like a bank balance used to authorize a withdrawal or a seat inventory system that must never oversell the same seat twice, where the cost of an incorrect answer outweighs the cost of a slower or rejected one."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which guarantee does eventual consistency actually make?",
+      "options": [
+        "Every read always returns the most recently written value",
+        "If writes stop, all replicas will eventually converge to the same value",
+        "Writes are rejected during a network partition to avoid conflicts",
+        "Replicas are updated synchronously before a write is acknowledged"
+      ],
+      "answer": 1,
+      "explanation": "Eventual consistency only promises convergence once writes stop, with no guarantee on timing or on what a read sees in the meantime."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Eventual consistency corresponds to choosing availability over consistency in the CAP theorem tradeoff during a partition.",
+      "answer": true,
+      "explanation": "Eventually consistent systems keep serving reads and writes on every side of a partition (AP), reconciling replicas afterward instead of blocking for agreement."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When a node that should have received a write is temporarily unreachable, another node can hold the write and forward it later once the target recovers, a mechanism called ____.",
+      "answer": "hinted handoff",
+      "acceptable": ["hinted-handoff"],
+      "explanation": "Hinted handoff lets writes still succeed and eventually reach an unreachable replica without blocking on it."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why might a system use vector clocks instead of simple last-write-wins timestamps for conflict resolution?",
+      "options": [
+        "Vector clocks make writes faster by skipping replication entirely",
+        "Vector clocks can distinguish genuinely concurrent writes from ones with a clear causal order, instead of silently discarding one write",
+        "Vector clocks remove the need for any replicas at all",
+        "Vector clocks guarantee strong consistency across all nodes"
+      ],
+      "answer": 1,
+      "explanation": "Last-write-wins just keeps whichever timestamp is newest and discards the other write, while vector clocks can detect true concurrency and surface it as a conflict instead of guessing."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A CRDT is designed so that replicas merged in any order always converge to the same result, without needing a separate conflict-resolution step.",
+      "answer": true,
+      "explanation": "CRDTs structure the data type itself (like grow-only counters or sets with tracked add/remove) so merges are commutative and order-independent by construction."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these as a spectrum from weakest to strongest consistency guarantee for a read.",
+      "items": [
+        "Strong consistency: every read reflects the latest acknowledged write",
+        "Read repair fixes a stale replica during the read itself, but the read that triggered it may still return the old value",
+        "Eventual consistency: replicas converge only after writes stop, with no bound on how long a stale read may occur"
+      ],
+      "answer": [2, 1, 0],
+      "explanation": "Eventual consistency gives the weakest guarantee, read repair improves staleness over time but a given read can still see an old value, and strong consistency guarantees every read is current."
+    }
+  ]
+}

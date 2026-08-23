@@ -1,0 +1,72 @@
+{
+  "id": "2026-08-27-circuit-breakers",
+  "date": "2026-08-27",
+  "title": "Circuit Breakers",
+  "category": "system-design",
+  "lesson": "When one service in a distributed system calls another and that downstream service starts failing or responding slowly, the naive behavior, just keep calling it and waiting, can turn a single struggling service into a system-wide outage. Callers pile up threads, connections, and memory waiting on responses that never come, their own resources get exhausted, and their callers in turn start timing out too. This is a cascading failure, and it can bring down services that were themselves perfectly healthy, simply because they were waiting on something that wasn't.\n\nA circuit breaker, named after the same idea as an electrical circuit breaker, wraps a risky call and tracks its recent success and failure rate. It has three states. Closed is the normal state: calls pass through to the downstream service, and failures are counted. If failures cross a configured threshold (say, more than 50% of calls fail within a rolling window), the breaker trips to open: for a set period, calls fail immediately, without even attempting the downstream service, returning an error or a fallback right away. After that timeout elapses, the breaker moves to half-open, letting a small number of trial calls through to check whether the downstream service has recovered. If those succeed, the breaker closes again and normal traffic resumes; if they still fail, it reopens and waits another cycle.\n\nA circuit breaker is a different tool from a plain timeout or a retry with backoff, and the three are normally used together rather than as substitutes for each other. A timeout bounds how long any single call can take. A retry with exponential backoff gives a single call a few more attempts, spaced out, in case the failure was transient. A circuit breaker acts at a higher level, across many calls over time, to stop sending traffic to a downstream service altogether once it's clearly unhealthy, which is precisely what protects the caller from the pile-up a large volume of individually-timing-out or individually-retried calls would otherwise cause. A related pattern, the bulkhead, limits how many concurrent calls or how much of a thread pool any one downstream dependency can consume, so that even before a breaker trips, one bad dependency can't starve resources needed for calls to everything else.\n\nTuning a circuit breaker means choosing the failure threshold and rolling window (too sensitive and it trips on ordinary blips; too lax and it doesn't protect against real outages), the open-state timeout (how long to wait before even trying again), and what to do with a call that's rejected while the breaker is open, ideally a fast, meaningful fallback, like cached or default data, rather than just surfacing a raw error to the end user."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does a circuit breaker primarily protect against?",
+      "options": [
+        "Slow database indexes",
+        "Cascading failures caused by callers piling up resources waiting on a failing downstream service",
+        "Network partitions between replicas",
+        "Uneven load distribution across servers"
+      ],
+      "answer": 1,
+      "explanation": "Without a circuit breaker, callers keep waiting on a failing dependency, exhausting their own resources and spreading the failure to their own callers."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In the closed state, a circuit breaker blocks all calls to the downstream service.",
+      "answer": false,
+      "explanation": "Closed is the normal state where calls pass through freely; it's the open state that blocks calls immediately without attempting the downstream service."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "After a circuit breaker's open-state timeout elapses, it moves to a state where a small number of trial calls are let through to check for recovery, called ____.",
+      "answer": "half-open",
+      "acceptable": ["half open", "halfopen"],
+      "explanation": "The half-open state tests the downstream service with limited traffic before deciding whether to close the breaker again or reopen it."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How does a circuit breaker differ from a plain retry with exponential backoff?",
+      "options": [
+        "A circuit breaker replaces the need for any timeouts",
+        "A retry acts on a single call's attempts, while a circuit breaker acts across many calls over time to stop traffic to a clearly unhealthy dependency",
+        "They are the same pattern with different names",
+        "A circuit breaker only works for database calls, while retries work for any call"
+      ],
+      "answer": 1,
+      "explanation": "Retries give one call more attempts in case of a transient blip, whereas a circuit breaker tracks aggregate health and cuts off traffic entirely once failures cross a threshold."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A bulkhead pattern limits how many concurrent calls or how much of a thread pool one dependency can consume, preventing it from starving resources needed for other dependencies.",
+      "answer": true,
+      "explanation": "Bulkheads isolate resource usage per dependency so a single failing or slow dependency can't exhaust resources shared by calls to everything else."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these circuit breaker state transitions as they occur when a downstream service fails and then recovers.",
+      "items": [
+        "Failures cross the configured threshold and the breaker trips",
+        "Calls pass through normally while failures are counted",
+        "A small number of trial calls succeed, so the breaker closes again",
+        "Calls fail immediately without reaching the downstream service",
+        "The open-state timeout elapses and a few trial calls are let through"
+      ],
+      "answer": [1, 0, 3, 4, 2],
+      "explanation": "The breaker starts closed and counting failures, trips to open once the threshold is crossed, rejects calls immediately while open, then after the timeout allows trial calls in half-open, closing again once those succeed."
+    }
+  ]
+}
