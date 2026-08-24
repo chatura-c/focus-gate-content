@@ -82,5 +82,19 @@
     "title": "Circuit Breakers",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-08-28-idempotency",
+    "date": "2026-08-28",
+    "title": "Idempotency",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-28-api-gateways",
+    "date": "2026-08-28",
+    "title": "API Gateways",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

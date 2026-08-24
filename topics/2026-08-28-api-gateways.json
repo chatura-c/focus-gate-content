@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-28-api-gateways",
+  "date": "2026-08-28",
+  "title": "API Gateways",
+  "category": "system-design",
+  "lesson": "Once a system is split into multiple backend services, clients need some way to talk to them without knowing about the internal topology, how many services there are, where each one lives, or how they're versioned. An API gateway sits in front of those services as a single entry point: clients send every request to the gateway, and the gateway routes each one to the right backend service based on the path, host, or other request attributes. From the outside, the system looks like one coherent API even though it's implemented as many independently deployed services.\n\nBeyond routing, a gateway is usually where cross-cutting concerns get centralized instead of being reimplemented in every service. That commonly includes authentication and authorization, rate limiting, TLS termination, request and response logging, and basic request/response transformation, like reshaping a response so a mobile client gets a smaller payload than a web client would. Centralizing these concerns means individual services can focus on their own business logic and trust that requests reaching them have already been authenticated and rate-limited, rather than every service re-implementing the same checks.\n\nA gateway is a distinct concept from a plain load balancer, even though both sit in front of backend infrastructure. A load balancer typically distributes traffic across many interchangeable replicas of the same service, operating with little awareness of what the request actually is. A gateway operates with more application awareness: it looks at the path or headers to decide which of several different services should handle a request, and it can apply per-route policies. In practice a gateway often sits in front of a set of services that are themselves each behind their own load balancer, so the two patterns compose rather than compete.\n\nThe main risk with a gateway is that it's tempting to keep piling responsibility into it, business logic, complex orchestration across multiple backend calls, until it becomes a bottleneck both operationally, since all traffic flows through it, and organizationally, since every team's changes now touch a shared component. A related pattern, backend for frontend, addresses part of this by giving each type of client, mobile, web, third-party, its own tailored gateway instead of forcing one gateway to serve every client's needs identically. Because a gateway sits on the critical path for every request, it also needs to be deployed with the same high-availability discipline as the services behind it; if it goes down, so does the whole system, even if every backend service is healthy."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the primary role of an API gateway in a microservices system?",
+      "options": [
+        "Storing the primary copy of application data",
+        "Acting as a single entry point that routes client requests to the right backend service",
+        "Replacing the need for backend services to have their own databases",
+        "Compiling and deploying backend services"
+      ],
+      "answer": 1,
+      "explanation": "The gateway gives clients one coherent entry point while routing requests internally to whichever service actually handles them."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "An API gateway and a load balancer are the same pattern, just with different names.",
+      "answer": false,
+      "explanation": "A load balancer distributes traffic across replicas of one service with little awareness of the request, while a gateway routes between different services based on the request itself; the two commonly compose together."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A gateway variant that gives each type of client, mobile, web, or third-party, its own tailored gateway instead of one shared gateway is called ____.",
+      "answer": "backend for frontend",
+      "acceptable": ["bff", "backend for frontend pattern"],
+      "explanation": "Backend for frontend lets each client type get a gateway shaped around its own needs rather than forcing every client through identical, one-size-fits-all responses."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main risk of continually adding business logic and multi-service orchestration into an API gateway?",
+      "options": [
+        "It makes the gateway too simple to be useful",
+        "It removes the need for authentication",
+        "It turns the gateway into an operational and organizational bottleneck that every team's changes must pass through",
+        "It automatically improves latency for every client"
+      ],
+      "answer": 2,
+      "explanation": "Piling responsibility into a shared gateway makes it a chokepoint for both traffic and team coordination, undermining the independence microservices are meant to provide."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Because an API gateway sits on the critical path for every request, it needs the same high-availability treatment as the backend services behind it.",
+      "answer": true,
+      "explanation": "If the gateway goes down, clients lose access to the whole system even when every individual backend service is healthy, so it can't be a weaker link than what it fronts."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these as a request typically flows through an API gateway before reaching a backend service.",
+      "items": [
+        "The gateway routes the request to the correct backend service based on its path",
+        "The client sends a request to the gateway's single entry point",
+        "The backend service processes the request and returns a response",
+        "The gateway authenticates the request and checks it against rate limits"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "The client always talks to the gateway first, which authenticates and rate-limits before routing to the right service, which then does the actual work and responds."
+    }
+  ]
+}
