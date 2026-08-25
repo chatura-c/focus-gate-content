@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-29-backpressure",
+  "date": "2026-08-29",
+  "title": "Backpressure",
+  "category": "system-design",
+  "lesson": "Backpressure is what happens when a producer generates work faster than a consumer can process it, and the system needs some way to signal that mismatch back upstream instead of silently piling up work forever. Picture water flowing into a pipe faster than it can drain: without a valve somewhere, pressure just keeps building until something bursts. In software, that \"burst\" usually looks like an unbounded queue eating all available memory, or a consumer falling further and further behind until its responses are useless by the time they're produced.\n\nThe core mechanism for handling this is giving the consumer, or something sitting between producer and consumer, a way to push back. A bounded queue is the simplest version: once it's full, the producer either blocks until space frees up or the write is rejected outright. Reactive streams take a more explicit approach with pull-based demand signaling, where the consumer tells the producer how many items it's ready to receive next, so the producer never sends more than the consumer asked for. TCP's flow control works similarly: the receiver advertises how much buffer space it has left, and the sender throttles itself to that window rather than flooding the connection.\n\nOnce backpressure is detected, a system has a few real choices, and each trades off differently. It can block the producer, which increases latency but keeps every request intact. It can drop or reject new work, a strategy often called load shedding, which keeps the system responsive for whatever it does accept at the cost of losing some requests entirely. Or it can buffer with a bounded queue as a shock absorber for short bursts, accepting that a queue with no size limit isn't backpressure at all, it's just a memory leak with extra steps.\n\nBackpressure connects directly to two topics already covered here: message queues and circuit breakers. A queue without backpressure just becomes an ever-growing backlog when a downstream consumer slows down, silently getting worse instead of failing visibly. Pairing backpressure with a circuit breaker gives a system a way to fail fast and shed load deliberately once a downstream dependency can't keep up, rather than letting requests queue indefinitely and time out anyway, just much later and after wasting far more resources getting there."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does backpressure address?",
+      "options": [
+        "A producer generating work faster than a consumer can process it",
+        "Two nodes disagreeing about the current leader",
+        "A cache returning stale data after a write",
+        "A client retrying a request too many times"
+      ],
+      "answer": 0,
+      "explanation": "Backpressure is the mechanism for signaling a producer to slow down when it's outpacing what the consumer can actually process."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "An unbounded queue between a producer and consumer is a valid form of backpressure, since it lets the producer keep working without ever being blocked.",
+      "answer": false,
+      "explanation": "A queue with no size limit doesn't push back on the producer at all, it just defers the failure until the system runs out of memory."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In TCP, the receiver advertises its available buffer space to the sender via the ____, which is a built-in form of backpressure.",
+      "answer": "receive window",
+      "acceptable": ["window size", "tcp window", "advertised window"],
+      "explanation": "TCP's receive window tells the sender how much unacknowledged data it can have in flight, throttling it to what the receiver can actually buffer."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which of the following is a common strategy for a system that's applying backpressure?",
+      "options": [
+        "Ignoring the mismatch and hoping the consumer catches up on its own",
+        "Load shedding, deliberately dropping or rejecting some incoming work",
+        "Doubling the producer's send rate to clear the backlog faster",
+        "Removing all queues so producer and consumer run in lockstep with no buffering at all"
+      ],
+      "answer": 1,
+      "explanation": "Load shedding trades completeness for responsiveness, rejecting some work outright so the system stays healthy for what it does accept."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Reactive streams' pull-based demand signaling lets a consumer tell the producer how many items it's ready for, rather than the producer pushing data as fast as it can.",
+      "answer": true,
+      "explanation": "Pull-based demand means the producer only sends what the consumer has explicitly requested, which is itself a form of backpressure."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events as backpressure builds and gets resolved in a producer/consumer system with a bounded queue.",
+      "items": [
+        "The bounded queue between producer and consumer fills to capacity",
+        "The producer generates events faster than the consumer can process them",
+        "The producer slows down or sheds load until the consumer catches up",
+        "The queue rejects new writes or blocks the producer, signaling backpressure"
+      ],
+      "answer": [1, 0, 3, 2],
+      "explanation": "The producer first outpaces the consumer, the buffer between them fills up, the full buffer signals backpressure by rejecting or blocking writes, and the producer responds by slowing down or shedding load."
+    }
+  ]
+}

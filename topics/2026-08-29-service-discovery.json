@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-29-service-discovery",
+  "date": "2026-08-29",
+  "title": "Service Discovery",
+  "category": "system-design",
+  "lesson": "In a system built from many independently deployed services, instances are constantly starting up, shutting down, crashing, and getting rescheduled to different hosts, each time potentially landing on a different IP address. Hardcoding \"payments-service lives at 10.0.4.12\" into every caller breaks the moment that instance moves, which in a dynamic environment can be minutes after deployment. Service discovery solves this by maintaining a registry that maps a stable service name to the current set of live, reachable instances behind it, so callers ask \"where is payments-service right now\" instead of assuming a fixed address.\n\nThere are two broad patterns for how a caller actually uses that registry. In client-side discovery, the calling service queries the registry directly, gets back a list of healthy instances, and picks one itself, taking on the load-balancing decision as part of its own logic. In server-side discovery, the caller instead sends its request to a well-known endpoint, a load balancer, a DNS name, or a Kubernetes Service, and that intermediary is the one that queries the registry and forwards the request onward. Client-side discovery gives more control and can make smarter routing decisions with less network hops, but couples every calling service to the discovery mechanism and its client library; server-side discovery keeps callers simple at the cost of an extra hop through the intermediary.\n\nKeeping the registry accurate requires deciding how instances get registered and deregistered in the first place. With self-registration, each instance registers itself on startup and deregisters on graceful shutdown, which is simple but leaves a gap if an instance crashes without a chance to clean up after itself. With third-party registration, a separate registrar process, often part of the deployment orchestrator, watches the actual infrastructure and updates the registry on the instances' behalf, so the registry doesn't depend on well-behaved instances cooperating. Either way, the registry typically layers in active health checks so instances that go silent get pruned even if they never explicitly deregistered.\n\nService discovery complements two patterns already covered: load balancing and circuit breakers. Discovery answers \"where are the healthy instances,\" load balancing answers \"which of those instances should handle this particular request,\" and a circuit breaker protects a caller from repeatedly hitting an instance the registry hasn't pruned yet but that's actually failing. In practice a lot of this is invisible day to day, in Kubernetes, for example, a Service plus its built-in DNS and networking layer provide client-side-transparent service discovery without application code ever calling a discovery API directly."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the primary purpose of service discovery?",
+      "options": [
+        "Encrypting traffic between services",
+        "Maintaining a registry that maps a service name to its current live instances",
+        "Compressing responses before they're sent to clients",
+        "Storing the authoritative copy of a service's data"
+      ],
+      "answer": 1,
+      "explanation": "Service discovery exists so callers can find the current, live locations of a service by name instead of relying on fixed, hardcoded addresses."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Service discovery eliminates the need for health checks, since failed instances immediately disappear from the network the moment they crash.",
+      "answer": false,
+      "explanation": "A crashed instance can stay listed in the registry until a health check or missed heartbeat prunes it, so health checks are still needed to keep the registry accurate."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In ____ discovery, the calling service queries the registry directly and chooses which instance to call, taking on the load-balancing decision itself.",
+      "answer": "client-side",
+      "acceptable": ["client side"],
+      "explanation": "Client-side discovery has the caller query the registry and pick an instance itself, as opposed to server-side discovery where an intermediary does that work."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the key difference between self-registration and third-party registration?",
+      "options": [
+        "Self-registration is faster over the network than third-party registration",
+        "Third-party registration only works with DNS, self-registration doesn't",
+        "In self-registration each instance registers/deregisters itself, while in third-party registration a separate process does it on the instances' behalf",
+        "There is no real difference, they're two names for the same mechanism"
+      ],
+      "answer": 2,
+      "explanation": "Self-registration relies on each instance cooperating on startup and shutdown, while third-party registration has an external registrar watch actual infrastructure state instead."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "DNS can be used as a simple mechanism for service discovery.",
+      "answer": true,
+      "explanation": "Resolving a stable service name to one or more current instance addresses is exactly what DNS-based service discovery does, often paired with short TTLs so entries stay reasonably fresh."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps in the lifecycle of a service instance using self-registration.",
+      "items": [
+        "Other services query the registry to discover the instance's address",
+        "The instance deregisters itself from the registry during graceful shutdown",
+        "The instance starts up and registers itself with the service registry",
+        "The instance periodically sends heartbeats to prove it's still healthy"
+      ],
+      "answer": [2, 0, 3, 1],
+      "explanation": "An instance registers on startup, becomes discoverable by other services, keeps proving it's alive with heartbeats, and finally deregisters itself on graceful shutdown."
+    }
+  ]
+}

@@ -96,5 +96,19 @@
     "title": "API Gateways",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-08-29-backpressure",
+    "date": "2026-08-29",
+    "title": "Backpressure",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-29-service-discovery",
+    "date": "2026-08-29",
+    "title": "Service Discovery",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

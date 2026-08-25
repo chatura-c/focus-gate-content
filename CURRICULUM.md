@@ -25,19 +25,19 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 12 | 2026-08-27 | Circuit Breakers          | `2026-08-27-circuit-breakers`       |
 | 13 | 2026-08-28 | Idempotency               | `2026-08-28-idempotency`            |
 | 14 | 2026-08-28 | API Gateways              | `2026-08-28-api-gateways`           |
+| 15 | 2026-08-29 | Backpressure              | `2026-08-29-backpressure`           |
+| 16 | 2026-08-29 | Service Discovery         | `2026-08-29-service-discovery`      |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
-an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 and
-2026-08-28 above — each was the next open date as of its respective run.
+an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 through
+2026-08-29 above — each was the next open date as of its respective run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Backpressure
-- Service discovery
 - Sagas / distributed transactions
 
 ## How to append
