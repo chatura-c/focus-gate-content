@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-30-sagas",
+  "date": "2026-08-30",
+  "title": "Sagas (Distributed Transactions)",
+  "category": "system-design",
+  "lesson": "A single database gives you ACID transactions for free: a multi-step write either all commits or all rolls back, and nothing in between is ever visible. Once a business operation spans multiple services, each owning its own database, that guarantee disappears. Placing an order might mean debiting a wallet in one service, reserving stock in another, and scheduling a shipment in a third, and none of those services can see or lock each other's data. A saga is the pattern for making that multi-step operation behave consistently anyway, without ever taking a lock that spans service boundaries.\n\nThe traditional answer to distributed transactions, two-phase commit (2PC), tries to preserve atomicity by having a coordinator ask every participant to \"prepare\" (lock resources and promise they can commit), then only \"commit\" once everyone has agreed. That works within a single control domain, but it holds locks across every participant for the full round trip, and if the coordinator dies mid-protocol, participants can be left blocked indefinitely holding those locks. That combination of blocking behavior and tight coupling is a poor fit for independently deployed, independently scaled microservices.\n\nA saga instead breaks the operation into a sequence of local transactions, each one committed independently within its own service, with each step triggering the next, typically by publishing an event onto a message queue. If a later step fails, the saga doesn't roll back the earlier ones in the database sense, since those are already committed and other readers may have already seen them. Instead it runs compensating transactions, semantic undos like refunding a debited wallet or releasing a reserved stock item, walking backward through the steps that already succeeded.\n\nThere are two common ways to coordinate the steps. In choreography, there's no central controller, each service listens for the events it cares about and publishes its own when done, which keeps services decoupled but makes the overall flow harder to trace as more steps are added. In orchestration, a dedicated saga orchestrator explicitly tells each participant what to do next and reacts to failures by triggering compensations, trading some of that decoupling for a single place to see and reason about the whole flow. Either way, because messages can be delivered more than once, saga steps and their compensations need to be idempotent, and because compensated state was briefly visible to other readers before it was undone, sagas trade the strict isolation of a database transaction for eventual consistency across the whole operation."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does the saga pattern solve?",
+      "options": [
+        "Encrypting data as it moves between services",
+        "Keeping a multi-step business operation consistent across services that each own their own database",
+        "Reducing the number of network hops in a request",
+        "Choosing which replica should serve a read"
+      ],
+      "answer": 1,
+      "explanation": "Sagas coordinate a sequence of local transactions across independently-owned databases so the overall operation stays consistent without a cross-service lock."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Two-phase commit (2PC) scales well to microservices because it lets each participant commit independently without waiting on the others.",
+      "answer": false,
+      "explanation": "2PC requires every participant to hold locks and wait for the coordinator's decision, which blocks participants and couples them tightly, a poor fit for independently deployed services."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When a later step in a saga fails, earlier steps are undone with a ____ transaction rather than a database rollback.",
+      "answer": "compensating",
+      "acceptable": ["compensation"],
+      "explanation": "Because earlier steps already committed in their own databases, undoing them means running a semantic opposite action, a compensating transaction, not a rollback."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the key difference between choreography and orchestration for coordinating a saga?",
+      "options": [
+        "Choreography is slower over the network than orchestration",
+        "Orchestration only works with two participants, choreography works with any number",
+        "In choreography each service reacts to events with no central controller, while orchestration uses a dedicated component that tells each participant what to do next",
+        "There is no real difference, they are two names for the same mechanism"
+      ],
+      "answer": 2,
+      "explanation": "Choreography is fully decentralized and event-driven, while orchestration centralizes the flow logic in a single orchestrator that is easier to trace but adds a coordinating component."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Saga steps and their compensating transactions need to be idempotent, since messages can be redelivered.",
+      "answer": true,
+      "explanation": "Message delivery isn't guaranteed exactly-once, so a step or its compensation may run more than once and must produce the same result each time."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events for a saga where the third step fails and must be compensated.",
+      "items": [
+        "Step 2 commits its local transaction and publishes an event",
+        "Step 1 commits its local transaction and publishes an event",
+        "Compensating transactions undo step 2 and then step 1",
+        "Step 3 attempts its local transaction and fails"
+      ],
+      "answer": [1, 0, 3, 2],
+      "explanation": "Steps 1 and 2 commit and hand off in order, step 3 fails, and the saga then runs compensations backward through the steps that already succeeded."
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-30-leader-election",
+  "date": "2026-08-30",
+  "title": "Leader Election",
+  "category": "system-design",
+  "lesson": "Plenty of distributed systems need exactly one node to play a special role at a time: the primary in a database replication setup that accepts writes, the coordinator that hands out locks, or the node that decides how work gets partitioned across a cluster. Having zero nodes in that role stalls the system, and having two at once, a split-brain, is often worse, since both can accept conflicting writes or grant the same lock to two different clients. Leader election is the mechanism a cluster uses to pick that one node and to notice and replace it when it goes away.\n\nRaft is one of the more approachable algorithms for this, precisely because it was designed to be easy to reason about. Every node is in one of three states: leader, follower, or candidate. A leader sends periodic heartbeats to its followers; as long as those heartbeats keep arriving, followers stay quiet and simply apply whatever the leader tells them. If a follower doesn't hear a heartbeat within a randomized election timeout, it assumes the leader is gone, becomes a candidate, increments a monotonically increasing counter called the term, votes for itself, and requests votes from its peers.\n\nA candidate only becomes leader if it wins votes from a majority of the cluster, not just a plurality. Requiring a majority is what makes split-brain impossible within a single term: two different candidates cannot both win a majority of the same fixed set of voters at once, since their majorities would have to overlap. If votes split evenly across multiple candidates and nobody reaches a majority, the term simply times out and a new election starts, and this is exactly why the election timeout is randomized per node, so competing candidates are unlikely to keep re-triggering elections in lockstep forever.\n\nThis is the same underlying problem as failover in database replication, deciding which replica becomes the new primary, and it's what backs the registries used for service discovery: coordination systems like ZooKeeper and etcd run a consensus algorithm internally to elect their own leader before they can reliably answer \"who is the current leader of this other cluster.\" Leader election trades a small amount of unavailability during the election window, since no writes can be safely accepted while no leader is confirmed, for the guarantee that once a leader is elected for a given term, the rest of the cluster agrees on exactly who it is."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do distributed systems need leader election?",
+      "options": [
+        "To compress data before replicating it between nodes",
+        "To ensure exactly one node holds a special coordinating role at a time, and to replace it if it fails",
+        "To encrypt traffic between cluster members",
+        "To decide which client gets served first during high load"
+      ],
+      "answer": 1,
+      "explanation": "Leader election exists to guarantee a single active leader for roles like accepting writes or coordinating locks, and to detect and replace that leader if it goes down."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A split-brain is when two nodes each believe they are the current leader at the same time.",
+      "answer": true,
+      "explanation": "Split-brain describes exactly this situation, where a cluster ends up with two nodes both acting as leader, which can lead to conflicting writes or duplicate lock grants."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In Raft, a candidate must win votes from a ____ of the cluster to become leader, which is what makes two leaders in the same term impossible.",
+      "answer": "majority",
+      "acceptable": ["majority of nodes", "majority vote"],
+      "explanation": "Requiring a majority means two different candidates can't both win in the same term, since their majorities would have to overlap on at least one shared vote."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "In Raft, what triggers a follower to become a candidate and start an election?",
+      "options": [
+        "It receives a write request directly from a client",
+        "It doesn't hear a heartbeat from the leader within its election timeout",
+        "The cluster administrator manually promotes it",
+        "It has been a follower for a fixed maximum number of terms"
+      ],
+      "answer": 1,
+      "explanation": "A follower assumes the leader is gone once its randomized election timeout elapses without a heartbeat, and only then becomes a candidate and requests votes."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Randomizing each node's election timeout helps prevent repeated split votes where no candidate reaches a majority.",
+      "answer": true,
+      "explanation": "If every node used the same timeout, competing candidates would tend to start new elections simultaneously; randomization makes one candidate more likely to get ahead and win a majority before others even start."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps in a Raft leader election triggered by a leader failure.",
+      "items": [
+        "A follower's election timeout elapses without a heartbeat from the leader",
+        "The leader stops sending heartbeats after crashing",
+        "The candidate wins votes from a majority of the cluster and becomes the new leader",
+        "The follower becomes a candidate, increments the term, and requests votes from peers"
+      ],
+      "answer": [1, 0, 3, 2],
+      "explanation": "The leader's failure stops heartbeats, a follower's timeout eventually elapses, it becomes a candidate and requests votes, and it becomes leader once it wins a majority."
+    }
+  ]
+}

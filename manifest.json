@@ -110,5 +110,19 @@
     "title": "Service Discovery",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-08-30-sagas",
+    "date": "2026-08-30",
+    "title": "Sagas (Distributed Transactions)",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-30-leader-election",
+    "date": "2026-08-30",
+    "title": "Leader Election",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

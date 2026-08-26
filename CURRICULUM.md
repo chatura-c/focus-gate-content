@@ -27,18 +27,24 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 14 | 2026-08-28 | API Gateways              | `2026-08-28-api-gateways`           |
 | 15 | 2026-08-29 | Backpressure              | `2026-08-29-backpressure`           |
 | 16 | 2026-08-29 | Service Discovery         | `2026-08-29-service-discovery`      |
+| 17 | 2026-08-30 | Sagas (Distributed Transactions) | `2026-08-30-sagas`           |
+| 18 | 2026-08-30 | Leader Election           | `2026-08-30-leader-election`        |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
 an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 through
-2026-08-29 above — each was the next open date as of its respective run.
+2026-08-30 above — each was the next open date as of its respective run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Sagas / distributed transactions
+- Two-Phase Commit (2PC) as a standalone deep-dive / contrast to sagas
+- Bloom filters
+- Write-ahead logging (WAL)
+- Distributed locking
+- gRPC vs REST
 
 ## How to append
 
