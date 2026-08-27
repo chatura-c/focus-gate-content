@@ -29,22 +29,26 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 16 | 2026-08-29 | Service Discovery         | `2026-08-29-service-discovery`      |
 | 17 | 2026-08-30 | Sagas (Distributed Transactions) | `2026-08-30-sagas`           |
 | 18 | 2026-08-30 | Leader Election           | `2026-08-30-leader-election`        |
+| 19 | 2026-08-31 | Two-Phase Commit (2PC)    | `2026-08-31-two-phase-commit`       |
+| 20 | 2026-08-31 | Bloom Filters             | `2026-08-31-bloom-filters`          |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
 an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 through
-2026-08-30 above — each was the next open date as of its respective run.
+2026-08-31 above — each was the next open date as of its respective run (this keeps a stable
+~4-day gap between a run's real calendar date and the `date` it assigns, rather than the gap
+growing further).
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Two-Phase Commit (2PC) as a standalone deep-dive / contrast to sagas
-- Bloom filters
 - Write-ahead logging (WAL)
 - Distributed locking
 - gRPC vs REST
+- Vector clocks / logical clocks
+- Content-based vs consistent-hash sharding key design (deeper follow-up to Database Sharding)
 
 ## How to append
 

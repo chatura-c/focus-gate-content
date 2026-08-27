@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-31-two-phase-commit",
+  "date": "2026-08-31",
+  "title": "Two-Phase Commit (2PC)",
+  "category": "system-design",
+  "lesson": "Two-phase commit (2PC) is the classic protocol for making a transaction that touches multiple independent resources, several databases, or several services, commit atomically: either every participant applies the change, or none of them do. A coordinator drives the protocol, and each participant is a resource manager that can prepare, commit, or abort its own local piece of the transaction.\n\nIn the first phase, the prepare phase, the coordinator asks every participant to get ready to commit. Each participant does whatever work is needed to guarantee it can honor a future commit, writes the change to a durable log, acquires the necessary locks, and then votes yes or no. A yes vote is a binding promise: the participant must now be able to commit on request, even if it crashes and restarts in the meantime, so it cannot release its locks until the coordinator's decision arrives.\n\nIn the second phase, the coordinator looks at the votes. If every participant voted yes, it sends a commit decision to all of them; if even one voted no, it sends abort instead. Participants then finalize accordingly and release their locks. This gives real atomicity, but at a cost: every participant holds locks on its resources for the full round trip, and if the coordinator crashes after collecting votes but before sending the decision, participants that voted yes are stuck holding those locks indefinitely, unable to safely decide on their own whether to commit or abort. This is 2PC's well-known blocking problem.\n\nThat blocking behavior, plus the tight coupling of every participant needing to be reachable and responsive for the whole protocol, is why 2PC is a poor fit for independently deployed microservices with their own release cycles and failure domains. It still shows up inside a single control domain, distributed databases coordinating commits across shards, or XA-compliant transaction managers spanning a few tightly-integrated systems, where the operator controls all participants and can tolerate the blocking risk. For loosely coupled services, the saga pattern trades 2PC's strict atomicity for local commits plus compensating transactions, avoiding cross-service locks entirely."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the purpose of the \"prepare\" phase in two-phase commit?",
+      "options": [
+        "To let participants vote on whether they can guarantee committing, locking resources accordingly",
+        "To roll back all prior transactions on every participant",
+        "To elect a new coordinator before the transaction starts",
+        "To measure network latency between participants"
+      ],
+      "answer": 0,
+      "explanation": "In the prepare phase each participant locks what it needs, durably logs the pending change, and votes yes or no on whether it can guarantee committing."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In 2PC, once a participant votes yes in the prepare phase, it must hold its locks until it receives the coordinator's final decision.",
+      "answer": true,
+      "explanation": "A yes vote is a binding promise to commit if instructed, so the participant must keep its locks until the commit or abort decision arrives."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "If the coordinator crashes after all participants voted yes but before sending the decision, participants are left in a ____ state, holding locks indefinitely.",
+      "answer": "blocking",
+      "acceptable": ["blocked"],
+      "explanation": "This is the classic blocking problem of 2PC: participants that already voted yes cannot safely decide on their own, so they wait for the coordinator to recover."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Compared to the saga pattern, two-phase commit primarily differs by:",
+      "options": [
+        "Not requiring any coordinator at all",
+        "Holding locks across all participants for the duration of the protocol, instead of committing each step immediately",
+        "Only ever working with a single participant",
+        "Guaranteeing eventual consistency instead of atomicity"
+      ],
+      "answer": 1,
+      "explanation": "2PC keeps every participant's resources locked until the coordinator's final decision, while a saga commits each local step immediately and uses compensating transactions if a later step fails."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Two-phase commit is commonly used to coordinate independently deployed microservices, each with its own team and release cycle.",
+      "answer": false,
+      "explanation": "2PC's blocking behavior and tight coupling make it a poor fit for independently deployed microservices; it's more common within a single control domain like a distributed database or an XA-compliant transaction manager."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a two-phase commit that ends in abort because one participant votes no.",
+      "items": [
+        "Coordinator sends abort to all participants",
+        "Coordinator sends prepare to all participants",
+        "Participants roll back and release any held locks",
+        "One participant votes no because it cannot guarantee the commit"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "The coordinator first asks participants to prepare, one participant vetoes by voting no, the coordinator then tells everyone to abort, and participants roll back and release their locks."
+    }
+  ]
+}

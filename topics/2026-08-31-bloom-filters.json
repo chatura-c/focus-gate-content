@@ -1,0 +1,71 @@
+{
+  "id": "2026-08-31-bloom-filters",
+  "date": "2026-08-31",
+  "title": "Bloom Filters",
+  "category": "system-design",
+  "lesson": "A Bloom filter is a compact data structure for answering one question very cheaply: \"is this element possibly in a set?\" It trades perfect accuracy for a huge reduction in memory and lookup time compared to storing the actual set, which makes it useful anywhere a system wants to avoid an expensive operation, a disk read, a network call, a database query, for something that almost certainly isn't there anyway.\n\nUnder the hood, a Bloom filter is just a bit array of size m, all initialized to 0, plus k independent hash functions. To insert an element, you run it through all k hash functions, each producing a position in the array, and set every one of those k bits to 1. To check membership, you hash the element the same way and look at all k positions: if any of them is still 0, the element is definitely not in the set, because inserting it would have set that bit. If all k positions are 1, the element is probably in the set, but you can't be certain, since other elements' insertions could have set those same bits by coincidence.\n\nThat asymmetry is the defining property of a Bloom filter: false positives are possible, but false negatives never are. A \"definitely not present\" answer is always trustworthy; a \"probably present\" answer needs to be confirmed some other way if certainty matters. The false positive rate isn't fixed, it rises as more elements are inserted into a fixed-size array, since more bits get set to 1 and collisions become more likely, which is why real systems size the bit array and choose the number of hash functions based on how many elements they expect to hold and how much false-positive rate they can tolerate.\n\nOne consequence of the shared-bits design is that you normally can't delete an element from a standard Bloom filter: clearing its bits back to 0 might also clear a bit that some other, still-present element depends on, silently introducing a false negative, which a Bloom filter is never supposed to produce. Variants like the counting Bloom filter fix this by using small counters instead of single bits, incrementing on insert and decrementing on delete. Bloom filters show up constantly in real infrastructure: databases like Cassandra and HBase keep one per on-disk file so a read can skip files that certainly don't contain the key it's looking for, browsers use them to check URLs against malicious-site lists without shipping the full list, and distributed caches use them to avoid a network round trip to a remote node for a key that isn't there."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which kind of wrong answer can a Bloom filter give?",
+      "options": [
+        "A false negative, reporting an element as absent when it was actually inserted",
+        "A false positive, reporting an element as possibly present when it was never inserted",
+        "Both false positives and false negatives",
+        "Neither, Bloom filter results are always exact"
+      ],
+      "answer": 1,
+      "explanation": "A Bloom filter can produce false positives because bits can be shared between elements, but it never produces false negatives; a \"definitely not present\" answer is always correct."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A Bloom filter can definitively confirm that an element is in a set.",
+      "answer": false,
+      "explanation": "A positive result only means \"probably present,\" since other elements could have coincidentally set the same bits; only a negative result is certain."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Inserting an element into a Bloom filter means hashing it with k different hash functions and setting the corresponding ____ in a bit array to 1.",
+      "answer": "bits",
+      "acceptable": ["positions", "bit positions"],
+      "explanation": "Each of the k hash functions maps the element to one position in the bit array, and that bit is set to 1."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why is it generally unsafe to delete an element from a standard Bloom filter by clearing its bits back to 0?",
+      "options": [
+        "It's always safe, deletion is a core feature of a standard Bloom filter",
+        "Another element might depend on one of the same bits, so clearing it could wrongly make that still-present element look absent",
+        "Bloom filters store elements as plaintext, so nothing needs clearing",
+        "It would make the bit array too large"
+      ],
+      "answer": 1,
+      "explanation": "Because hash collisions let elements share bit positions, clearing a bit for one element can introduce a false negative for a different, still-present element, which counting Bloom filters avoid by using counters instead of single bits."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "As more elements are inserted into a fixed-size Bloom filter, its false positive rate increases.",
+      "answer": true,
+      "explanation": "More insertions set more bits to 1, making it more likely that a query for an absent element still finds all of its checked positions already set."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps for checking whether an element is a member of a Bloom filter.",
+      "items": [
+        "Hash the element with all k hash functions to get k bit positions",
+        "If any of those positions is 0, report \"definitely not in the set\"",
+        "If all positions are 1, report \"possibly in the set\"",
+        "Check the bit array at each of the k positions"
+      ],
+      "answer": [0, 3, 1, 2],
+      "explanation": "The element is hashed to get its k positions, those positions are checked in the bit array, and the result is \"definitely absent\" if any bit is 0 or otherwise \"possibly present\"."
+    }
+  ]
+}

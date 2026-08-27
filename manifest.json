@@ -124,5 +124,19 @@
     "title": "Leader Election",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-08-31-two-phase-commit",
+    "date": "2026-08-31",
+    "title": "Two-Phase Commit (2PC)",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-08-31-bloom-filters",
+    "date": "2026-08-31",
+    "title": "Bloom Filters",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
