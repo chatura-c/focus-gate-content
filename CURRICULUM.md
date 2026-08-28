@@ -31,6 +31,13 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 18 | 2026-08-30 | Leader Election           | `2026-08-30-leader-election`        |
 | 19 | 2026-08-31 | Two-Phase Commit (2PC)    | `2026-08-31-two-phase-commit`       |
 | 20 | 2026-08-31 | Bloom Filters             | `2026-08-31-bloom-filters`          |
+| 21 | 2026-09-01 | Write-Ahead Logging (WAL) | `2026-09-01-write-ahead-logging`    |
+
+## Repetitions (spaced re-quizzes, not new concepts)
+
+| Date       | Concept re-quizzed | New file                            | Notes |
+|------------|--------------------|-------------------------------------|-------|
+| 2026-09-02 | CAP Theorem (orig. `2026-08-21-cap-theorem`) | `2026-09-02-cap-theorem-review` | Same lesson text, fresh questions covering the CAP definition of availability, AP reconciliation, PACELC, and per-request quorum tuning. |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with

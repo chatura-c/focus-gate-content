@@ -138,5 +138,19 @@
     "title": "Bloom Filters",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-01-write-ahead-logging",
+    "date": "2026-09-01",
+    "title": "Write-Ahead Logging (WAL)",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-02-cap-theorem-review",
+    "date": "2026-09-02",
+    "title": "CAP Theorem",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
