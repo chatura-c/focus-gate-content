@@ -32,6 +32,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 19 | 2026-08-31 | Two-Phase Commit (2PC)    | `2026-08-31-two-phase-commit`       |
 | 20 | 2026-08-31 | Bloom Filters             | `2026-08-31-bloom-filters`          |
 | 21 | 2026-09-01 | Write-Ahead Logging (WAL) | `2026-09-01-write-ahead-logging`    |
+| 22 | 2026-09-03 | Distributed Locking       | `2026-09-03-distributed-locking`    |
+| 23 | 2026-09-03 | Vector Clocks / Logical Clocks | `2026-09-03-vector-clocks`     |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -51,10 +53,7 @@ growing further).
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Write-ahead logging (WAL)
-- Distributed locking
 - gRPC vs REST
-- Vector clocks / logical clocks
 - Content-based vs consistent-hash sharding key design (deeper follow-up to Database Sharding)
 
 ## How to append

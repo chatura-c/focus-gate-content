@@ -152,5 +152,19 @@
     "title": "CAP Theorem",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-03-distributed-locking",
+    "date": "2026-09-03",
+    "title": "Distributed Locking",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-03-vector-clocks",
+    "date": "2026-09-03",
+    "title": "Vector Clocks / Logical Clocks",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

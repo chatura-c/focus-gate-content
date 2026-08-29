@@ -1,0 +1,71 @@
+{
+  "id": "2026-09-03-distributed-locking",
+  "date": "2026-09-03",
+  "title": "Distributed Locking",
+  "category": "system-design",
+  "lesson": "A distributed lock is a mutual-exclusion mechanism that works across separate processes or machines instead of within a single process's memory. The need is the same as an in-process mutex — make sure only one worker at a time does something, like running a scheduled job or updating a shared resource — but a distributed lock has to survive things an in-process mutex never worries about: the lock holder's process crashing, its network connection dropping, or clocks on different machines disagreeing. A common implementation stores the lock as a key in a shared store (Redis, ZooKeeper, etcd, or a database row) that a process must successfully create before proceeding, and deletes when done.\n\nThe central danger is a lock that outlives its holder. If a process crashes or gets stuck (a long garbage-collection pause, for example) while holding the lock and never releases it, every other worker is now blocked forever waiting for a lock nobody will free. The standard fix is a lease: the lock is created with a time-to-live (TTL), so if the holder never explicitly releases it, the lock store expires it automatically after the TTL passes. This trades one risk for another — too short a TTL and a slow-but-still-alive holder can lose its lock mid-work while another process acquires it, causing two processes to believe they hold the lock simultaneously; too long a TTL and a genuinely dead holder blocks everyone for longer than necessary.\n\nThat dual-holder scenario is why a distributed lock needs a fencing token, not just an acquire/release call. Each successful lock acquisition should return a monotonically increasing number (the fencing token), and the resource being protected should reject any write that arrives with an older token than the last one it accepted. If a stalled process's lease expires, a second process acquires the lock and gets a higher token, and the stalled process later wakes up and tries to write with its now-stale lower token, the resource can detect and reject it. Without fencing tokens, a lock is only a soft signal that both processes might respect, not a guarantee — the stalled process can still corrupt shared state after it believes it holds the lock but no longer does.\n\nWhere the lock's own state lives also matters. A lock backed by a single Redis instance is only as available and as correct as that instance; if it fails over to a replica that hasn't caught up, two clients can end up believing they hold the same lock. Algorithms like Redlock attempt to make Redis-based locking safer by acquiring the lock across a majority of independent Redis nodes, though it remains debated among distributed-systems practitioners for high-stakes correctness needs. Systems built around a proper consensus protocol, like ZooKeeper (via ephemeral sequential znodes) or etcd (via leases and its own consensus), are generally considered the more rigorous foundation for locks that must never be held by two clients at once, precisely because they can't produce two different answers about who currently holds the lock."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does a lease (TTL) on a distributed lock primarily solve?",
+      "options": [
+        "It makes lock acquisition faster",
+        "It prevents a lock from being held forever if its holder crashes or hangs without releasing it",
+        "It removes the need for a shared store to hold the lock",
+        "It guarantees the lock can never be held by two processes at once"
+      ],
+      "answer": 1,
+      "explanation": "A TTL auto-expires the lock if the holder never releases it, so a crashed or stuck process can't block every other worker indefinitely."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Making a lock's TTL as short as possible is a purely safe way to reduce how long a dead holder can block others, with no downside.",
+      "answer": false,
+      "explanation": "A TTL that's too short can expire while the holder is still alive but slow, letting another process acquire the lock and creating two simultaneous holders."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A monotonically increasing number returned on each lock acquisition, which the protected resource uses to reject stale writes from a holder that has since lost the lock, is called a ____.",
+      "answer": "fencing token",
+      "acceptable": ["fencing", "fence token"],
+      "explanation": "Fencing tokens let the protected resource detect and reject writes from a process whose lease already expired, even if that process still believes it holds the lock."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why are ZooKeeper or etcd generally considered a more rigorous foundation for correctness-critical distributed locks than a single Redis instance?",
+      "options": [
+        "They are faster at acquiring and releasing locks",
+        "They don't require a TTL or lease at all",
+        "They're built on a consensus protocol, so they can't produce two different answers about who currently holds the lock, even during failover",
+        "They store the lock data on disk instead of in memory"
+      ],
+      "answer": 2,
+      "explanation": "Consensus-backed systems guarantee a single agreed-upon answer about lock ownership even across node failures, whereas a single Redis instance failing over to a stale replica can let two clients believe they hold the same lock."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Without fencing tokens, a distributed lock is only a soft signal that cooperating processes respect, not an absolute guarantee against two processes acting on a resource at once.",
+      "answer": true,
+      "explanation": "A stalled process whose lease has expired can still send a write after another process has acquired the lock; only a fencing token lets the resource itself reject that stale write."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events in a scenario where a distributed lock's fencing token prevents corruption, earliest first.",
+      "items": [
+        "A second process acquires the lock and receives a higher fencing token",
+        "The stalled process resumes and sends a write using its old, lower fencing token",
+        "The protected resource rejects the write because it has already seen a higher token",
+        "The first process's lease expires while it is stalled by a long pause"
+      ],
+      "answer": [3, 0, 1, 2],
+      "explanation": "The lease expires during the stall, a new holder acquires the lock with a higher token, the stalled process later writes with its stale token, and the resource rejects it because a higher token was already seen."
+    }
+  ]
+}

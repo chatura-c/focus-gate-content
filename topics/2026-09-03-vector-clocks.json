@@ -1,0 +1,71 @@
+{
+  "id": "2026-09-03-vector-clocks",
+  "date": "2026-09-03",
+  "title": "Vector Clocks / Logical Clocks",
+  "category": "system-design",
+  "lesson": "In a distributed system, machines' physical clocks are never perfectly in sync, so timestamps alone can't reliably tell you whether one event caused, or merely preceded, another. Logical clocks solve a narrower but more useful problem: instead of measuring wall-clock time, they track the order in which events could have causally affected each other. The simplest version, a Lamport clock, is just a counter each node keeps and increments on every local event; when a node sends a message it attaches its counter, and the receiver sets its own counter to one more than the max of its current value and the received value. This guarantees that if event A causally happened-before event B, A's Lamport timestamp is smaller than B's.\n\nThe catch is that a Lamport clock only works in one direction: a smaller timestamp implies nothing was necessarily caused by the larger one, but you cannot look at two Lamport timestamps and tell whether the events are causally related at all or were simply concurrent, unrelated events on different nodes. Two completely independent events on different nodes can easily end up with the same or arbitrarily ordered Lamport timestamps, and there's no way to distinguish that from real causality just by comparing the numbers.\n\nA vector clock fixes this by giving every node its own counter and having each node track the entire vector of all nodes' counters it has observed, not just a single number. A vector clock is an array with one entry per node; a node increments only its own entry on a local event, and when it sends a message it attaches its whole vector, with the receiver updating each entry to the max of its own and the received vector (then incrementing its own entry). Comparing two vector clocks now tells you the full causal relationship: if every entry of vector A is less than or equal to the corresponding entry of vector B (and at least one is strictly less), A happened-before B; if neither vector dominates the other in every entry, the two events are concurrent, meaning neither caused the other.\n\nThis concurrent case is exactly what distributed databases need to detect conflicting writes. In an AP system like Dynamo-style stores, two clients can both write to the same key on different replicas during a partition; when the replicas later reconcile, comparing the vector clocks attached to each version tells the system whether one write clearly supersedes the other (happened-after) or whether they're genuinely concurrent and need application-level or last-write-wins conflict resolution. The tradeoff is size: a vector clock's length grows with the number of nodes that have ever touched a piece of data, which is why systems with many short-lived clients (rather than a fixed set of replicas) often use variants like dotted version vectors to keep the metadata bounded."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem do logical clocks (like Lamport or vector clocks) address that physical wall-clock timestamps cannot reliably solve?",
+      "options": [
+        "Measuring exact elapsed time between two events",
+        "Determining causal ordering between events across different machines whose clocks aren't perfectly synchronized",
+        "Compressing timestamps to save storage space",
+        "Encrypting event data for secure transmission"
+      ],
+      "answer": 1,
+      "explanation": "Logical clocks track causal happened-before relationships between events rather than wall-clock time, which unsynchronized physical clocks can't reliably provide."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If event A's Lamport timestamp is smaller than event B's, that guarantees A causally happened-before B.",
+      "answer": false,
+      "explanation": "A smaller Lamport timestamp only means B could not have happened-before A; it does not guarantee A caused B, since concurrent unrelated events can also end up with a smaller and larger timestamp."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When neither of two vector clocks has every entry less than or equal to the other's, the two events they represent are called ____.",
+      "answer": "concurrent",
+      "acceptable": ["concurrent events"],
+      "explanation": "Concurrent means neither event causally influenced the other, which vector clocks can detect but Lamport clocks cannot."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do vector clocks tell you more about the relationship between two events than Lamport clocks do?",
+      "options": [
+        "Vector clocks use larger numbers so they never collide",
+        "Vector clocks track a per-node counter for every node, so comparing two vectors can distinguish real causality from concurrency, not just produce a single order",
+        "Vector clocks are synchronized using NTP for higher precision",
+        "Vector clocks only increment on message sends, never on local events"
+      ],
+      "answer": 1,
+      "explanation": "Because a vector clock keeps one entry per node, comparing entries reveals whether one event's vector fully dominates the other (causal) or neither dominates (concurrent)."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Dynamo-style distributed databases can use vector clocks attached to writes to detect when two versions of a key were written concurrently on different replicas and need conflict resolution.",
+      "answer": true,
+      "explanation": "Comparing the vector clocks of two versions tells the system whether one write happened-after the other or whether they're concurrent and need reconciliation."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of updating a vector clock, earliest first, for a node that receives a message from another node.",
+      "items": [
+        "The node increments its own entry in the vector by one",
+        "A message arrives carrying the sender's full vector clock",
+        "The node sets each entry of its own vector to the max of its current value and the received value",
+        "The node had been maintaining a vector with one counter per known node"
+      ],
+      "answer": [3, 1, 2, 0],
+      "explanation": "The node already maintains its vector, receives a message with the sender's vector, merges by taking the max of each entry, then increments its own entry for this new local event."
+    }
+  ]
+}
