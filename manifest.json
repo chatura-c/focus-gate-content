@@ -166,5 +166,19 @@
     "title": "Vector Clocks / Logical Clocks",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-04-quorum-consensus",
+    "date": "2026-09-04",
+    "title": "Quorum Reads and Writes",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-04-grpc-vs-rest",
+    "date": "2026-09-04",
+    "title": "gRPC vs REST",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

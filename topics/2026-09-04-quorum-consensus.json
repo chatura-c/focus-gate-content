@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-04-quorum-consensus",
+  "date": "2026-09-04",
+  "title": "Quorum Reads and Writes",
+  "category": "system-design",
+  "lesson": "In a leaderless, Dynamo-style replicated store, every write is sent to several replicas and there is no single primary that serializes updates. To get predictable consistency out of that setup without a leader, the system uses quorums. Three numbers define the behaviour: N, the replication factor (how many replicas hold each key); W, the write quorum (how many of those replicas must acknowledge a write before the client considers it successful); and R, the read quorum (how many replicas the client contacts and waits for on a read). The coordinator for a request fans out to the relevant replicas and returns as soon as W (or R) of them respond, so slow or failed replicas don't block the operation as long as enough others answer.\n\nThe key property is the overlap rule: if W + R > N, then any read quorum must share at least one replica with the most recent successful write quorum. That shared replica is guaranteed to hold the latest acknowledged value, so the reader sees it and can pick the newest version among the responses using a timestamp or vector clock. Requiring W > N/2 additionally prevents two writes from both succeeding on completely disjoint sets of replicas, which keeps a single latest write well-defined. If W + R is less than or equal to N, the store gives only eventual consistency: reads are faster and more available, but a read quorum can entirely miss the replicas that took the last write and return stale data until background repair catches up.\n\nThose three knobs are how you tune the read/write tradeoff. A typical balanced choice is N=3, W=2, R=2. A read-heavy workload that still wants a fresh read can set R=1 and W=N, making reads cheap while every write must reach all replicas. A write-heavy or latency-sensitive workload can set W=1 for fast writes and push R up, accepting weaker durability and a larger read fan-out. Because stale replies still happen, quorum systems pair reads with read repair (the coordinator writes the newest version back to any replica that answered with an old one) and background anti-entropy processes that continuously reconcile divergent replicas.\n\nThe overlap guarantee is also more fragile than the arithmetic suggests. During failures, Dynamo-style systems often use a sloppy quorum: if some of a key's home replicas are unreachable, the write is accepted by other reachable nodes instead, with a hint to hand the data back to the proper replica once it recovers (hinted handoff). This keeps writes available, but the write and a later read may now land on non-overlapping node sets, so W + R > N no longer strictly guarantees the read sees the latest write. Quorum reads by themselves also don't provide linearizability; achieving stronger guarantees needs additional mechanisms on top of the basic quorum.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In a quorum-replicated store with replication factor N, what does configuring W + R > N guarantee?",
+      "options": [
+        "Every write is instantly visible on all N replicas",
+        "Any read quorum overlaps the most recent write quorum on at least one replica, so the read can see the latest acknowledged write",
+        "Reads and writes never block, even if every replica is down",
+        "The system becomes fully linearizable with no extra mechanisms"
+      ],
+      "answer": 1,
+      "explanation": "W + R > N forces the read set and the latest write set to share at least one replica, which is guaranteed to hold the newest acknowledged value."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With N=3, W=2, and R=2, a successful read is guaranteed to contact at least one replica that saw the latest successful write.",
+      "answer": true,
+      "explanation": "W + R = 4 > N = 3, so the two-replica read quorum must intersect the two-replica write quorum on at least one node."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A quorum configuration where W + R is less than or equal to N provides only ____ consistency, because a read quorum can entirely miss the replicas that took the last write.",
+      "answer": "eventual",
+      "acceptable": ["eventual consistency"],
+      "explanation": "Without a guaranteed overlap between read and write quorums, reads may return stale data until background repair reconciles the replicas."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "You have a strongly read-heavy workload and want each read to be as cheap as possible while still reflecting the latest write. Which setting fits best?",
+      "options": [
+        "R = 1 and W = N",
+        "R = N and W = 1",
+        "R = 1 and W = 1",
+        "R = N and W = N"
+      ],
+      "answer": 0,
+      "explanation": "Forcing every write to all N replicas lets a single-replica read still see the latest value while keeping read cost minimal, at the price of slower, less available writes."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A sloppy quorum with hinted handoff still preserves the W + R > N overlap guarantee even when some of a key's home replicas are unreachable.",
+      "answer": false,
+      "explanation": "Sloppy quorums accept writes on substitute nodes to stay available, so a later read quorum may not overlap the nodes that took the write, breaking the strict overlap guarantee."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps of a quorum read with read repair, earliest first.",
+      "items": [
+        "The coordinator writes the newest version back to replicas that returned stale data",
+        "The coordinator sends the read request to R replicas",
+        "Each contacted replica returns its stored value and version",
+        "The coordinator picks the value with the newest version to return to the client"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The coordinator queries R replicas, collects their versioned values, returns the newest one to the client, then repairs any replica that answered with an older version."
+    }
+  ]
+}

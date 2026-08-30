@@ -34,6 +34,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 21 | 2026-09-01 | Write-Ahead Logging (WAL) | `2026-09-01-write-ahead-logging`    |
 | 22 | 2026-09-03 | Distributed Locking       | `2026-09-03-distributed-locking`    |
 | 23 | 2026-09-03 | Vector Clocks / Logical Clocks | `2026-09-03-vector-clocks`     |
+| 24 | 2026-09-04 | Quorum Reads and Writes  | `2026-09-04-quorum-consensus`       |
+| 25 | 2026-09-04 | gRPC vs REST             | `2026-09-04-grpc-vs-rest`           |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -44,8 +46,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
 an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 through
-2026-08-31 above — each was the next open date as of its respective run (this keeps a stable
-~4-day gap between a run's real calendar date and the `date` it assigns, rather than the gap
+2026-09-04 above — each was the next open date as of its respective run (this keeps a stable
+~4-5 day gap between a run's real calendar date and the `date` it assigns, rather than the gap
 growing further).
 
 ## Candidate next topics
@@ -53,8 +55,9 @@ growing further).
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- gRPC vs REST
 - Content-based vs consistent-hash sharding key design (deeper follow-up to Database Sharding)
+- Consensus protocols (Raft / Paxos) as a deeper follow-up to Leader Election
+- Gossip / anti-entropy protocols (follow-up to Service Discovery + Vector Clocks)
 
 ## How to append
 

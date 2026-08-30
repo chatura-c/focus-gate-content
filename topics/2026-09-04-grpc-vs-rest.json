@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-04-grpc-vs-rest",
+  "date": "2026-09-04",
+  "title": "gRPC vs REST",
+  "category": "system-design",
+  "lesson": "REST is an architectural style layered on plain HTTP. Resources are named by URLs, HTTP verbs (GET, POST, PUT, DELETE) express the operation, and payloads are usually JSON. Its strengths come from being ordinary web traffic: any browser can call it, intermediary caches and proxies understand it, you can debug it with curl, and the contract is loose enough that clients and servers can evolve somewhat independently (optionally formalized with OpenAPI). The costs are that JSON is verbose and comparatively slow to parse, the request/response shape is essentially one round trip per call, and nothing enforces the schema unless you add tooling on top.\n\ngRPC is a remote-procedure-call framework. You describe services and message types in a Protocol Buffers (.proto) interface-definition file, then run a code generator that produces typed client and server stubs in many languages. On the wire, gRPC sends compact binary Protobuf messages over HTTP/2. Compared with JSON over HTTP/1.1, this means smaller payloads, faster serialization, a strict shared contract checked at compile time, and lower latency when call volume is high. Calling a remote method looks like calling a local function through the generated stub.\n\nRunning over HTTP/2 gives gRPC first-class streaming. Beyond the basic unary (one request, one response) call, it supports server streaming, client streaming, and bidirectional streaming over a single long-lived, multiplexed connection. Typical REST APIs are request/response only and open a connection per call (or rely on HTTP/1.1 keep-alive without true multiplexing). That, plus the lighter payloads, is why gRPC is a common default for internal service-to-service communication in a microservices backend.\n\nThe tradeoffs push gRPC away from the public edge. Browsers cannot speak raw gRPC and need a grpc-web proxy layer; binary payloads are not human-readable; general HTTP caching and tooling are weaker; and many API consumers simply expect JSON. Protobuf schema evolution also has its own rules (fields are identified by stable numeric tags, and you add rather than renumber fields to stay backward compatible). A frequent pattern is to use gRPC between internal services and expose REST/JSON at the boundary, with an API gateway translating between the two.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does gRPC use by default for its wire format and transport?",
+      "options": [
+        "JSON text over HTTP/1.1",
+        "Binary Protocol Buffers messages over HTTP/2",
+        "XML over raw TCP",
+        "Binary Protocol Buffers over UDP"
+      ],
+      "answer": 1,
+      "explanation": "gRPC serializes messages as compact binary Protobuf and carries them over HTTP/2, which is what enables multiplexing and streaming."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A standard web browser can call a raw gRPC endpoint directly with fetch or XHR, without any intermediary layer.",
+      "answer": false,
+      "explanation": "Browsers can't speak native gRPC over HTTP/2 framing, so browser clients need a grpc-web proxy to translate calls."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In gRPC, the services and message types are declared in a ____ file, from which client and server stubs are generated.",
+      "answer": ".proto",
+      "acceptable": ["proto", "protobuf", "proto file"],
+      "explanation": "The .proto interface-definition file is the single shared contract that the code generator turns into typed stubs for each language."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which capability does gRPC provide that a typical REST API does not?",
+      "options": [
+        "Returning JSON payloads",
+        "Being callable with curl",
+        "Bidirectional streaming over a single long-lived, multiplexed connection",
+        "Using URLs to identify resources"
+      ],
+      "answer": 2,
+      "explanation": "HTTP/2 lets gRPC support server-, client-, and bidirectional streaming on one multiplexed connection, whereas typical REST is request/response only."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A common architecture uses gRPC for internal service-to-service calls and exposes REST/JSON at the public edge, often with a gateway translating between them.",
+      "answer": true,
+      "explanation": "gRPC's efficiency and strict contract suit internal traffic, while REST/JSON stays at the boundary for browsers and third-party consumers."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps of building and using a gRPC service, earliest first.",
+      "items": [
+        "Generate client and server stub code from the .proto for each target language",
+        "Define the service methods and message types in a .proto file",
+        "A client invokes the remote method through its generated stub as if it were local",
+        "Implement the server logic behind the generated service interface"
+      ],
+      "answer": [1, 0, 3, 2],
+      "explanation": "You write the .proto contract first, generate stubs from it, implement the server behind the generated interface, then clients call methods through their stubs."
+    }
+  ]
+}
