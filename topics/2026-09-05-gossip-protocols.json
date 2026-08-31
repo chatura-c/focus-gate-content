@@ -1,0 +1,72 @@
+{
+  "id": "2026-09-05-gossip-protocols",
+  "date": "2026-09-05",
+  "title": "Gossip and Anti-Entropy Protocols",
+  "category": "system-design",
+  "lesson": "In a large cluster, spreading information - which nodes are alive, configuration changes, ring membership, or replica state - is surprisingly hard to do well. Routing everything through a central coordinator creates a bottleneck and a single point of failure, while having every node talk directly to every other node costs on the order of N-squared messages and collapses as the cluster grows. Gossip protocols (also called epidemic protocols) take a different approach: on a fixed interval, each node picks a small random set of peers and exchanges information with them, exactly the way a rumour or an infection spreads through a population. A new fact started at one node reaches all N nodes in roughly log(N) rounds with high probability, and each node's workload stays constant no matter how big the cluster gets. Cassandra, DynamoDB, Consul, Riak, and Redis Cluster all use gossip for membership and metadata.\n\nEach gossip round, a node contacts one or a few random peers and they reconcile state. The exchange can be push (send my updates), pull (ask for yours), or push-pull (both), with push-pull converging fastest. Every piece of shared state carries a version - often a per-node heartbeat counter or a logical timestamp - and when two nodes disagree, each simply keeps the value with the higher version. That version-based merge is what makes gossip eventually consistent and order-independent: it does not matter which node learns what first or in which order messages arrive, because repeated random exchanges drive every node toward the same latest values. The randomness and redundancy also make gossip robust to dropped messages and crashed peers, with no coordinator to lose.\n\nGossip is commonly the transport for failure detection. Nodes piggyback per-node heartbeat counters on their gossip messages; if a node's counter has not advanced within a timeout, its peers mark it suspect and then dead. SWIM refines this by separating the failure detector (direct pings plus indirect pings routed through other members to avoid false positives from a single bad link) from the dissemination component (gossip), which keeps detection time roughly constant as the cluster grows. Cassandra's phi-accrual detector goes further and outputs a continuous suspicion level rather than a binary up or down, adapting its threshold to observed network latency and jitter.\n\nAnti-entropy is the same idea applied to reconciling replica data rather than membership. A background process has replicas periodically compare their datasets and copy over whatever is missing or stale, repairing divergence caused by dropped writes or downtime. Comparing entire datasets key by key would be far too expensive, so replicas exchange Merkle trees: trees of hashes built over ranges of keys, so two replicas compare root hashes, then descend only into the subtrees whose hashes differ, and end up transferring just the specific keys that disagree. Anti-entropy complements read repair, which only fixes data at the moment it is read; anti-entropy also reaches keys that are written once and rarely read again. The costs are the usual eventual-consistency ones: there is a propagation delay before every node sees a change, and the constant background chatter consumes a steady amount of bandwidth and CPU whether or not anything has actually changed."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main advantage of a gossip protocol over routing all cluster-membership updates through a central coordinator?",
+      "options": [
+        "It makes every node's view of membership perfectly consistent at all times",
+        "It spreads information in about log(N) rounds with constant per-node load and no single point of failure",
+        "It removes the need for any failure detection",
+        "It guarantees messages are delivered in a total order across the cluster"
+      ],
+      "answer": 1,
+      "explanation": "Random periodic peer exchanges propagate a fact to all N nodes in roughly log(N) rounds while keeping each node's work constant and avoiding a coordinator bottleneck or single point of failure."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A gossip protocol guarantees that all nodes have an identical view of cluster state at every moment.",
+      "answer": false,
+      "explanation": "Gossip is only eventually consistent: there is always some propagation delay during which different nodes hold different versions of the state."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "During anti-entropy, replicas exchange ____ trees - trees of hashes over key ranges - so they can narrow down exactly which keys differ without comparing whole datasets.",
+      "answer": "Merkle",
+      "acceptable": ["merkle", "hash", "merkle tree", "hash tree"],
+      "explanation": "A Merkle (hash) tree lets two replicas compare root hashes and then descend only into subtrees that disagree, so only the differing keys are transferred."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "When two nodes gossip and find they hold different values for the same piece of state, how is the disagreement normally resolved?",
+      "options": [
+        "The node with the lower IP address wins",
+        "Each node keeps the value carrying the higher version or timestamp",
+        "Both values are discarded and the state is reset",
+        "A coordinator is asked to pick the winner"
+      ],
+      "answer": 1,
+      "explanation": "Each shared value carries a version, and nodes deterministically keep the higher-versioned one, which makes the merge order-independent and eventually consistent."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "SWIM separates failure detection (pings and indirect pings) from dissemination (gossip) partly to keep detection time roughly constant as the cluster grows.",
+      "answer": true,
+      "explanation": "By using a bounded number of direct and indirect probes per round rather than scaling probing with cluster size, SWIM keeps its expected detection time independent of N."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps of two replicas reconciling data with Merkle-tree anti-entropy, earliest first.",
+      "items": [
+        "The replicas compare child hashes to narrow down the divergent subtree",
+        "Two replicas exchange the root hash of their Merkle trees",
+        "The differing keys are transferred and merged, reconciling the replicas",
+        "The root hashes do not match, showing the datasets differ",
+        "The replicas identify the specific key ranges whose leaf hashes disagree"
+      ],
+      "answer": [1, 3, 0, 4, 2],
+      "explanation": "Replicas start at the root hash, see it differ, walk down the mismatching subtrees to the exact key ranges, then transfer and merge only those keys."
+    }
+  ]
+}

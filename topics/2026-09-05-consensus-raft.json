@@ -1,0 +1,72 @@
+{
+  "id": "2026-09-05-consensus-raft",
+  "date": "2026-09-05",
+  "title": "Consensus with Raft",
+  "category": "system-design",
+  "lesson": "Consensus is the problem of getting a group of nodes to agree on a single ordered sequence of values (a replicated log) even though nodes can crash and messages can be delayed, dropped, or reordered. If every node applies the same log of commands to the same starting state, every node's state machine ends up identical, which is how systems build a fault-tolerant service out of unreliable parts. Classic consensus is possible only with a majority of nodes alive and reachable; the well-known algorithm is Paxos, but Paxos is famously hard to understand and to implement correctly. Raft was designed for the same guarantees with far more clarity, and it now underpins etcd, Consul, CockroachDB, and TiKV. Raft breaks the problem into three pieces: leader election, log replication, and a set of safety rules that tie them together.\n\nRaft divides time into terms, numbered sequentially, with at most one leader per term. Every node is a follower, a candidate, or a leader. A leader sends periodic AppendEntries messages (which double as heartbeats) to all followers. If a follower goes an entire election timeout without hearing from a leader, it becomes a candidate, increments the current term, votes for itself, and asks the other nodes for votes. A node grants its vote to at most one candidate per term, and only if the candidate's log is at least as up to date as its own. A candidate that collects votes from a majority becomes the new leader. Election timeouts are randomized (for example 150-300 ms) so that nodes rarely time out at the same instant; when a split vote does happen, the nodes simply retry with fresh random timeouts and one quickly wins.\n\nOnce elected, the leader is the only node that accepts client commands. It appends each command to its own log and sends it to the followers via AppendEntries. When an entry has been stored on a majority of nodes, the leader marks it committed, applies it to its state machine, and replies to the client; subsequent heartbeats carry the leader's commit index so followers apply the same entries in the same order. The leader also forces every follower's log to match its own: each AppendEntries names the index and term of the entry preceding the new ones, and if a follower's log doesn't match there, it rejects the message and the leader walks backwards until it finds the last point of agreement, then overwrites any conflicting follower entries.\n\nThe safety of Raft rests on majorities overlapping. Because both winning an election and committing an entry require a majority, and any two majorities of the same cluster share at least one node, a newly elected leader is guaranteed to already hold every entry that was previously committed - the 'log is at least as up to date' rule on voting is what enforces this. Raft therefore needs a majority alive to make any progress: a five-node cluster tolerates two failures, and adding a node to make it even (say six) does not help, since six nodes still only tolerate two. A former leader stuck in a minority partition cannot commit anything new because it can't reach a majority, and it reverts to follower as soon as it sees a message from a higher term. Committed entries are never lost, reordered, or overwritten."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Raft was created primarily to provide what, compared with Paxos?",
+      "options": [
+        "Consensus without needing a majority of nodes available",
+        "The same consensus guarantees but in a form that is easier to understand and implement correctly",
+        "Higher throughput by allowing every node to accept client writes",
+        "Consensus that tolerates arbitrary (Byzantine) node behaviour"
+      ],
+      "answer": 1,
+      "explanation": "Raft targets the same safety guarantees as Paxos while decomposing the problem into leader election, log replication, and safety rules so it is far easier to reason about and build."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In Raft, a log entry is committed as soon as the leader has written it to its own local log.",
+      "answer": false,
+      "explanation": "An entry is committed only once it has been stored on a majority of nodes; until then the leader cannot apply it or acknowledge it to the client."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Raft uses randomized ____ timeouts so that followers rarely become candidates at the same moment, which keeps split votes rare.",
+      "answer": "election",
+      "acceptable": ["election timeout", "leader election"],
+      "explanation": "Randomizing each follower's election timeout spreads out when they give up on the leader, so usually one candidate starts first and wins before others time out."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A Raft cluster has 5 nodes. How many node failures can it tolerate while still making progress?",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "answer": 1,
+      "explanation": "Raft needs a majority (here 3 of 5) reachable to elect a leader and commit entries, so it keeps working with up to 2 nodes down."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A leader that becomes isolated in a minority partition can keep committing new entries for the clients that can still reach it.",
+      "answer": false,
+      "explanation": "Committing requires acknowledgement from a majority, which the isolated leader cannot obtain, so it makes no progress and steps down once it sees a higher term."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps of a client write being applied through Raft, earliest first.",
+      "items": [
+        "The leader replicates the entry to followers via AppendEntries",
+        "A client sends a command to the current leader",
+        "The leader returns the result to the client",
+        "The leader appends the command to its own log as a new entry",
+        "A majority have stored the entry, so the leader commits and applies it"
+      ],
+      "answer": [1, 3, 0, 4, 2],
+      "explanation": "The leader takes the client command, appends it locally, replicates it, waits for a majority to store it before committing and applying it, then responds to the client."
+    }
+  ]
+}

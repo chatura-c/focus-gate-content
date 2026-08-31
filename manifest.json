@@ -180,5 +180,19 @@
     "title": "gRPC vs REST",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-05-consensus-raft",
+    "date": "2026-09-05",
+    "title": "Consensus with Raft",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-05-gossip-protocols",
+    "date": "2026-09-05",
+    "title": "Gossip and Anti-Entropy Protocols",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
