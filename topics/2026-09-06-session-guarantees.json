@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-06-session-guarantees",
+  "date": "2026-09-06",
+  "title": "Session Guarantees (Read-Your-Writes & Monotonic Reads)",
+  "category": "system-design",
+  "lesson": "Eventual consistency is a useful tradeoff for availability and latency, but it has an uncomfortable side effect: a client can write a value and then, on its very next read, see something older. Session guarantees are a set of client-centric consistency rules that patch over the most jarring versions of this without paying for full linearizability across the whole system. They apply per-session (per-client), not globally, which is what makes them cheap enough to actually deploy.\n\nThe most commonly implemented one is read-your-writes: once a client has successfully written a value, every subsequent read by that same client must reflect that write (or something newer). Without it, a user could update their profile picture, get a success response, refresh the page, and see the old picture because the read landed on a replica that hadn't caught up yet. Two common implementations: route all of a client's requests to the same replica it wrote to (sticky sessions), or have the write return a version/timestamp token that the client passes with subsequent reads, requiring the serving replica to prove it has applied at least that version before answering.\n\nA related but distinct guarantee is monotonic reads: once a client has observed a value, it should never later observe an older value, even if a subsequent read happens to land on a different, lagging replica. Without this guarantee a user could see a friend's new comment, refresh, and watch it vanish because the second request was routed to a replica that hasn't replicated it yet. Monotonic reads doesn't require the read to be up to date globally — it only forbids going backwards in time relative to what that client has already seen.\n\nTwo more session guarantees round out the usual list: monotonic writes (a client's writes are applied in the order it issued them) and writes-follow-reads (a write made after observing some value is guaranteed to be applied after that observed write, even on replicas that see it later). Together these four are often bundled as \"session consistency,\" and the common thread in every implementation is the same: track a version or timestamp per client session and use it to constrain which replica is allowed to answer that session's next request.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Read-your-writes guarantees that:",
+      "options": [
+        "Every client in the system sees every write immediately",
+        "A client that just wrote a value will see that value (or newer) on its own subsequent reads",
+        "Writes are applied in the same order on every replica",
+        "A read always returns the single most recent write across all clients"
+      ],
+      "answer": 1,
+      "explanation": "Read-your-writes is a per-client guarantee: it only promises that the writer will see its own write, not that every other client sees it instantly."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Monotonic reads guarantees that every client in the system observes writes in the same global order.",
+      "answer": false,
+      "explanation": "Monotonic reads is scoped to a single client's session — it only forbids that one client from seeing values go backwards in time, not a global ordering across all clients."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Read-your-writes, monotonic reads, monotonic writes, and writes-follow-reads are collectively known as ____ guarantees.",
+      "answer": "session",
+      "acceptable": ["session consistency"],
+      "explanation": "These four client-centric rules are bundled together and referred to as session guarantees or session consistency."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of a version-token approach to read-your-writes, earliest first.",
+      "items": [
+        "The client includes the returned version token on its next read request",
+        "A replica only answers the read once it has applied at least that version",
+        "The client writes a value and the server returns a version/timestamp token",
+        "The client receives a result guaranteed to include its own write"
+      ],
+      "answer": [2, 0, 1, 3],
+      "explanation": "The write returns a version token, the client presents it on the next read, the serving replica waits until it has caught up to that version, then answers — guaranteeing the client sees its own write."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Which of these is a practical way to implement read-your-writes?",
+      "options": [
+        "Disabling replication entirely",
+        "Routing a client's requests to the same replica it wrote to, or passing a version token with reads",
+        "Always reading from a randomly chosen replica",
+        "Caching every write forever on the client"
+      ],
+      "answer": 1,
+      "explanation": "Sticky routing to the writer's replica, or a version token that constrains which replica may serve the read, are the two standard mechanisms."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Without monotonic reads, a client could see a newly posted comment on one request and then, on a later request, see a version of the page where that comment is missing.",
+      "answer": true,
+      "explanation": "That's exactly the failure monotonic reads prevents: it forbids a client's later read from appearing to go backwards relative to what it already observed."
+    }
+  ]
+}

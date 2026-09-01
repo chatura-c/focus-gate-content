@@ -1,0 +1,69 @@
+{
+  "id": "2026-09-06-cdc-outbox",
+  "date": "2026-09-06",
+  "title": "Change Data Capture (CDC) and the Outbox Pattern",
+  "category": "system-design",
+  "lesson": "A common failure mode in service design is the dual-write problem: a service needs to update its own database and also notify the outside world, usually by publishing a message to a queue or broker. If those are two separate operations — commit the database transaction, then call the broker — there's a window where the process can crash after the first succeeds but before the second does. The database change is durable but the event is lost, and downstream systems (search indexes, caches, other services) silently drift out of sync with no error ever being raised.\n\nThe outbox pattern fixes this by turning the dual write into a single write. Instead of publishing directly to the broker, the service writes the event as a row in an \"outbox\" table, in the exact same local database transaction as the business data change. Since both writes commit atomically or not at all, there's no window where one happens without the other. A separate relay process then reads unpublished rows from the outbox table, publishes them to the broker, and marks them as sent — classically by polling the table on an interval, which is simple but adds latency and load proportional to the polling frequency.\n\nChange data capture (CDC) offers a lower-latency, lower-overhead way to build that relay. Rather than polling the outbox table, a CDC tool taps directly into the database's own replication or transaction log — the same write-ahead log a database already uses for crash recovery and replica sync. Tools like Debezium tail this log, detect committed row changes as they happen, and stream them out as events with sub-second latency, without adding any polling queries against the database at all. Applied to an outbox table, this gives near-real-time delivery while keeping the atomicity guarantee of writing to the same local transaction.\n\nOne guarantee CDC-based outbox delivery does not give you is exactly-once delivery: a crash or retry in the relay pipeline can cause the same event to be published more than once, so consumers on the other end still need to be idempotent, the same requirement covered under the idempotency topic. The atomicity of the outbox write only solves the dual-write problem at the source; it doesn't remove the need for safe, repeatable handling at the destination.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "The 'dual-write problem' refers to:",
+      "options": [
+        "A database accepting two conflicting writes to the same row at once",
+        "A service updating its database and separately publishing an event, where a crash between the two leaves them out of sync",
+        "Two replicas both accepting writes during a network partition",
+        "A client retrying the same write twice"
+      ],
+      "answer": 1,
+      "explanation": "The dual-write problem is specifically about two independent operations — a DB commit and a broker publish — that can fail independently and leave the system inconsistent."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "The outbox pattern requires a distributed transaction (like two-phase commit) spanning the database and the message broker.",
+      "answer": false,
+      "explanation": "The whole point of the outbox pattern is to avoid a distributed transaction — it writes the event to an outbox table in the same local database transaction as the business data, and a separate relay handles publishing afterward."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In the outbox pattern, the event row is written to the outbox table in the same database ____ as the business data change.",
+      "answer": "transaction",
+      "explanation": "Writing both in one local transaction is what makes the update and the event appear or disappear together, eliminating the dual-write gap."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of a CDC-based outbox pipeline, earliest first.",
+      "items": [
+        "A CDC tool tails the database's transaction/replication log for committed changes",
+        "The service commits business data and an outbox row in one local transaction",
+        "The detected outbox row change is published to the message broker",
+        "Downstream consumers process the event, applying idempotent handling"
+      ],
+      "answer": [1, 0, 2, 3],
+      "explanation": "The service commits the outbox row locally, the CDC tool picks up that committed change from the log, publishes it to the broker, and consumers handle it idempotently since delivery is at-least-once."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "A CDC tool like Debezium primarily detects changes by:",
+      "options": [
+        "Polling application code for recent function calls",
+        "Reading the database's transaction/replication log (e.g. a write-ahead log or binlog)",
+        "Asking every microservice to report its own writes over HTTP",
+        "Diffing full table snapshots every few minutes"
+      ],
+      "answer": 1,
+      "explanation": "CDC tools tail the database's own write-ahead/replication log, the same log used for crash recovery and replica sync, to detect committed changes with low latency and no extra query load."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Because CDC-based outbox delivery is only at-least-once, downstream consumers still need to be idempotent.",
+      "answer": true,
+      "explanation": "The outbox pattern guarantees the event is never lost relative to the data change, but retries in the pipeline can still deliver it more than once, so consumers must handle duplicates safely."
+    }
+  ]
+}
