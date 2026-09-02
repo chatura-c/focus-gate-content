@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-07-lsm-vs-btree",
+  "date": "2026-09-07",
+  "title": "LSM-Trees vs B-Trees",
+  "category": "system-design",
+  "lesson": "The storage engine underneath a database usually organizes data on disk as one of two structures: a B-tree, used by most traditional relational databases such as PostgreSQL and MySQL's InnoDB, or a log-structured merge-tree (LSM-tree), used by Cassandra, RocksDB, LevelDB, HBase, and ScyllaDB. Both keep data sorted by key, so both handle point lookups and range scans well. They differ mainly in how a write reaches disk, and that difference drives their performance tradeoffs.\n\nA B-tree is a balanced tree of fixed-size pages that is updated in place. A write walks down the tree to the target leaf page and modifies it where it sits, occasionally splitting a full page into two and updating the parent. Because pages have fixed locations, these updates can be scattered random writes, and changing one small row still forces the engine to write back a whole page; together with the write-ahead log, which records the change once more for crash recovery, this produces real write amplification. The payoff is that reads are predictable — roughly one page read per level of the tree — and the structure stays healthy without any background reorganization.\n\nAn LSM-tree takes writes into an in-memory sorted structure called the memtable, backed by a write-ahead log for durability. When the memtable fills, it is flushed to disk in one large sequential write as an immutable sorted file known as an SSTable. Overwrites and deletes never modify existing files; a delete just records a marker called a tombstone. Because writes are buffered and land as sequential I/O, LSM engines sustain very high write throughput. The cost shows up on reads: a lookup may have to check the memtable plus several SSTables, so the engine keeps a Bloom filter per SSTable to skip files that cannot contain the requested key.\n\nThe missing piece is compaction: a background process that merges SSTables together, discarding overwritten values and tombstoned keys, to bound how many files a read must consult and to reclaim space. Compaction spends CPU and disk bandwidth and can cause latency spikes, and until it runs, stale data inflates storage (space amplification). As a rule of thumb, B-trees suit read-heavy or mixed workloads that need predictable latency, while LSM-trees suit write-heavy workloads and tend to compress better on disk, in exchange for ongoing compaction work and less predictable tail latency on reads.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the core structural difference between a B-tree and an LSM-tree storage engine?",
+      "options": [
+        "A B-tree updates pages in place, while an LSM-tree buffers writes in memory and flushes them as immutable sorted files",
+        "A B-tree stores data unsorted, while an LSM-tree keeps it sorted by key",
+        "A B-tree cannot support range scans, while an LSM-tree can",
+        "A B-tree keeps all data in memory, while an LSM-tree keeps all data on disk"
+      ],
+      "answer": 0,
+      "explanation": "Both keep keys sorted; the difference is in-place page updates versus buffering in a memtable and writing immutable SSTables sequentially."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In an LSM-tree, deleting a key immediately removes it from every on-disk file.",
+      "answer": false,
+      "explanation": "A delete writes a tombstone marker; the obsolete data and the tombstone are only removed later when compaction rewrites those SSTables."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To avoid touching SSTables that cannot contain a searched key, an LSM engine keeps a probabilistic ____ per SSTable.",
+      "answer": "bloom filter",
+      "acceptable": ["bloom-filter", "bloomfilter", "bloom filter index"],
+      "explanation": "A Bloom filter can say a key is definitely not in a file, letting the read skip that SSTable entirely and cut down on disk I/O."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main purpose of compaction in an LSM-tree?",
+      "options": [
+        "To merge SSTables, drop overwritten and tombstoned entries, and bound how many files a read must check",
+        "To encrypt SSTables before they are written to disk",
+        "To replicate SSTables to other nodes for durability",
+        "To convert the LSM-tree into a B-tree once it grows large enough"
+      ],
+      "answer": 0,
+      "explanation": "Compaction merges files and discards dead entries so reads stay fast and space is reclaimed, at the cost of background CPU and I/O."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "LSM-trees generally sustain higher write throughput than B-trees because writes are batched in memory and then flushed as large sequential writes.",
+      "answer": true,
+      "explanation": "Buffering in the memtable turns many small random updates into one sequential SSTable flush, which disks handle far faster than scattered page writes."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Which workload is a B-tree engine typically the better fit for?",
+      "options": [
+        "A read-heavy or mixed workload that needs predictable, low-variance latency",
+        "A write-heavy ingestion pipeline with very few reads",
+        "A workload where minimizing on-disk size matters more than anything else",
+        "A workload that never issues range queries"
+      ],
+      "answer": 0,
+      "explanation": "B-trees give roughly one page read per tree level and need no background compaction, so their latency is steadier for read-heavy and mixed use."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the path of a write through an LSM-tree engine, earliest first.",
+      "items": [
+        "The full memtable is flushed to disk as an immutable sorted SSTable",
+        "The write is appended to the write-ahead log for durability",
+        "Background compaction merges several SSTables into fewer files",
+        "The key and value are inserted into the in-memory memtable"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "A write is logged to the WAL, added to the memtable, later flushed as an SSTable when the memtable fills, and eventually merged by compaction."
+    }
+  ]
+}

@@ -40,6 +40,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 27 | 2026-09-05 | Gossip and Anti-Entropy Protocols | `2026-09-05-gossip-protocols` |
 | 28 | 2026-09-06 | Session Guarantees (Read-Your-Writes & Monotonic Reads) | `2026-09-06-session-guarantees` |
 | 29 | 2026-09-06 | Change Data Capture (CDC) and the Outbox Pattern | `2026-09-06-cdc-outbox` |
+| 30 | 2026-09-07 | Sharding Key Design       | `2026-09-07-sharding-key-design`    |
+| 31 | 2026-09-07 | LSM-Trees vs B-Trees     | `2026-09-07-lsm-vs-btree`           |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -52,16 +54,19 @@ so this run's topics were scheduled for 2026-08-26, the next open date, rather t
 an existing `date` already present in `manifest.json`. Same reasoning applies to 2026-08-27 through
 2026-09-05 above — each was the next open date as of its respective run (this keeps a stable
 ~4-5 day gap between a run's real calendar date and the `date` it assigns, rather than the gap
-growing further). The 2026-09-05 topics were generated on the 2026-08-31 run, and the 2026-09-06
-topics above were generated on the 2026-09-01 run.
+growing further). The 2026-09-05 topics were generated on the 2026-08-31 run, the 2026-09-06
+topics were generated on the 2026-09-01 run, and the 2026-09-07 topics above were generated on
+the 2026-09-02 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Content-based vs consistent-hash sharding key design (deeper follow-up to Database Sharding)
 - Multi-Paxos / EPaxos as a contrast to Raft (now that Raft is covered, #26)
+- Merkle trees for replica reconciliation (deeper follow-up to Gossip / Anti-Entropy, #27)
+- Dead letter queues and poison-message handling (follow-up to Message Queues, #9)
+- Cache eviction policies: LRU vs LFU vs TTL (follow-up to Caching Strategies, #3)
 
 ## How to append
 

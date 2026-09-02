@@ -208,5 +208,19 @@
     "title": "Change Data Capture (CDC) and the Outbox Pattern",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-07-sharding-key-design",
+    "date": "2026-09-07",
+    "title": "Sharding Key Design",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-07-lsm-vs-btree",
+    "date": "2026-09-07",
+    "title": "LSM-Trees vs B-Trees",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]
