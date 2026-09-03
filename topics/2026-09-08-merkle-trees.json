@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-08-merkle-trees",
+  "date": "2026-09-08",
+  "title": "Merkle Trees for Replica Reconciliation",
+  "category": "system-design",
+  "lesson": "A Merkle tree (or hash tree) is a tree in which every leaf node holds the cryptographic hash of a block of data, and every non-leaf node holds the hash of the concatenation of its child nodes' hashes. Applied bottom-up, this collapses an entire dataset into a single value at the top called the root hash. The key property is that the root hash depends on every byte beneath it: change one record and its leaf hash changes, which changes that leaf's parent, and so on up to the root. Two datasets have the same root hash if and only if they are identical, apart from a hash-collision probability so small it is ignored in practice.\n\nThis makes Merkle trees ideal for comparing two replicas that are supposed to hold the same data, which is the anti-entropy problem in systems like Dynamo, Cassandra, and Riak. The naive way to find divergence is to ship one replica's entire contents to the other and diff them, which costs bandwidth proportional to the whole dataset every time. With Merkle trees the replicas first exchange only their root hashes. If the roots match, the replicas are in sync and the check is done after transferring a single hash. If the roots differ, the replicas walk down the tree together, comparing child hashes and recursing only into the subtrees that disagree, until they reach the specific leaves that differ. The amount of data exchanged then scales with the size of the difference, not the size of the dataset.\n\nIn a distributed database, each node builds a Merkle tree over the key ranges it owns, hashing rows into leaves that each cover a contiguous slice of the key space. During a repair, two replicas responsible for the same range trade trees, identify the mismatching leaves, and then stream only the rows in those ranges to reconcile. The same structure appears well beyond databases: Git commit and tree objects, blockchain blocks, ZFS block checksums, and content-addressed stores like IPFS all use hash trees to verify integrity and locate differences cheaply.\n\nThe tradeoffs are practical ones. Building the tree requires scanning and hashing the data, which costs CPU and I/O, so trees are usually cached and rebuilt periodically rather than on every request; between rebuilds a tree can be slightly stale. Leaf granularity is a tuning knob: coarse leaves that each cover a wide key range keep the tree small but force a large range to be re-synced for any single mismatch, while fine-grained leaves localize differences precisely at the cost of more memory and a more expensive build. Chosen well, a Merkle tree turns 'are these two multi-gigabyte replicas equal, and if not, where?' into a short hierarchical conversation.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In a Merkle tree, what does a non-leaf (internal) node contain?",
+      "options": [
+        "The hash of the concatenation of its child nodes' hashes",
+        "A copy of the raw data stored in its leftmost leaf",
+        "A pointer to the replica that owns that subtree",
+        "The number of records stored beneath it"
+      ],
+      "answer": 0,
+      "explanation": "Each internal node hashes its children's hashes together, so the single root hash transitively depends on every record in the tree."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If two replicas exchange root hashes and the values match, they can conclude their datasets are identical without comparing individual records.",
+      "answer": true,
+      "explanation": "A matching root hash means every leaf and intermediate hash matched, so the data is the same barring an astronomically unlikely hash collision."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "Changing a single record affects only that record's leaf hash and leaves the root hash unchanged.",
+      "answer": false,
+      "explanation": "A changed leaf hash changes its parent, then that parent's parent, and so on all the way up, so the root hash changes too."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "When two replicas' root hashes differ, they recursively compare child hashes and descend only into the subtrees that ____, so the data transferred scales with the size of the difference rather than the whole dataset.",
+      "answer": "differ",
+      "acceptable": ["disagree", "mismatch", "do not match", "don't match"],
+      "explanation": "Recursing only into mismatching subtrees is what makes reconciliation cost proportional to how much the replicas have diverged."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What is the main cost of using Merkle trees for anti-entropy repair in a database?",
+      "options": [
+        "Building a tree requires scanning and hashing the data, so trees are rebuilt periodically and can be slightly stale",
+        "The root hash must be recomputed on every read before the row can be returned",
+        "Merkle trees require all replicas to stop accepting writes during a comparison",
+        "Comparing two trees always transfers the entire dataset regardless of how similar they are"
+      ],
+      "answer": 0,
+      "explanation": "Hashing every row to build the tree costs CPU and I/O, so implementations cache trees and tolerate a small window of staleness between rebuilds."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "How does leaf granularity affect a Merkle tree used for replica repair?",
+      "options": [
+        "Coarse leaves keep the tree small but force a large key range to be re-synced for any single mismatch; fine leaves localize differences at higher memory and build cost",
+        "Finer leaves make the root hash less accurate, raising the chance of a false 'in sync' result",
+        "Granularity only affects read latency, not how much data a repair transfers",
+        "Coarser leaves make the tree deeper and slower to compare"
+      ],
+      "answer": 0,
+      "explanation": "Leaf size trades off tree overhead against how precisely a mismatch can be pinned down before rows are streamed."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the steps of a Merkle-tree-based reconciliation between two replicas, earliest first.",
+      "items": [
+        "The two replicas exchange and compare their root hashes",
+        "Each replica builds a Merkle tree over the same key range",
+        "The replicas stream only the specific records that still differ",
+        "The replicas recursively compare child hashes, descending only into subtrees that disagree"
+      ],
+      "answer": [1, 0, 3, 2],
+      "explanation": "Each side builds its tree, they compare roots, recurse into mismatching subtrees to find divergent leaves, then stream just those rows."
+    }
+  ]
+}

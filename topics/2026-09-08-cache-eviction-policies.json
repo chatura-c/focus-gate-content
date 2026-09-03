@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-08-cache-eviction-policies",
+  "date": "2026-09-08",
+  "title": "Cache Eviction Policies: LRU, LFU, and TTL",
+  "category": "system-design",
+  "lesson": "A cache has bounded capacity, so when it is full and a new entry needs to be admitted, something already in the cache must be removed. The eviction policy is the rule that picks the victim. Its whole job is to keep the entries most likely to be reused and discard the ones that are not, because every wrong guess turns a future request into a cache miss and a slow trip to the backing store. Eviction is about capacity; it is related to but distinct from expiration, which is about how stale a cached value is allowed to be.\n\nLRU (Least Recently Used) evicts whichever entry has gone the longest without being accessed. It bets on temporal locality: something touched recently is likely to be touched again soon. LRU is cheap to implement with a hash map plus a doubly linked list, giving O(1) lookups and O(1) reordering on each access. Its well-known weakness is that it is not scan-resistant: a one-time pass over many unique keys, such as a batch job or a full-table report, streams cold data through the cache and evicts the hot working set that real traffic depends on. Approximations like FIFO, random eviction, and CLOCK (second-chance) trade some of LRU's accuracy for even lower bookkeeping overhead.\n\nLFU (Least Frequently Used) evicts the entry with the fewest recorded accesses, favoring items that are popular over the long run rather than merely recent. This resists scan pollution better, since a handful of one-off accesses will not outrank a genuinely hot key. But naive LFU has two problems: an item that was extremely popular in the past can accumulate a huge count and never be evicted even after interest dies (cache staleness), and a genuinely useful new item starts with a count of zero and may be evicted before it can prove itself (cold start). Real implementations fix this by decaying or aging counts over time, or by counting hits only within a recent window. Modern designs such as W-TinyLFU, used by the Caffeine library, pair a frequency-based admission filter with a small LRU window to get both recency and frequency awareness.\n\nTTL (Time To Live) is different in kind: each entry is stamped with an expiry and is discarded once that duration passes, regardless of how often it is used. Its primary purpose is freshness, bounding how far a cached value can drift from the source of truth, and it only incidentally helps with capacity. TTL is usually combined with LRU or LFU: the TTL guarantees a staleness ceiling while the eviction policy handles capacity pressure before that ceiling is reached. One hazard is that many entries created together with the same TTL expire at the same instant, triggering a stampede of simultaneous reloads against the database; adding a small random jitter to each entry's TTL spreads those expirations out.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does a cache eviction policy decide?",
+      "options": [
+        "Which existing entry to remove to make room when the cache is full",
+        "How long a cached value stays valid before it is considered stale",
+        "Which requests are allowed to read from the cache at all",
+        "How many replicas of the cache to run"
+      ],
+      "answer": 0,
+      "explanation": "Eviction is about capacity: when the cache is full and a new entry must be admitted, the policy chooses which current entry to drop."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "LRU is scan-resistant: a one-time sweep over many unique keys leaves the frequently used working set untouched.",
+      "answer": false,
+      "explanation": "A large scan of cold, unique keys is exactly what defeats LRU, because each fresh access pushes a hot entry toward the least-recently-used end and evicts it."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "An item that was very popular months ago is now never requested but keeps surviving eviction in an LFU cache. What is the standard fix?",
+      "options": [
+        "Decay or age the frequency counts over time, or count hits only within a recent window",
+        "Switch the whole cache to FIFO eviction",
+        "Give that item a longer TTL so it refreshes itself",
+        "Increase the cache size until the item naturally falls out"
+      ],
+      "answer": 0,
+      "explanation": "Aging the counts stops a large historical tally from protecting an item forever after real demand for it has stopped."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "Unlike LRU and LFU, a ____ policy discards an entry after a fixed duration mainly to bound how stale a cached value can become relative to the source of truth.",
+      "answer": "TTL",
+      "acceptable": ["time to live", "time-to-live", "ttl-based", "expiration"],
+      "explanation": "TTL is a freshness mechanism first: it caps staleness by time, and only incidentally helps reclaim space."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "TTL and LRU are commonly used together, with TTL bounding staleness and LRU handling capacity pressure.",
+      "answer": true,
+      "explanation": "The two solve different problems, so a cache often applies a TTL for correctness and an LRU (or LFU) policy to decide what to evict when it fills."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Many cache entries were created together with the same TTL and now all expire at the same moment, flooding the database with simultaneous reloads. What is the usual mitigation?",
+      "options": [
+        "Add a small random jitter to each entry's TTL so expirations spread out over time",
+        "Remove the TTL entirely and rely only on LRU",
+        "Shorten every TTL so entries expire sooner and more often",
+        "Increase the cache capacity so nothing is ever evicted"
+      ],
+      "answer": 0,
+      "explanation": "Jittering the TTLs staggers when entries expire, turning one large reload spike into a smooth trickle of refreshes."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order what an LRU cache (hash map plus doubly linked list) does to serve a request whose key is not cached, earliest first.",
+      "items": [
+        "If the cache is at capacity, evict the least recently used entry",
+        "Look up the key and find it is not present (a miss)",
+        "Insert the new entry and mark it most recently used",
+        "Fetch the value from the backing store"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "A miss triggers a fetch from the backing store, then an eviction if the cache is full, and finally insertion of the new entry at the most-recently-used position."
+    }
+  ]
+}
