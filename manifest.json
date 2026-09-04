@@ -236,5 +236,19 @@
     "title": "Cache Eviction Policies: LRU, LFU, and TTL",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-09-dead-letter-queues",
+    "date": "2026-09-09",
+    "title": "Dead Letter Queues and Poison-Message Handling",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-09-read-repair-hinted-handoff",
+    "date": "2026-09-09",
+    "title": "Read Repair and Hinted Handoff",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

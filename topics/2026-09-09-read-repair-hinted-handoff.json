@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-09-read-repair-hinted-handoff",
+  "date": "2026-09-09",
+  "title": "Read Repair and Hinted Handoff",
+  "category": "system-design",
+  "lesson": "In a leaderless replicated store like Dynamo, Cassandra, or Riak, each key lives on N replicas. A write is sent to all N and considered successful once W of them acknowledge; a read queries replicas and returns once R respond. Because a write can be acknowledged without reaching every replica — some may be slow, restarting, or briefly unreachable — the replicas drift apart over time. Three complementary mechanisms pull them back together: read repair works opportunistically on the read path, hinted handoff patches short outages on the write path, and full anti-entropy repair using Merkle trees sweeps entire key ranges in the background. None is sufficient alone; together they deliver eventual convergence.\n\nRead repair happens when a coordinator collects responses for a read and notices the replicas disagree. It compares versions — last-write-wins timestamps or vector clocks — picks the most recent value, and writes it back to the replicas that were stale. Because it piggybacks on traffic the system was already serving, frequently-read keys stay consistent almost for free. Implementations vary in timing: blocking read repair reconciles the replicas before returning to the client (used when the request asked for stronger consistency), while asynchronous read repair returns the answer immediately and fixes the replicas in the background. Its inherent limitation is that it only ever touches keys that are actually read, so cold data can stay divergent indefinitely, which is why read repair cannot be the only mechanism.\n\nHinted handoff addresses the write path. If a replica that should receive a write is unreachable, the coordinator still satisfies W using the reachable replicas and stores a hint — a note that replica X missed this particular write — either locally (as Cassandra does) or on a stand-in node from the preference list (as in the original Dynamo design, which also lets that stand-in count toward W, known as a sloppy quorum). When the failure detector or gossip layer reports that X is healthy again, the node holding the hints replays those writes to X and then deletes them. This keeps writes available during brief failures and lets a rebooted node catch up quickly without a full repair. The caveats: hints consume disk; if the node stays down past the hint window (three hours by default in Cassandra) the hints are discarded; and hints not yet replayed can be lost if the node holding them crashes. Hinted handoff is therefore best-effort, not a durability guarantee.\n\nThe three mechanisms exist together because each leaves a gap. Read repair is cheap but only covers hot keys. Hinted handoff covers short, detected outages but is bounded by hint retention and is lossy on crash. Merkle-tree anti-entropy reconciles everything, including cold keys and data missed during a long outage, but scanning and hashing key ranges is expensive, so it runs only periodically. Layered, they provide immediate best-effort convergence on writes, opportunistic convergence on reads, and a guaranteed periodic sweep. Tuning R and W (commonly so that R + W > N) on top of these repair paths is how leaderless stores offer a dial from loose eventual consistency toward near-strong consistency.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does read repair do when the replicas contacted for a read return conflicting versions of a key?",
+      "options": [
+        "The coordinator picks the most recent version and writes it back to the replicas that were stale",
+        "The read fails and the client must retry until all replicas happen to agree",
+        "The coordinator deletes the key from every replica so the next write starts clean",
+        "The oldest version wins and is copied over the newer ones to preserve write order"
+      ],
+      "answer": 0,
+      "explanation": "Read repair reconciles divergent replicas on the read path by pushing the newest value (by timestamp or vector clock) back to the stale ones."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Read repair on its own is enough to keep every replica converged, including keys that are never read.",
+      "answer": false,
+      "explanation": "Read repair only touches keys that are actually read, so rarely-read data can stay divergent indefinitely and needs hinted handoff or full anti-entropy repair to catch it."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "In hinted handoff, what is a \"hint\"?",
+      "options": [
+        "A stored note that a specific replica missed a specific write, to be replayed once that replica recovers",
+        "A cached copy of a read result kept on the coordinator to speed up repeat reads",
+        "A hash summary of a key range used to compare two replicas quickly",
+        "A client-supplied preference for which replica should answer its reads"
+      ],
+      "answer": 0,
+      "explanation": "A hint records a write destined for an unreachable replica so the node holding it can hand that write off later when the replica is healthy again."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "Once the temporarily unreachable replica is reported healthy again, the node holding the hints replays the missed writes to it and then ____ those hints.",
+      "answer": "deletes",
+      "acceptable": ["removes", "discards", "drops", "deletes them"],
+      "explanation": "Hints are transient: after a successful replay they are removed so they are not applied again."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Hinted handoff is a strong durability guarantee: once a hint is stored, the missed write is guaranteed to eventually reach the offline replica.",
+      "answer": false,
+      "explanation": "Hints can be dropped if the replica stays down past the hint window, or lost if the node holding them crashes before replay, so hinted handoff is best-effort only."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Why do Dynamo-style systems run read repair, hinted handoff, AND periodic Merkle-tree repair instead of relying on just one?",
+      "options": [
+        "Each covers a different gap: read repair only fixes hot keys, hinted handoff only covers short detected outages, and full repair catches cold keys and long outages but is too expensive to run constantly",
+        "They are three names for the same process kept for backward compatibility",
+        "Running all three lets the system skip choosing values for R and W",
+        "Two of them are only for reads and one is only for deletes, so all three are always required"
+      ],
+      "answer": 0,
+      "explanation": "The mechanisms are layered because each alone leaves data unrepaired; combined they give write-path, read-path, and background convergence."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the steps of a hinted-handoff sequence, earliest first.",
+      "items": [
+        "The failure detector reports that the previously unreachable replica is healthy again",
+        "A replica that should store the key is unreachable when the write arrives",
+        "The node holding the hints replays the missed writes to the recovered replica and deletes the hints",
+        "The coordinator completes the write with W acknowledgements and stores a hint for the missing replica"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "A replica is down at write time, the coordinator still reaches W and records a hint, then on recovery the hint is replayed to the replica and cleared."
+    }
+  ]
+}

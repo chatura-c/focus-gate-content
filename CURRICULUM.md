@@ -44,6 +44,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 31 | 2026-09-07 | LSM-Trees vs B-Trees     | `2026-09-07-lsm-vs-btree`           |
 | 32 | 2026-09-08 | Merkle Trees for Replica Reconciliation | `2026-09-08-merkle-trees` |
 | 33 | 2026-09-08 | Cache Eviction Policies: LRU, LFU, and TTL | `2026-09-08-cache-eviction-policies` |
+| 34 | 2026-09-09 | Dead Letter Queues and Poison-Message Handling | `2026-09-09-dead-letter-queues` |
+| 35 | 2026-09-09 | Read Repair and Hinted Handoff | `2026-09-09-read-repair-hinted-handoff` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -58,7 +60,8 @@ an existing `date` already present in `manifest.json`. Same reasoning applies to
 ~4-5 day gap between a run's real calendar date and the `date` it assigns, rather than the gap
 growing further). The 2026-09-05 topics were generated on the 2026-08-31 run, the 2026-09-06
 topics were generated on the 2026-09-01 run, the 2026-09-07 topics were generated on
-the 2026-09-02 run, and the 2026-09-08 topics above were generated on the 2026-09-03 run.
+the 2026-09-02 run, the 2026-09-08 topics above were generated on the 2026-09-03 run, and the
+2026-09-09 topics were generated on the 2026-09-04 run.
 
 ## Candidate next topics
 
@@ -66,9 +69,9 @@ Not yet covered — the generation job should pick from here (or an equally well
 system-design concept not listed) before repeating anything above:
 
 - Multi-Paxos / EPaxos as a contrast to Raft (now that Raft is covered, #26)
-- Dead letter queues and poison-message handling (follow-up to Message Queues, #9)
-- Read repair vs. hinted handoff as anti-entropy mechanisms (follow-up to Merkle Trees, #32)
 - Bulkheads and resource isolation (companion to Circuit Breakers, #12)
+- Full anti-entropy repair scheduling and its cost vs. read repair / hinted handoff (follow-up to #32, #35)
+- Tunable consistency levels in practice (ONE/QUORUM/ALL) building on Quorum Reads/Writes (#24)
 
 ## How to append
 
