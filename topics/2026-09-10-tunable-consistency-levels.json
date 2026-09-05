@@ -1,0 +1,82 @@
+{
+  "id": "2026-09-10-tunable-consistency-levels",
+  "date": "2026-09-10",
+  "title": "Tunable Consistency Levels in Practice (ONE/QUORUM/ALL)",
+  "category": "system-design",
+  "lesson": "Quorum reads and writes establish that with N replicas, a write acknowledged by W of them and a read collecting from R of them are guaranteed to overlap on at least one replica whenever R + W > N. What stores like Cassandra, ScyllaDB, and DynamoDB add on top of that math is the ability to pick W and R per individual operation instead of baking one consistency choice into the whole system. This is exposed as a named consistency level passed with each read or write: ONE, QUORUM, and ALL are the standard tier, alongside variants like LOCAL_QUORUM for multi-datacenter deployments.\n\nONE means the coordinator only waits for a single replica to acknowledge before returning — the fastest and most available option, since the operation succeeds as long as any one replica is reachable, but it offers the weakest guarantee: a read at ONE can return stale data if it happens to land on a replica that hasn't yet received the latest write. QUORUM means a majority of replicas (for N replicas, floor(N/2) + 1) must acknowledge; used for both reads and writes, it satisfies R + W > N and guarantees every quorum read observes the most recent quorum-acknowledged write, at the cost of higher latency and a stricter availability requirement — a majority of replicas must be reachable. ALL requires every single replica to acknowledge, giving the strongest guarantee available at this tier (no replica can be behind after a successful operation) but the worst availability: even one unreachable replica blocks the entire operation.\n\nBecause the level is chosen per operation rather than globally, a single application commonly mixes them: a payment write might use QUORUM to guarantee durability across a majority of replicas, while a read of a low-stakes view counter uses ONE to minimize latency and stay available even if replicas are down. A deliberately asymmetric pairing — writing at ALL and reading at ONE, or writing at ONE and reading at ALL — can also guarantee the latest value is visible without requiring both sides to pay quorum overhead, at the cost of pushing all the risk onto whichever side is set to ONE. In multi-datacenter deployments, LOCAL_QUORUM computes the quorum using only replicas in the local datacenter, giving quorum-strength consistency without paying the latency of a cross-datacenter round trip; the tradeoff is that it says nothing about replicas in other datacenters, which may still be catching up.\n\nTunable consistency turns what used to be a fixed architectural decision — 'is this system strongly or eventually consistent?' — into a per-request dial that trades latency and availability against staleness risk. It does not, however, replace the anti-entropy machinery underneath: even at QUORUM, replicas outside the quorum that just responded can still drift from missed writes, retried operations, or membership changes, so read repair and periodic Merkle-tree repair remain necessary to keep the full replica set converged over time. The dial changes how much staleness a given operation is willing to tolerate right now, not whether the system needs to eventually reconcile everywhere.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which consistency level requires acknowledgment from only one replica before a write is considered successful?",
+      "options": [
+        "ONE",
+        "QUORUM",
+        "ALL",
+        "LOCAL_QUORUM"
+      ],
+      "answer": 0,
+      "explanation": "ONE returns as soon as a single replica acknowledges, making it the fastest and most available but weakest-guarantee option."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With consistency level ALL, if even a single replica of a key is unreachable, both reads and writes for that key will fail.",
+      "answer": true,
+      "explanation": "ALL requires every replica to acknowledge, so any single unreachable replica blocks the entire operation."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When both reads and writes use a majority (QUORUM) consistency level such that R + W > N, the guaranteed overlap ensures every quorum read observes the ____ acknowledged write.",
+      "answer": "latest",
+      "acceptable": ["most recent", "newest", "last"],
+      "explanation": "The R + W > N overlap guarantees at least one replica in any read quorum also took part in the most recent write quorum."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why might an application choose ONE for reads of a low-stakes view counter while using QUORUM for a payment write?",
+      "options": [
+        "To keep low-value reads fast and available while still ensuring the critical write reached a majority of replicas",
+        "Because ONE always provides stronger consistency guarantees than QUORUM",
+        "Because writes are inherently cheaper than reads in every replicated store, so writes should always use the weaker setting",
+        "Because mixing consistency levels within one application is required by the Cassandra protocol"
+      ],
+      "answer": 0,
+      "explanation": "Per-operation tuning lets an application spend latency and availability budget only where the data actually needs the stronger guarantee."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What problem does LOCAL_QUORUM address in a multi-datacenter deployment?",
+      "options": [
+        "It achieves quorum-strength consistency using only replicas in the local datacenter, avoiding the latency of a cross-datacenter round trip",
+        "It disables replication between datacenters entirely",
+        "It forces every write to be acknowledged by replicas in every datacenter before returning",
+        "It eliminates the need for a coordinator node to handle the request"
+      ],
+      "answer": 0,
+      "explanation": "LOCAL_QUORUM computes its majority from local-datacenter replicas only, trading knowledge of remote-datacenter state for lower latency."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these consistency levels from weakest guarantee (fastest, most available) to strongest guarantee (slowest, least available), assuming a fixed number of replicas N.",
+      "items": [
+        "ALL",
+        "ONE",
+        "QUORUM"
+      ],
+      "answer": [1, 2, 0],
+      "explanation": "ONE requires the fewest acknowledgments and is weakest, QUORUM requires a majority, and ALL requires every replica, making it strongest but least available."
+    },
+    {
+      "id": "q7",
+      "type": "true_false",
+      "prompt": "Using QUORUM for both reads and writes eliminates the need for any anti-entropy mechanism like read repair or Merkle-tree-based repair.",
+      "answer": false,
+      "explanation": "Quorum overlap only guarantees the latest acknowledged write is visible to a quorum read at that moment; replicas outside the responding quorum can still drift and need ongoing repair to fully converge."
+    }
+  ]
+}

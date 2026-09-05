@@ -250,5 +250,19 @@
     "title": "Read Repair and Hinted Handoff",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-10-bulkheads-resource-isolation",
+    "date": "2026-09-10",
+    "title": "Bulkheads and Resource Isolation",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-10-tunable-consistency-levels",
+    "date": "2026-09-10",
+    "title": "Tunable Consistency Levels in Practice (ONE/QUORUM/ALL)",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

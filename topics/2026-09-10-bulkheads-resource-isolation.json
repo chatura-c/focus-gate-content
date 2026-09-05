@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-10-bulkheads-resource-isolation",
+  "date": "2026-09-10",
+  "title": "Bulkheads and Resource Isolation",
+  "category": "system-design",
+  "lesson": "A bulkhead is a watertight internal wall in a ship's hull: if the hull is breached, only the flooded compartment fills with water and the rest of the ship stays afloat. The bulkhead pattern in software borrows the same idea for shared resources. If every call a service makes — to its database, to a slow third-party API, to an internal dependency — draws from one shared pool of threads or connections, a single misbehaving dependency can exhaust that shared pool and take down calls to every other, perfectly healthy dependency along with it. A bulkhead partitions the pool so that each dependency (or each class of dependency) gets its own bounded slice of resources, and a failure in one slice can't starve the others.\n\nThe two most common implementations are thread-pool isolation and semaphore isolation. Thread-pool isolation gives each dependency its own dedicated worker pool with a fixed size and queue depth; calls to that dependency run only on its own threads, so a dependency that hangs simply fills its own pool and its own queue, at which point new calls to it are rejected immediately rather than queued indefinitely. Semaphore isolation is lighter-weight: instead of dedicating threads, a counting semaphore caps how many concurrent calls to a dependency are allowed to be in flight at once, using the caller's own thread; it avoids the overhead of extra thread pools but doesn't protect against a dependency whose calls block the calling thread for a long time. Netflix's Hystrix library popularized both forms as first-class configuration per dependency, and the same idea now shows up as connection-pool partitioning in database clients, per-tenant resource quotas in multi-tenant services, and even container CPU/memory limits per pod.\n\nBulkheads and circuit breakers are frequently confused but solve different problems, and the strongest designs use both together. A circuit breaker watches the failure rate of calls to a dependency and, once it crosses a threshold, stops sending traffic there entirely for a cooldown period — it protects the caller from a dependency that's already unhealthy. A bulkhead limits how many concurrent calls to a dependency are allowed at all, independent of whether those calls are succeeding or failing — it protects the caller's own resources from being monopolized by any one dependency, healthy or not. A dependency that's simply slow (not failing outright) may never trip a circuit breaker's error-rate threshold, but it can still exhaust a shared thread pool; only a bulkhead catches that case.\n\nBulkheads aren't free. Dedicating a thread pool per dependency means provisioning capacity for each one individually, which typically means more total threads (and memory) than one shared pool would need, plus tuning work to size each pool correctly — too small and a legitimately busy dependency gets throttled even when healthy, too large and the isolation buys little. The payoff is containment: a slow payments API degrades checkout, not search, recommendations, and everything else running in the same process. That containment is why bulkheads pair naturally with fail-fast rejection — a full pool or semaphore should reject a new call immediately with a clear error rather than queue it, since queuing behind an already-saturated bulkhead just delays the same overload instead of preventing it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main purpose of the bulkhead pattern?",
+      "options": [
+        "To prevent a failing or slow dependency from exhausting shared resources and disrupting calls to unrelated, healthy dependencies",
+        "To automatically retry failed requests with exponential backoff",
+        "To distribute incoming traffic evenly across a pool of backend servers",
+        "To cache responses from slow dependencies so future calls skip the network entirely"
+      ],
+      "answer": 0,
+      "explanation": "Bulkheads partition resources per dependency so a problem with one dependency can't consume the resources needed to call others."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Bulkheads and circuit breakers solve the same problem, so using both together is redundant.",
+      "answer": false,
+      "explanation": "A circuit breaker stops calling a dependency once it's detected as failing, while a bulkhead limits concurrent resource usage for a dependency regardless of whether it's currently failing — they're complementary, not redundant."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The bulkhead pattern takes its name from the ____ compartments in a ship's hull that keep a single breach from sinking the whole vessel.",
+      "answer": "watertight",
+      "acceptable": ["sealed", "isolated", "waterproof"],
+      "explanation": "Ship bulkheads divide the hull into sealed compartments so flooding stays contained to one section instead of sinking the ship."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which pair correctly names the two common bulkhead implementations for isolating calls to a dependency?",
+      "options": [
+        "Thread-pool isolation and semaphore isolation",
+        "Load balancing and consistent hashing",
+        "Read replicas and write replicas",
+        "Rate limiting and API gateways"
+      ],
+      "answer": 0,
+      "explanation": "Thread-pool isolation dedicates a worker pool per dependency; semaphore isolation caps concurrent calls with a counter on the caller's own thread — both are standard bulkhead mechanisms."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these events, earliest first, describing what happens without a bulkhead when one downstream dependency becomes slow.",
+      "items": [
+        "Requests to healthy, unrelated dependencies can no longer get a free thread",
+        "The shared thread pool exhausts as all threads block waiting on the slow dependency",
+        "The whole service becomes unresponsive even though only one dependency is unhealthy",
+        "Calls to the slow dependency start piling up on the shared thread pool"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "Without isolation, a slow dependency's calls pile up, exhaust the shared pool, starve unrelated requests, and eventually take down the whole service."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "A well-designed bulkhead should reject a new call immediately once its dedicated pool or semaphore is full, rather than queuing it indefinitely.",
+      "answer": true,
+      "explanation": "Fail-fast rejection signals overload for that specific dependency without consuming unbounded resources or delaying the caller behind an already-saturated bulkhead."
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "prompt": "Semaphore isolation differs from thread-pool isolation in that it:",
+      "options": [
+        "Limits concurrent calls to a dependency using a counter on the caller's own thread, avoiding the overhead of a dedicated pool but not protecting against calls that block the caller for a long time",
+        "Replicates the dependency across multiple availability zones automatically",
+        "Requires no configuration since it scales the pool dynamically based on traffic",
+        "Only works for read operations, never for writes"
+      ],
+      "answer": 0,
+      "explanation": "Semaphore isolation is lighter-weight than dedicating threads, but because calls still run on the caller's thread, a long block on that thread isn't contained the way it would be with a separate pool."
+    }
+  ]
+}
