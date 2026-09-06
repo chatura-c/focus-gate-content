@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-11-cache-stampede",
+  "date": "2026-09-11",
+  "title": "Cache Stampede (Thundering Herd) and How to Prevent It",
+  "category": "system-design",
+  "lesson": "A cache stampede — also called a thundering herd, a dogpile, or a cache miss storm — happens when a heavily requested cached value expires or is evicted and many concurrent requests all miss at the same moment. Every one of those requests falls through to the backing database or service and recomputes the identical expensive value simultaneously. The origin sees a sudden burst of duplicate work, its latency climbs, and in the worst case it is overloaded badly enough to slow or fail every request, which can cascade outward. The damage scales with how popular the key is and how costly the recompute is: a rarely read or cheap-to-recompute key barely matters, while a hot key backed by an expensive aggregation query is exactly the dangerous case.\n\nThe most direct fix is request coalescing, also known as single-flight or dogpile locking. When a request misses, it tries to acquire a per-key lock before recomputing. Only the lock holder does the work and repopulates the cache; the other concurrent requests for the same key either wait for it to finish and then read the fresh value, or — better for latency — are served the previous stale value if one is still around. Within a single process this is an in-memory mutex (Go's singleflight package is a well-known implementation); across processes it is typically a short-TTL lock key in Redis or Memcached so that only one worker in the fleet recomputes at a time.\n\nProbabilistic early expiration removes the herd a different way: rather than every request treating the value as fresh until an exact expiry instant and then all missing together, each read independently makes a randomized decision to recompute slightly early, with a probability that grows as the expiry time approaches and as the recompute becomes more expensive. The XFetch algorithm, for example, refreshes when now minus a scaled, randomized function of the recompute cost crosses the expiry time, so a single unlucky request refreshes the value before the hard deadline and the rest keep hitting a warm cache. A related idea is refresh-ahead: once a soft TTL passes, serve the still-cached value but kick off an asynchronous recompute so the value is replaced before it ever hard-expires.\n\nSeveral other mitigations trade freshness for stability. Stale-while-revalidate returns the expired value immediately while one background refresh recomputes it, accepting a bounded staleness window in exchange for eliminating the synchronized miss spike; it is a standard HTTP Cache-Control directive and a common CDN feature. TTL jitter — adding a small random offset to each key's expiration — stops a batch of keys that were populated together (after a deploy, a cache flush, or a bulk load) from all expiring in the same instant. Caching permanently with explicit invalidation on write avoids expiry-driven misses entirely but moves the burden onto invalidating correctly everywhere. None of these is free: locking adds latency and a coordination point, probabilistic refresh spends some recompute early, and serving stale data weakens freshness — so the right choice depends on how much staleness the data can tolerate and how expensive the recompute is.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which situation best describes a cache stampede?",
+      "options": [
+        "A popular key expires and many concurrent requests all miss at once, each recomputing the same value against the backing store simultaneously",
+        "A cache node runs out of memory and begins rejecting all writes",
+        "Two clients write different values to the same key and the cache keeps the older one",
+        "A slow client holds a connection open and blocks other reads on the cache"
+      ],
+      "answer": 0,
+      "explanation": "A stampede is a synchronized wave of misses on one hot key that sends a burst of identical expensive recomputes to the origin."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Cache stampedes are most damaging for rarely requested keys that are cheap to recompute.",
+      "answer": false,
+      "explanation": "The harm scales with popularity and recompute cost, so the dangerous case is a hot key backed by an expensive query, not a cold cheap one."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The technique where only the first request to miss recomputes a value while other concurrent requests for the same key wait for or reuse its result is called request ____ (also known as single-flight).",
+      "answer": "coalescing",
+      "acceptable": ["collapsing", "deduplication"],
+      "explanation": "Request coalescing funnels concurrent misses for the same key into one recompute whose result the others share."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How does probabilistic early expiration (e.g. the XFetch algorithm) prevent stampedes?",
+      "options": [
+        "Each read randomly decides to refresh the value slightly before its hard expiry, with probability rising as expiry nears and as recompute cost grows, so one request refreshes it before the herd forms",
+        "It disables expiration entirely and never refreshes cached values",
+        "It routes every cache miss to a dedicated queue that is drained once per minute",
+        "It replicates the cached value to every application server so misses cannot happen"
+      ],
+      "answer": 0,
+      "explanation": "By spreading refreshes out probabilistically ahead of the deadline, a single early request repopulates the cache and the rest stay warm."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Adding a small random jitter to each key's TTL helps stop a batch of keys that were populated together from all expiring at the same instant.",
+      "answer": true,
+      "explanation": "Jitter desynchronizes expirations so keys loaded in one burst do not create one big simultaneous miss wave later."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "What tradeoff does \"stale-while-revalidate\" make to mitigate a stampede?",
+      "options": [
+        "It returns the expired value immediately while one background refresh recomputes it, accepting a bounded staleness window in exchange for removing the synchronized miss spike",
+        "It blocks all readers until a fresh value is computed, trading availability for strict freshness",
+        "It permanently pins the value in cache and never recomputes it",
+        "It shards the key across more cache nodes to spread the recompute load"
+      ],
+      "answer": 0,
+      "explanation": "Stale-while-revalidate serves slightly old data for a short window so that only one refresh runs instead of a herd of them."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the events of an unmitigated cache stampede, earliest first.",
+      "items": [
+        "The backing database is hit by a burst of identical expensive queries and its latency spikes",
+        "A popular key expires from the cache",
+        "Many concurrent requests look up the key and every one gets a miss",
+        "Each missed request independently issues the same query to recompute the value"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The hot key expires, concurrent lookups all miss, each miss fires the same recompute, and the origin is flooded with duplicate expensive queries."
+    }
+  ]
+}

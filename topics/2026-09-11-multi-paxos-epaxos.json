@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-11-multi-paxos-epaxos",
+  "date": "2026-09-11",
+  "title": "Multi-Paxos and EPaxos as Contrasts to Raft",
+  "category": "system-design",
+  "lesson": "Basic Paxos solves consensus on a single value (a \"single decree\"): a proposer runs a prepare/promise round to claim a ballot number, then an accept/accepted round to get a majority of acceptors to agree on a value. Replicated state machines need more than one value — they need an ordered, append-only log of commands that every replica applies in the same sequence. Running an independent basic Paxos instance for each log slot works but is wasteful, because every slot pays for two round trips. Multi-Paxos is the standard optimization: run the prepare phase once to elect a stable leader for a whole range of future slots, after which the leader can commit each new command with only the accept phase — a single round trip to a majority.\n\nIn steady state, a Multi-Paxos leader receives a client command, assigns it the next log slot, sends an Accept message for that slot to the acceptors, waits for a majority to record and acknowledge it, then applies the command and replies. If the leader fails, another node chooses a higher ballot number and runs the prepare phase again; the promises it collects also report any values acceptors have already partially accepted, and the new leader is obligated to re-propose those before proposing anything new, so nothing that might have been chosen is lost. Raft is, in effect, a Multi-Paxos-style replicated-log algorithm whose explicit design goal was understandability: it fully specifies leader election, the log-matching property, and a restriction that only a candidate whose log is at least as up-to-date as a majority can win an election. The common criticism of Paxos is that the papers leave this log-and-leader machinery underspecified, so real implementations diverge; Raft nails it down.\n\nEPaxos (Egalitarian Paxos) attacks a different limitation: the single leader is both a throughput bottleneck and, in a geo-distributed deployment, a latency problem, because every client must reach whichever region holds the leader, and a leader failure causes a brief unavailability window during failover. EPaxos has no dedicated leader. Any replica can act as the command leader for a command it receives. Commands that do not interfere — that touch disjoint state and therefore commute — can be committed concurrently in a single round trip to a fast-path quorum. Only interfering commands require a second round trip to agree on their relative order. Each replica builds a dependency graph among interfering commands and executes them in an order derived from a topological sort of that graph, with extra handling for cycles.\n\nThe practical tradeoff is complexity versus flexibility. Multi-Paxos and Raft are simpler to reason about and implement, and they perform well when one leader can absorb the write throughput and clients are close to it; most production systems (etcd, Consul, TiKV, and CockroachDB on a per-range basis) use Raft or a Multi-Paxos variant. EPaxos offers better load balancing, lower wide-area latency because a client can commit through its nearest replica, and no leader-failover gap — but its dependency tracking and execution logic are considerably harder to build correctly, which is the main reason it has stayed largely in the research world rather than displacing Raft in practice.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does Multi-Paxos optimize compared with running a separate basic Paxos instance for every log slot?",
+      "options": [
+        "It elects a stable leader once so each steady-state command needs only the accept phase, a single round trip",
+        "It removes the need for a majority of acceptors to agree on any command",
+        "It lets each acceptor apply commands in whatever order it receives them",
+        "It replaces network round trips with a shared clock that all replicas read"
+      ],
+      "answer": 0,
+      "explanation": "Multi-Paxos runs the prepare phase once to establish a leader, so subsequent commands commit with just the accept round trip instead of two."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "When a new Multi-Paxos leader takes over after a failure, it may immediately propose fresh commands without first learning about values that previous leaders may have partially accepted.",
+      "answer": false,
+      "explanation": "The promises gathered during the new leader's prepare phase surface any partially accepted values, and the leader must re-propose those first so nothing potentially chosen is lost."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In EPaxos, commands that do not ____ with each other — they touch disjoint state and commute — can be committed concurrently in a single round trip.",
+      "answer": "interfere",
+      "acceptable": ["conflict"],
+      "explanation": "Only interfering (conflicting) commands need the extra round trip to agree on ordering; non-interfering commands can be decided in parallel."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which is a genuine advantage of EPaxos's leaderless design in a geo-distributed deployment?",
+      "options": [
+        "A client can commit through its nearest replica, avoiding a wide-area round trip to a single leader, and there is no leader-failover unavailability window",
+        "It guarantees every command commits in exactly one message with no acknowledgements",
+        "It eliminates the need for a majority quorum on any command",
+        "It removes the need for replicas to ever agree on command ordering"
+      ],
+      "answer": 0,
+      "explanation": "With no dedicated leader, each client uses a local replica as command leader and a leader crash causes no failover gap."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Raft can be understood as a Multi-Paxos-style replicated-log algorithm whose primary design goal was understandability and a fully specified leader and log protocol.",
+      "answer": true,
+      "explanation": "Raft targets the same replicated-log problem as Multi-Paxos but pins down leader election, log matching, and election restrictions that Paxos papers leave underspecified."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps of committing one command in steady-state Multi-Paxos, once a stable leader is already established.",
+      "items": [
+        "A majority of acceptors record the command for that slot and acknowledge",
+        "The leader sends an Accept message for the command in the next log slot",
+        "The leader applies the committed command and replies to the client",
+        "The leader receives a new command from a client"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "A client command arrives, the leader sends Accept for the next slot, a majority acknowledges, and then the leader applies it and responds."
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "prompt": "Why has EPaxos seen far less production adoption than Raft despite its potential latency advantages?",
+      "options": [
+        "Its dependency tracking and execution logic — building and topologically sorting a command dependency graph and handling cycles — are substantially harder to implement correctly",
+        "It cannot tolerate any replica failures at all",
+        "It requires a hardware atomic clock in every datacenter",
+        "It only supports read-only workloads"
+      ],
+      "answer": 0,
+      "explanation": "EPaxos trades the simplicity of a single leader for per-command interference and dependency-graph machinery that is complex to build and reason about."
+    }
+  ]
+}

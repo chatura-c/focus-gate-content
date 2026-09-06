@@ -264,5 +264,19 @@
     "title": "Tunable Consistency Levels in Practice (ONE/QUORUM/ALL)",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-11-multi-paxos-epaxos",
+    "date": "2026-09-11",
+    "title": "Multi-Paxos and EPaxos as Contrasts to Raft",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-11-cache-stampede",
+    "date": "2026-09-11",
+    "title": "Cache Stampede (Thundering Herd) and How to Prevent It",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]
