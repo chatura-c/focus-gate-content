@@ -278,5 +278,19 @@
     "title": "Cache Stampede (Thundering Herd) and How to Prevent It",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-12-mvcc-snapshot-isolation",
+    "date": "2026-09-12",
+    "title": "Multi-Version Concurrency Control (MVCC) and Snapshot Isolation",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-12-load-shedding",
+    "date": "2026-09-12",
+    "title": "Load Shedding",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

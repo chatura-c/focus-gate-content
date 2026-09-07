@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-12-mvcc-snapshot-isolation",
+  "date": "2026-09-12",
+  "title": "Multi-Version Concurrency Control (MVCC) and Snapshot Isolation",
+  "category": "system-design",
+  "lesson": "Multi-version concurrency control (MVCC) is a way for a database to let readers and writers proceed concurrently without either blocking the other. Instead of locking a row so a reader waits for an in-progress writer (or vice versa), the database keeps multiple versions of each row, each tagged with the identifier of the transaction that created it. A reader is handed a consistent snapshot of the data as of some point in time and simply ignores versions created by transactions that started after that point, or that are still uncommitted. A writer never overwrites a row in place; it creates a new version alongside the old one. The result is that long-running reads don't stall writes, and writes don't stall reads — the classic contention point in lock-based concurrency control is sidestepped entirely, at the cost of having to store, and eventually clean up, old versions.\n\nPostgreSQL's implementation is a good concrete example. Every row (tuple) carries hidden `xmin` and `xmax` columns recording the transaction that inserted it and the transaction that deleted (or updated, since an update is internally a delete plus insert) it. Each transaction takes a snapshot describing which other transactions were already committed when it began; a row version is visible to it only if its creating transaction is in that committed set and its deleting transaction, if any, is not. Old versions that no longer belong to any transaction's snapshot become dead tuples, reclaimed later by a background process (`VACUUM` in Postgres) — if that cleanup falls behind, dead tuples accumulate and both storage and query performance degrade, which is why vacuum tuning is a recurring operational concern in MVCC databases.\n\nSnapshot isolation (SI) is the isolation level MVCC naturally produces: every statement in a transaction sees the database exactly as it was at a fixed point (typically transaction start), so it never observes a partial or in-progress effect of a concurrent transaction. That's stronger than read committed, and it prevents classic anomalies like dirty reads and non-repeatable reads. But it is strictly weaker than full serializability, and the gap shows up in an anomaly called write skew. Suppose an invariant requires at least one of two on-call doctors to be on duty at all times. Two doctors each independently check the schedule, see the other is on duty, and each concludes it's safe to take themselves off call; both transactions read a consistent snapshot, write to disjoint rows (their own record), and commit cleanly under SI — yet the invariant is now violated, because neither transaction saw the other's write. A serial execution of the same two transactions could never have produced that outcome.\n\nBecause write skew arises from a read-write dependency between transactions that never gets detected, closing the gap requires more than versioning — it requires tracking those dependencies. Serializable snapshot isolation (SSI), used by PostgreSQL's `SERIALIZABLE` level, monitors for a specific pattern of rw-antidependency cycles between concurrent transactions and aborts one of them before commit if committing both would be unsafe, recovering true serializability on top of an MVCC storage engine. This matters in practice because SI is extremely common as a database's *default* strong isolation level even when it isn't labeled that way: PostgreSQL's `REPEATABLE READ` and Oracle's default isolation are both snapshot isolation rather than the textbook repeatable-read behavior, so an application relying on \"repeatable read\" for correctness may be more exposed to write skew than its name suggests.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the core mechanism MVCC uses to let readers and writers avoid blocking each other?",
+      "options": [
+        "Readers and writers both acquire the same row lock but in a shorter critical section",
+        "The database keeps multiple versions of each row so a reader can see an older, consistent version while a writer creates a new one",
+        "Writes are queued and applied only during scheduled maintenance windows",
+        "Readers are redirected to a replica so the primary only ever serves writes"
+      ],
+      "answer": 1,
+      "explanation": "MVCC avoids read/write contention by versioning rows so readers see a consistent snapshot without needing to lock out concurrent writers."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Snapshot isolation prevents every anomaly that full serializability prevents.",
+      "answer": false,
+      "explanation": "Snapshot isolation still permits write skew, an anomaly where two transactions read overlapping data and write to disjoint objects in a way no serial execution could produce."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The anomaly where two concurrent transactions under snapshot isolation each read overlapping data, write to disjoint rows, and both commit in a way that violates an invariant is called write ____.",
+      "answer": "skew",
+      "acceptable": ["skew anomaly"],
+      "explanation": "Write skew is the specific gap between snapshot isolation and full serializability, caused by an undetected read-write dependency between transactions."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "In PostgreSQL's MVCC implementation, what happens to an old row version once no active transaction's snapshot can see it anymore?",
+      "options": [
+        "It is immediately and synchronously deleted as part of the transaction that made it invisible",
+        "It becomes a dead tuple, later reclaimed by a background VACUUM process",
+        "It is converted into the new xmin for that row",
+        "It is moved to a separate replica for archival"
+      ],
+      "answer": 1,
+      "explanation": "Postgres doesn't delete old versions inline; they become dead tuples that VACUUM reclaims later, which is why vacuum falling behind causes bloat."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Under MVCC, a long-running read transaction can block a concurrent write transaction from completing.",
+      "answer": false,
+      "explanation": "Because writers create new versions rather than modifying rows in place, readers working from an older snapshot don't need to block writers, and vice versa."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Serializable snapshot isolation (SSI) upgrades plain snapshot isolation to full serializability by:",
+      "options": [
+        "Taking a lock on every row a transaction reads for the duration of the transaction",
+        "Detecting dangerous cycles of read-write dependencies between concurrent transactions and aborting one before commit",
+        "Disabling MVCC and falling back to strict two-phase locking",
+        "Running all transactions sequentially on a single thread"
+      ],
+      "answer": 1,
+      "explanation": "SSI monitors for rw-antidependency cycles that indicate an unsafe combination of concurrent transactions and aborts one to preserve serializability."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order these events in the lifecycle of a row version under Postgres-style MVCC, earliest first.",
+      "items": [
+        "A background VACUUM process reclaims the dead tuple's storage",
+        "A transaction inserts a row, tagging it with its own transaction id as xmin",
+        "A later transaction updates the row, setting xmax on the old version and inserting a new version",
+        "The old version becomes invisible to every current and future transaction's snapshot"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "A row is created with an xmin, later superseded by an update that sets its xmax and inserts a new version, and once no snapshot can see the old version anymore, vacuum reclaims it."
+    }
+  ]
+}

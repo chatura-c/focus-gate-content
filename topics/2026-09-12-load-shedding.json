@@ -1,0 +1,82 @@
+{
+  "id": "2026-09-12-load-shedding",
+  "date": "2026-09-12",
+  "title": "Load Shedding",
+  "category": "system-design",
+  "lesson": "Load shedding is the practice of deliberately rejecting or degrading a portion of incoming requests when a system's demand exceeds its capacity, so the system stays healthy for the traffic it does accept instead of collapsing under all of it. It's easy to confuse with backpressure and circuit breakers, but the three sit at different points in a request's path. Backpressure is cooperative flow control: a consumer that's falling behind signals an upstream producer to slow down, and the producer can actually respond to that signal. A circuit breaker is a client-side pattern — a caller stops sending requests to a dependency it has detected is failing, protecting itself from a downstream problem. Load shedding is neither of those; it's a unilateral, server-side decision made by the overloaded system itself, often because the traffic source (external users, a fleet of untrusted clients) can't be told to slow down and has no obligation to listen anyway.\n\nThe simplest strategy is to shed indiscriminately once some threshold is crossed — reject a percentage of requests proportional to how far over capacity the system is. Most production systems do better by shedding selectively: classifying requests by priority or cost and dropping the cheapest-to-sacrifice ones first. A checkout request might be preserved while a recommendation-carousel request is shed; a paying customer's traffic might be preserved over a free tier's; a write that must eventually succeed might be preserved over a read that can be retried or served stale. This requires the system to be able to classify a request cheaply, before doing the expensive work of actually handling it, which pushes toward request classification and shedding logic living at ingress rather than deep inside the call graph.\n\nWhere shedding happens matters as much as how it decides. The general principle is to shed as early and as cheaply as possible — at a load balancer or API gateway, before a request has consumed any real backend resources — because a rejection there costs almost nothing, while a rejection after a request has already queued for a database connection or partially executed a handler has wasted exactly the capacity you were trying to protect. This is also where deadline-awareness matters: if a request already carries a deadline (an explicit timeout budget passed from its caller) and that deadline has already passed by the time it reaches the front of a queue, serving it anyway is pure waste, since the caller has already given up and won't use the response — dropping it immediately frees capacity for requests that can still be usefully served. Adaptive concurrency limiters (Netflix's `concurrency-limits` library is a well-known example) apply a related idea continuously: rather than a fixed connection-pool size, they estimate the current sustainable concurrency from observed latency (in the spirit of Little's Law — concurrency roughly equals arrival rate times latency) and shrink the admission window as latency degrades, shedding load automatically as a symptom of the system slowing down rather than waiting for an explicit crash.\n\nThe payoff for shedding well is that overload becomes an explicit, cheap failure (a fast 503 with a clear reason) instead of a systemic collapse where every request times out slowly and takes the whole system down with it — an unhealthy system that fails 100% of requests badly is worse than a healthy system that openly fails 20% of requests instantly and serves the rest well. Combined with graceful degradation — serving a cheaper, simplified response instead of a full rejection where one is available — load shedding is what lets a system trade a controlled, partial failure for the alternative of an uncontrolled, total one.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What best distinguishes load shedding from backpressure?",
+      "options": [
+        "Load shedding only applies to database systems, backpressure only to message queues",
+        "Backpressure is a cooperative signal to a producer that can slow down; load shedding is a unilateral rejection made when the source can't be told to slow down or won't listen",
+        "They are two names for the exact same mechanism",
+        "Load shedding happens on the client side, backpressure happens on the server side"
+      ],
+      "answer": 1,
+      "explanation": "Backpressure relies on an upstream that can respond to a slow-down signal, while load shedding is the overloaded system unilaterally rejecting work when that cooperation isn't available."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A circuit breaker and load shedding both operate on the client side of a request.",
+      "answer": false,
+      "explanation": "A circuit breaker is a client-side pattern for avoiding a failing dependency, while load shedding is a server-side pattern the overloaded system applies to protect itself."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Dropping a queued request once its caller's timeout budget has already expired, since serving it would be wasted work, is called ____-aware admission control.",
+      "answer": "deadline",
+      "explanation": "Deadline-aware shedding avoids doing work for a request whose caller has already given up and won't use the response."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why is it generally preferable to shed load at a gateway or load balancer rather than deep inside a request's handler?",
+      "options": [
+        "Gateways have more CPU available than backend services",
+        "Rejecting a request early costs almost nothing, while rejecting it after it has consumed real backend resources wastes the capacity shedding was meant to protect",
+        "Load balancers are the only component allowed to return HTTP error codes",
+        "It makes the request classification logic simpler to write"
+      ],
+      "answer": 1,
+      "explanation": "The whole point of shedding is to save capacity, so rejecting a request before it costs anything is far more effective than rejecting it after resources are already spent."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A healthy system that explicitly rejects 20% of requests with fast errors is generally preferable to an overloaded system where all requests eventually time out slowly.",
+      "answer": true,
+      "explanation": "Controlled partial failure preserves service for the requests that are accepted, while uncontrolled overload can degrade or fail every request, including ones that would otherwise have succeeded."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Adaptive concurrency limiters, in the spirit of Little's Law, adjust admission based on:",
+      "options": [
+        "A fixed connection pool size set once at deployment time and never changed",
+        "The number of servers currently deployed in the fleet",
+        "Observed latency, shrinking the allowed concurrency as latency degrades rather than waiting for a hard crash",
+        "The calendar time of day, using a static traffic schedule"
+      ],
+      "answer": 2,
+      "explanation": "Adaptive limiters estimate sustainable concurrency from real-time latency signals and shed load automatically as latency starts to degrade, rather than relying on a fixed threshold."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order these steps of deadline-aware load shedding at a gateway, earliest first.",
+      "items": [
+        "The gateway checks whether the request's remaining deadline has already expired before dispatching it further",
+        "A client sends a request carrying an explicit deadline (a timeout budget)",
+        "The request sits briefly in a queue at the gateway during a load spike",
+        "If the deadline has expired, the gateway drops the request immediately instead of forwarding it to a backend"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "The client attaches a deadline, the request queues under load, the gateway checks whether that deadline has already passed, and drops the request outright if it has rather than doing now-useless work."
+    }
+  ]
+}

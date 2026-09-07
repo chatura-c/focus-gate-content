@@ -50,6 +50,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 37 | 2026-09-10 | Tunable Consistency Levels in Practice (ONE/QUORUM/ALL) | `2026-09-10-tunable-consistency-levels` |
 | 38 | 2026-09-11 | Multi-Paxos and EPaxos as Contrasts to Raft | `2026-09-11-multi-paxos-epaxos` |
 | 39 | 2026-09-11 | Cache Stampede (Thundering Herd) and How to Prevent It | `2026-09-11-cache-stampede` |
+| 40 | 2026-09-12 | Multi-Version Concurrency Control (MVCC) and Snapshot Isolation | `2026-09-12-mvcc-snapshot-isolation` |
+| 41 | 2026-09-12 | Load Shedding | `2026-09-12-load-shedding` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -66,7 +68,8 @@ growing further). The 2026-09-05 topics were generated on the 2026-08-31 run, th
 topics were generated on the 2026-09-01 run, the 2026-09-07 topics were generated on
 the 2026-09-02 run, the 2026-09-08 topics above were generated on the 2026-09-03 run, the
 2026-09-09 topics were generated on the 2026-09-04 run, the 2026-09-10 topics were
-generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the 2026-09-06 run.
+generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the 2026-09-06 run,
+and the 2026-09-12 topics were generated on the 2026-09-07 run.
 
 ## Candidate next topics
 
@@ -74,9 +77,7 @@ Not yet covered — the generation job should pick from here (or an equally well
 system-design concept not listed) before repeating anything above:
 
 - Full anti-entropy repair scheduling and its cost vs. read repair / hinted handoff (follow-up to #32, #35)
-- Multi-version concurrency control (MVCC) and snapshot isolation
 - Tail-latency mitigation: request hedging / tied requests ("The Tail at Scale")
-- Load shedding as distinct from backpressure and circuit breaking
 
 ## How to append
 
