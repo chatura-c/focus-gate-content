@@ -52,12 +52,14 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 39 | 2026-09-11 | Cache Stampede (Thundering Herd) and How to Prevent It | `2026-09-11-cache-stampede` |
 | 40 | 2026-09-12 | Multi-Version Concurrency Control (MVCC) and Snapshot Isolation | `2026-09-12-mvcc-snapshot-isolation` |
 | 41 | 2026-09-12 | Load Shedding | `2026-09-12-load-shedding` |
+| 42 | 2026-09-13 | Tail-Latency Mitigation: Request Hedging and Tied Requests | `2026-09-13-request-hedging` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
 | Date       | Concept re-quizzed | New file                            | Notes |
 |------------|--------------------|-------------------------------------|-------|
 | 2026-09-02 | CAP Theorem (orig. `2026-08-21-cap-theorem`) | `2026-09-02-cap-theorem-review` | Same lesson text, fresh questions covering the CAP definition of availability, AP reconciliation, PACELC, and per-request quorum tuning. |
+| 2026-09-13 | Consistent Hashing (orig. `2026-08-20-consistent-hashing`) | `2026-09-13-consistent-hashing-review` | Same lesson text, fresh questions covering the naive-modulo failure mode, virtual nodes, removal behavior, and real-world users of the technique. |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
@@ -69,7 +71,8 @@ topics were generated on the 2026-09-01 run, the 2026-09-07 topics were generate
 the 2026-09-02 run, the 2026-09-08 topics above were generated on the 2026-09-03 run, the
 2026-09-09 topics were generated on the 2026-09-04 run, the 2026-09-10 topics were
 generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the 2026-09-06 run,
-and the 2026-09-12 topics were generated on the 2026-09-07 run.
+and the 2026-09-12 topics were generated on the 2026-09-07 run, and the 2026-09-13 topics were
+generated on the 2026-09-08 run.
 
 ## Candidate next topics
 
@@ -77,7 +80,6 @@ Not yet covered — the generation job should pick from here (or an equally well
 system-design concept not listed) before repeating anything above:
 
 - Full anti-entropy repair scheduling and its cost vs. read repair / hinted handoff (follow-up to #32, #35)
-- Tail-latency mitigation: request hedging / tied requests ("The Tail at Scale")
 
 ## How to append
 

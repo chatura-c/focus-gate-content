@@ -292,5 +292,19 @@
     "title": "Load Shedding",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-13-request-hedging",
+    "date": "2026-09-13",
+    "title": "Tail-Latency Mitigation: Request Hedging and Tied Requests",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-13-consistent-hashing-review",
+    "date": "2026-09-13",
+    "title": "Consistent Hashing",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

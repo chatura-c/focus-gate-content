@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-13-request-hedging",
+  "date": "2026-09-13",
+  "title": "Tail-Latency Mitigation: Request Hedging and Tied Requests",
+  "category": "system-design",
+  "lesson": "Most latency conversations focus on averages or medians, but user-facing systems are usually bounded by their tail — the slowest 1% or 0.1% of requests (p99, p999) — not their typical case. Tail latency matters disproportionately because of fan-out: a single user-facing request that needs answers from many backend leaves (a search query hitting hundreds of shards, a page render calling a dozen microservices) completes only when its slowest leaf responds. If each leaf has even a small independent chance of being slow, the probability that at least one of many leaves is slow on any given request climbs fast, so a system with a comfortable p99 per leaf can still have most user requests hit that tail somewhere in their fan-out. This is the core observation behind Google's 'The Tail at Scale' paper: at scale, the tail becomes the common case.\n\nRequest hedging attacks this directly at the client. Instead of sending one request and waiting however long it takes, the client sends the primary request, starts a timer tuned to roughly the known tail threshold (e.g., the p95 or p99 latency for that operation), and if no response has arrived by the time it fires, sends a second, duplicate request to a different replica. Whichever response comes back first is used, and the other in-flight request is canceled. Because the timer is set near the tail rather than at zero, the vast majority of requests never trigger a hedge at all — only the unlucky slow ones pay the (small) extra cost of a duplicate request, so the extra load added to the system stays close to the fraction of requests that would have been slow anyway.\n\nTied requests are a more aggressive variant: instead of waiting for a delay before firing a duplicate, the client sends the request to two (or more) replicas simultaneously from the start, and relies on cross-server cancellation — each replica, upon actually beginning work, notifies the others so they can abandon the duplicate before doing real work. Tied requests eliminate the wasted latency of waiting for the hedge timer to fire, at the cost of needing that cross-cancellation signaling and consistently doubling (or more) the request volume any replica sees, rather than only the slow-tail fraction hedging adds. The choice between the two is a tradeoff between how much extra load a system can absorb and how aggressively it needs to shave the tail.\n\nBoth techniques only make sense for operations that are safe to execute more than once, since the underlying work may genuinely run on two replicas concurrently before one is canceled — an idempotent read or a write with a deduplication key is fine, but hedging a non-idempotent side effect (charging a card, sending an email) risks doing it twice if cancellation loses a race. They also add real cost: hedging trades a bit of extra request volume for a much tighter tail, so it needs to be tuned (the delay threshold, which fraction of requests are allowed to hedge) against how much spare capacity the backend actually has — hedging too aggressively can itself create the overload it's trying to route around, especially during a broad slowdown where 'wait a bit, then duplicate' happens for a large fraction of traffic at once rather than a rare few outliers.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Request hedging and tied requests primarily target which of these latency metrics?",
+      "options": [
+        "Median (p50) latency",
+        "The rare high-percentile (e.g., p99) tail of the latency distribution",
+        "Total request count",
+        "Average CPU utilization across a fleet"
+      ],
+      "answer": 1,
+      "explanation": "These techniques exist because a small fraction of requests are anomalously slow (the tail, e.g. p99), and average or median latency is unaffected by them."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a fan-out request that needs responses from many backend leaves, the overall latency is bounded by the fastest-responding leaf.",
+      "answer": false,
+      "explanation": "Fan-out latency is bounded by the slowest leaf that must respond, not the fastest, which is why a small per-leaf tail-latency probability compounds badly at high fan-out."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Sending a duplicate copy of a slow-to-respond request to a second replica after waiting some threshold (e.g. the p95 latency), and using whichever response arrives first while canceling the other, is called a ____ request.",
+      "answer": "hedged",
+      "acceptable": ["backup", "hedge"],
+      "explanation": "This is the classic 'hedged request' technique from Google's 'The Tail at Scale' paper: wait briefly, then hedge only the slow tail rather than duplicating every request."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How does a 'tied' request differ from a hedged request?",
+      "options": [
+        "A tied request is sent to two (or more) replicas at the same time from the start, rather than only after an initial delay",
+        "A tied request is never canceled once sent",
+        "A tied request is only used for write operations, never reads",
+        "A tied request requires no replica coordination at all"
+      ],
+      "answer": 0,
+      "explanation": "Tied requests dispatch to multiple replicas simultaneously and rely on cross-server cancellation once one starts processing, instead of waiting for a delay threshold like hedged requests do."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Hedged and tied requests should only be used against operations that are safe to execute more than once (idempotent), since both the original and the duplicate may actually reach a server.",
+      "answer": true,
+      "explanation": "Because both the original and the duplicate or hedge may actually execute, applying this pattern to non-idempotent operations risks the underlying action happening twice."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a hedged request, earliest first.",
+      "items": [
+        "The client sends the primary request to a replica",
+        "A timer is set for a threshold delay, e.g. around the p95 latency",
+        "If no response has arrived when the timer fires, the client sends a duplicate request to a second replica",
+        "Whichever replica responds first is used, and the other request is canceled"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Hedging starts with a normal request, waits for a delay tuned near the known tail latency, only then fires a backup, and finally uses whichever response wins the race."
+    }
+  ]
+}

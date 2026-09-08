@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-13-consistent-hashing-review",
+  "date": "2026-09-13",
+  "title": "Consistent Hashing",
+  "category": "system-design",
+  "lesson": "A common way to spread keys across N servers is naive modulo hashing: pick a server with hash(key) % N. This works fine until N changes. Add or remove even one server, and the modulus changes for every key, so nearly all of them now map to a different server than before. For a cache, that means almost the entire cache goes cold at once; for a data store, it means a massive, disruptive rebalance triggered by a routine scaling event.\n\nConsistent hashing fixes this by hashing servers and keys into the same space and arranging that space as a ring (imagine hash values from 0 up to some maximum, wrapping back to 0). Each server is hashed to a position on the ring; each key is also hashed to a position, and is owned by the first server found walking clockwise from the key's position. When a server is added, it only takes over the keys between itself and the previous server on the ring — everyone else's keys are untouched. When a server is removed, only its keys move, and they move to the next server clockwise. Instead of nearly all keys reshuffling, on average only about K/N keys move for K total keys and N servers.\n\nA plain ring with few servers hashed to single points tends to distribute keys unevenly — one server might end up owning a disproportionately large arc of the ring just by the luck of where its hash landed, creating a hotspot. The standard fix is virtual nodes: each physical server is hashed to many points on the ring (dozens or hundreds), not just one. Keys are still assigned by walking clockwise to the nearest point, but because each server now owns many small, scattered arcs instead of one large one, the load evens out across servers, and adding or removing a server perturbs many small arcs spread across many other servers rather than dumping a large single arc onto one neighbor.\n\nConsistent hashing shows up wherever a fleet of stateful nodes needs to survive members joining and leaving without wholesale reshuffling: distributed caches like memcached (hashing on the client to pick which cache server owns a key), distributed databases like Cassandra and DynamoDB (hashing to place a partition/row on a node in the ring), and some load balancers that want to keep routing the same client to the same backend as the backend pool resizes.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does naive modulo hashing (hash(key) % N) cause a disruptive, fleet-wide rebalance when a server is added or removed?",
+      "options": [
+        "Because the modulus N is part of every key's computed owner, so changing N changes the result for nearly every key, not just the ones that need to move",
+        "Because modulo hashing only supports up to 100 servers",
+        "Because it requires re-hashing the server list alphabetically",
+        "Because it can only be used with string keys, not numeric ones"
+      ],
+      "answer": 0,
+      "explanation": "Since every key's owner is computed as hash(key) % N, changing N shifts the result of that computation for almost all keys at once, forcing a near-total rebalance."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With virtual nodes, each physical server is hashed to only one position on the ring, the same as in a plain consistent-hashing setup.",
+      "answer": false,
+      "explanation": "Virtual nodes mean each physical server is hashed to many scattered positions on the ring, not just one, which is what evens out the load."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Without virtual nodes, a plain ring with few hashed points tends to distribute keys unevenly, because a server can end up owning a disproportionately large ____ of the ring purely by chance.",
+      "answer": "arc",
+      "acceptable": ["arc of the ring", "segment", "section"],
+      "explanation": "A server hashed to a single point can by luck own a large contiguous arc of the ring, creating a hotspot that virtual nodes are designed to smooth out."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "When a single server is removed from a consistent hashing ring holding K keys across N servers, roughly how many keys need to move?",
+      "options": [
+        "About K/N keys, which move to the next server clockwise",
+        "All K keys, redistributed evenly among the remaining servers",
+        "No keys move until a new server is added back",
+        "Exactly K keys move to one randomly chosen remaining server"
+      ],
+      "answer": 0,
+      "explanation": "Only the removed server's own keys are affected, and they move to the next server clockwise, which averages out to about K/N keys rather than a fleet-wide reshuffle."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Systems like memcached, Cassandra, and DynamoDB use consistent hashing specifically so that scaling the number of nodes up or down doesn't require reshuffling nearly the entire dataset.",
+      "answer": true,
+      "explanation": "Consistent hashing lets these systems add or remove nodes while moving only the keys near the changed position on the ring, avoiding the massive rebalance that naive modulo hashing would cause."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of what happens when a server is removed from a consistent hashing ring, earliest first.",
+      "items": [
+        "The server's position(s) are removed from the ring",
+        "The keys that were owned by those now-vacated positions are identified",
+        "Those keys are reassigned to the next server clockwise from each vacated position",
+        "Every other key on the ring keeps its existing owner, unaffected"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Removal starts with erasing the server's ring positions, then the keys that were tied to those positions are found and handed to the next clockwise server, while unrelated keys never move."
+    }
+  ]
+}
