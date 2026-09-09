@@ -306,5 +306,19 @@
     "title": "Consistent Hashing",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-14-anti-entropy-repair-scheduling",
+    "date": "2026-09-14",
+    "title": "Anti-Entropy Repair Scheduling: When Read Repair and Hints Aren't Enough",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-14-retries-backoff-jitter",
+    "date": "2026-09-14",
+    "title": "Retries with Exponential Backoff, Jitter, and Retry Budgets",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

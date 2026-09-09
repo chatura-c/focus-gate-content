@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-14-retries-backoff-jitter",
+  "date": "2026-09-14",
+  "title": "Retries with Exponential Backoff, Jitter, and Retry Budgets",
+  "category": "system-design",
+  "lesson": "Retrying a failed request is the simplest resilience technique there is, and also one of the easiest to get wrong. The first question is what to retry. Transient failures such as a connection reset, a timeout, or a 503 from an overloaded server are worth retrying because the next attempt has a real chance of succeeding. Permanent failures such as a 400 for a malformed request or a 404 will fail identically every time, and retrying them just adds load. The second question is whether it is safe: a retry after a timeout means the client does not know whether the first attempt was applied, so only idempotent operations, or ones carrying an idempotency key the server can deduplicate on, should be retried automatically. A payment call retried without a key can charge someone twice.\n\nThe next problem is timing. If a dependency is failing because it is overloaded, thousands of clients retrying immediately turn a brief wobble into a sustained outage, a pattern known as a retry storm. Exponential backoff addresses this by making each successive wait longer: roughly base times two to the power of the attempt number, capped at some maximum so the wait never becomes absurd. This spreads load over time and gives the struggling service room to recover. But pure exponential backoff has a subtle flaw. Clients that failed at the same moment, which is exactly what happens when a service goes down, compute the same delays and retry in lockstep, producing synchronized spikes at 1s, 2s, 4s, and so on. The service is quiet between spikes and hammered on them.\n\nJitter fixes this by adding randomness to the delay so the retries are smeared out instead of clustered. The AWS analysis of this problem found that 'full jitter', where the actual sleep is a uniform random value between zero and the exponentially computed cap, gives the best results: it completes the work with fewer total calls and lower contention than either no jitter or 'equal jitter' (half fixed, half random). A related variant, 'decorrelated jitter', picks the next sleep randomly between the base and three times the previous sleep, which spreads clients out even further. The practical takeaway is that any retry loop should have jitter; exponential backoff without it still causes synchronized load.\n\nBackoff limits how fast one client retries, but not how many retries the whole fleet generates, and it does nothing about amplification through layers. If a request passes through three services and each one makes up to three attempts on its downstream call, a single failure at the bottom can produce up to twenty-seven attempts against the failing component. Two rules contain this. First, retry at one layer only, usually the one closest to the failure, and let the layers above fail fast or degrade rather than retry again. Second, use a retry budget: allow retries to be at most some fraction of normal traffic, say ten or twenty percent, measured over a sliding window. Under a total outage a per-request retry count of three still triples load, whereas a budget caps the extra load at the budgeted fraction regardless of how many requests fail. Combined with timeouts, circuit breakers, and honoring a server's Retry-After header, this turns retries from an outage amplifier into the safe, boring mechanism they are supposed to be.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Exponential backoff alone still causes load spikes on a recovering service. Why?",
+      "options": [
+        "Because the delays grow too slowly to matter",
+        "Because clients that failed at the same moment compute the same delays and retry in lockstep",
+        "Because exponential backoff only applies to the first retry",
+        "Because the service resets its connection pool on every retry"
+      ],
+      "answer": 1,
+      "explanation": "An outage fails many clients at once, and without randomness they all wake up at the same 1s, 2s, 4s marks, producing synchronized bursts."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "Adding a random component to each retry delay so that clients do not retry in synchronized waves is called adding ____.",
+      "answer": "jitter",
+      "acceptable": ["random jitter", "randomized jitter", "full jitter"],
+      "explanation": "Jitter smears the retry times of many clients across the interval instead of clustering them on the exponential schedule's exact boundaries."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "A request timeout is a safe signal to automatically retry any operation, because a timeout means the server never received the request.",
+      "answer": false,
+      "explanation": "A timeout only means no response arrived in time; the server may have processed the request, so only idempotent or idempotency-keyed operations should be retried."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A request passes through three services, and each makes up to three attempts on its downstream call. In the worst case, how many attempts can a single user request generate against the failing bottom component?",
+      "options": [
+        "3",
+        "6",
+        "9",
+        "27"
+      ],
+      "answer": 3,
+      "explanation": "Retries multiply through layers (3 x 3 x 3 = 27), which is why retrying at every layer amplifies an outage rather than containing it."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "With 'full jitter', how is the actual sleep before the next retry chosen?",
+      "options": [
+        "Exactly base times two to the attempt number, with no randomness",
+        "A uniform random value between zero and the exponentially computed, capped delay",
+        "Always the maximum cap, so the service has the most time to recover",
+        "A fixed one-second delay plus the attempt number in milliseconds"
+      ],
+      "answer": 1,
+      "explanation": "Full jitter draws the sleep uniformly from zero up to the exponential cap, which the AWS analysis found completes work with fewer calls and less contention than no jitter or equal jitter."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps a well-behaved client takes after a call fails, earliest first.",
+      "items": [
+        "Sleep for the chosen delay and then resend the request",
+        "Compute the base delay as an exponential of the attempt number, capped at a maximum",
+        "Check that the failure is transient and the operation is safe to retry",
+        "Randomize the delay with jitter",
+        "Check that attempts remain and the retry budget is not exhausted"
+      ],
+      "answer": [2, 4, 1, 3, 0],
+      "explanation": "Classify the failure first, confirm a retry is allowed, then compute the exponential delay, add jitter, and only then wait and resend."
+    },
+    {
+      "id": "q7",
+      "type": "true_false",
+      "prompt": "A retry budget that caps retries at 10% of normal traffic protects a downstream service better during a total outage than a fixed limit of three attempts per request.",
+      "answer": true,
+      "explanation": "A per-request limit still triples load when every request fails, whereas a fleet-wide budget bounds the extra load at the budgeted fraction no matter how many requests fail."
+    }
+  ]
+}

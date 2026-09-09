@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-14-anti-entropy-repair-scheduling",
+  "date": "2026-09-14",
+  "title": "Anti-Entropy Repair Scheduling: When Read Repair and Hints Aren't Enough",
+  "category": "system-design",
+  "lesson": "Leaderless, Dynamo-style databases (Cassandra, Riak, ScyllaDB) keep replicas converged with three mechanisms that operate at different times. Hinted handoff works at write time: if a replica is down, the coordinator stores a hint and replays it when the replica returns. Read repair works at read time: when a read touches multiple replicas and they disagree, the coordinator pushes the newest value to the stale ones. Both are cheap because they piggyback on traffic that is already happening, but that is also their weakness. Hints are only kept for a bounded window (Cassandra's default is about three hours) and are lost if the coordinator holding them dies, so a replica that is down for longer never gets those writes. Read repair only ever fixes data that somebody reads, so cold rows that diverged months ago stay divergent forever. Neither mechanism gives any guarantee that the whole dataset agrees.\n\nFull anti-entropy repair closes that gap. It is a scheduled background process that compares entire replica datasets rather than waiting for a write or read to expose a difference. A repair coordinator asks each replica for a token range to build a Merkle tree over its data in that range; the replicas compute the hash trees by scanning their local storage, the trees are compared top-down to find the leaf ranges whose hashes differ, and only the rows inside those mismatched ranges are streamed between replicas so every copy ends up with the newest version. Because the comparison is hash-based, the network cost is proportional to the amount of divergence, not the size of the dataset. The expensive part is building the trees, which means reading every SSTable covering the range from disk and hashing it, and then absorbing the streamed data and the extra compaction it triggers afterwards.\n\nRepair is not optional in these systems because of deletes. A delete is stored as a tombstone, which is itself replicated and later purged after a grace period (Cassandra's gc_grace_seconds, default ten days). If one replica missed the delete, and the tombstone is purged from the others before that replica is repaired, a later read or repair can 'resurrect' the deleted row from the stale copy, because nothing remembers that it was ever deleted. The operational rule that follows is that every node must complete a full repair of all its data at least once within the grace period. A common setup is a repair cadence of roughly a week against a ten-day grace window, leaving slack for a failed or slow repair run.\n\nBecause a naive full repair hammers disk and CPU across the cluster, scheduling is about spreading the cost without falling behind the grace deadline. Primary-range repair has each node repair only the token range it owns as primary, so each range is repaired exactly once cluster-wide rather than once per replica. Subrange repair splits a node's range into many small pieces run one at a time, keeping each Merkle tree small and each streaming burst short so the load stays flat instead of spiking. Incremental repair marks SSTables that have already been repaired and skips them next time, so only data written since the last run is hashed. Runs are staggered across nodes and pushed to off-peak hours, and tools like Cassandra Reaper exist purely to orchestrate this schedule. Riak takes a different approach with 'active anti-entropy', keeping persistent hash trees updated continuously and running throttled background exchanges rather than periodic full scans. Either way, the design principle is the same: read repair and hints handle the common case cheaply, and a bounded-cost, scheduled sweep provides the actual convergence guarantee.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why can a cluster that uses both hinted handoff and read repair still have replicas that never converge?",
+      "options": [
+        "Hints are stored forever, which fills up the coordinator's disk",
+        "Hints expire or can be lost, and read repair only touches data that is actually read, so cold rows and long outages are never fixed",
+        "Read repair overwrites the newest value with the oldest one",
+        "Both mechanisms only run on the leader node"
+      ],
+      "answer": 1,
+      "explanation": "Hints are bounded in time and can die with the coordinator, and read repair only fixes what is read, so neither gives a guarantee over the whole dataset."
+    },
+    {
+      "id": "q2",
+      "type": "ordering",
+      "prompt": "Order the steps of a Merkle-tree based anti-entropy repair of one token range, earliest first.",
+      "items": [
+        "Only the rows in the mismatched ranges are streamed between replicas",
+        "The trees are compared top-down to find leaf ranges whose hashes differ",
+        "The repair coordinator asks each replica to build a Merkle tree over the range",
+        "Each replica scans its local storage for the range and computes the hash tree"
+      ],
+      "answer": [2, 3, 1, 0],
+      "explanation": "Repair starts with a request to build trees, the replicas hash their data, the trees are diffed to isolate divergence, and then only the differing data is streamed."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "If a replica that missed a delete is not repaired before the other replicas purge their tombstones, the deleted row can come back to life.",
+      "answer": true,
+      "explanation": "Once the tombstones are garbage-collected nothing records that the row was deleted, so the stale replica's copy looks like valid data and gets propagated back."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "In Cassandra, a full repair of every node's data must complete at least once within the ____ window, the grace period after which tombstones are purged.",
+      "answer": "gc_grace_seconds",
+      "acceptable": ["gc grace seconds", "gc_grace", "gc grace", "tombstone grace", "grace period"],
+      "explanation": "gc_grace_seconds (default ten days) is the deadline by which every replica must have seen a delete, so repair cadence is tuned to finish comfortably inside it."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What does running repair in 'primary range' mode achieve?",
+      "options": [
+        "Each node repairs only the token range it owns as primary, so every range is repaired once cluster-wide instead of once per replica",
+        "Only the primary (leader) node is repaired and followers are skipped",
+        "Repair runs against the primary key index only, ignoring row data",
+        "It disables read repair while the full repair is running"
+      ],
+      "answer": 0,
+      "explanation": "Without primary-range mode each range would be repaired by every replica that holds it, multiplying the work by the replication factor."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Why is the network cost of Merkle-tree repair proportional to how much the replicas disagree rather than to the size of the dataset?",
+      "options": [
+        "Because replicas exchange compressed copies of all their data",
+        "Because repair only compares the most recently written rows",
+        "Because hash trees let the replicas pinpoint the specific mismatched ranges and stream only those rows",
+        "Because repair is skipped entirely when the dataset is large"
+      ],
+      "answer": 2,
+      "explanation": "Comparing hashes top-down narrows the diff to the leaf ranges that differ, so identical data costs only a few hash comparisons and never crosses the network."
+    },
+    {
+      "id": "q7",
+      "type": "true_false",
+      "prompt": "Incremental repair reduces the cost of a repair run by hashing only SSTables that have not already been marked as repaired by a previous run.",
+      "answer": true,
+      "explanation": "Marking already-repaired SSTables lets the next run skip them, so the expensive tree-building step covers only data written since the last repair."
+    }
+  ]
+}
