@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-15-delivery-semantics-and-idempotent-consumers",
+  "date": "2026-09-15",
+  "title": "At-Least-Once vs Exactly-Once Delivery and Idempotent Consumers",
+  "category": "system-design",
+  "lesson": "Messaging systems offer one of three delivery guarantees. At-most-once means the sender transmits and forgets: nothing is retried, so messages are never duplicated but can be silently lost if the network drops them. At-least-once means the sender keeps retrying until it receives an acknowledgement: no message is lost, but duplicates appear whenever an ack is lost in transit or a consumer crashes after doing the work but before acknowledging. Exactly-once means every message affects the system's state one time and no more. Most brokers and queues default to at-least-once because it is cheap to implement and, for the majority of workloads, a duplicate is far less damaging than a lost message.\n\nTrue exactly-once delivery over an unreliable network is not achievable, and it helps to know why. This is the Two Generals problem: the sender can never be certain its message arrived without receiving an ack, and that ack can itself be lost, so any protocol must eventually choose to either stop retrying (risking loss) or keep retrying (risking duplication). There is no third option. What is achievable is exactly-once processing, sometimes called effectively-once: accept that the transport layer will occasionally deliver a message twice, and make the effect of handling a duplicate identical to handling it once. The problem moves from the network, where it is unsolvable, to the consumer, where it is a design choice.\n\nThere are two ways to make a consumer safe to re-run. The first is to use operations that are naturally idempotent: 'set order status to SHIPPED' produces the same state no matter how many times it runs, whereas 'add $10 to the balance' does not. The second, for operations that are not naturally idempotent, is deduplication: give every message a stable unique id (a business key, or one assigned by the producer), have the consumer record processed ids in a store, and skip any message whose id is already present. The critical detail is that the dedup-record write and the business state change must be committed atomically, in the same transaction. If they are separate, a crash in between either double-applies the change (record not yet written) or permanently drops a message (record written, change lost). Putting the dedup table in the same database as the business data, or using a transactional outbox, makes that atomicity straightforward. Dedup stores also need a retention window, since ids cannot be kept forever; it should be longer than the largest possible redelivery delay.\n\nFramework features do not remove this responsibility. Kafka's 'exactly-once semantics', built from an idempotent producer plus transactions, genuinely gives exactly-once for the consume-transform-produce pattern where the output messages and the consumed offsets are committed in one Kafka transaction. But the moment processing has a side effect outside that boundary, such as sending an email, charging a card, or calling a third-party API, you are back to needing an idempotency key that the external system deduplicates on. Two other caveats: retries and redeliveries can reorder messages, so a consumer should not assume strict ordering unless the broker guarantees it per partition or key; and 'process the message, then ack' ordering matters, because acking first and crashing means the message is lost, while processing first and crashing means it is redelivered and the dedup logic handles it. The practical rule is to assume at-least-once transport, design every consumer to be safely re-runnable, and rely on natural idempotency or keyed deduplication for the steps that are not.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Under at-least-once delivery, duplicate messages are produced mainly when:",
+      "options": [
+        "The producer serializes the message incorrectly",
+        "An acknowledgement is lost, or a consumer crashes after processing but before acknowledging, so the sender retries",
+        "The broker runs low on disk space",
+        "Two producers publish to the same topic"
+      ],
+      "answer": 1,
+      "explanation": "At-least-once means the sender retries until it sees an ack, so a lost ack or a crash between processing and acking causes the message to be delivered again."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With enough engineering effort, a messaging system can guarantee true exactly-once delivery over an unreliable network.",
+      "answer": false,
+      "explanation": "The Two Generals problem means the sender can never be sure a message arrived, so it must risk either loss or duplication; only exactly-once processing (making duplicates harmless) is achievable."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Making the effect of handling the same message twice identical to handling it once is called making the consumer ____.",
+      "answer": "idempotent",
+      "acceptable": ["idempotent consumer", "effectively-once"],
+      "explanation": "An idempotent consumer can safely process a redelivered message because the second application is a no-op on the system's state."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which of these operations is naturally idempotent, so a duplicate message causes no extra effect?",
+      "options": [
+        "Add $10 to the account balance",
+        "Set the order's status field to SHIPPED",
+        "Append a new row to the audit log",
+        "Send the customer a confirmation email"
+      ],
+      "answer": 1,
+      "explanation": "Setting a field to a fixed value yields the same state no matter how many times it runs, whereas incrementing, appending, and emailing all compound with each repeat."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why must the dedup-record write and the business state change be committed in the same transaction?",
+      "options": [
+        "To make the consumer run faster by batching writes",
+        "Because a crash between two separate commits either double-applies the change or permanently drops the message",
+        "Because brokers reject messages that touch more than one table",
+        "To keep the dedup table smaller than the business tables"
+      ],
+      "answer": 1,
+      "explanation": "If the two writes are not atomic, a failure in between leaves the system having done the work without recording it (double-processing on redelivery) or having recorded it without doing the work (lost message)."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Kafka's exactly-once semantics also make a confirmation email, sent as a side effect while processing a message, happen exactly once.",
+      "answer": false,
+      "explanation": "Kafka's guarantee only covers the consume-transform-produce boundary with offsets committed in a Kafka transaction; an external side effect like an email still needs its own idempotency key at the receiving system."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the steps an idempotent consumer takes to process a newly received message safely, earliest first.",
+      "items": [
+        "Commit the transaction, then acknowledge the message to the broker",
+        "Begin a transaction in the business database",
+        "Receive the message and read its unique id",
+        "Look up the id in the processed-ids store and find it absent",
+        "Within the same transaction, apply the state change and insert the id into the processed-ids store"
+      ],
+      "answer": [2, 1, 3, 4, 0],
+      "explanation": "The dedup check and the state change share one transaction so a crash cannot split them, and the broker is acked only after that transaction commits."
+    }
+  ]
+}

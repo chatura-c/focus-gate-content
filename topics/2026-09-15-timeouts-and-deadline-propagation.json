@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-15-timeouts-and-deadline-propagation",
+  "date": "2026-09-15",
+  "title": "Timeouts and Deadline Propagation Across Service Hops",
+  "category": "system-design",
+  "lesson": "Every call that crosses a network needs a timeout, and the default almost never is one. Client libraries frequently ship with an infinite or multi-minute default, which means a single stuck downstream call can hold a thread, a connection, or a goroutine open indefinitely. Under load these stuck calls accumulate: the caller's connection pool drains, new work queues behind the frozen requests, and a slowdown in one dependency turns into a full outage of everything that depends on it. A timeout bounds how long any one call can tie up resources, so a slow dependency degrades that one code path instead of collapsing the whole service. This is why timeouts are considered a load-shedding and isolation mechanism, not just an error-handling nicety.\n\nPicking the value matters. A timeout should be derived from the dependency's observed latency distribution, not its average: if the p99 is 80ms, a 100ms timeout will abort a meaningful fraction of requests that would have succeeded, wasting the work already done and often triggering a retry that adds even more load. Setting it too generously fails to protect you at all. A reasonable starting point is a high percentile (p99 or p99.9) plus a margin, then tuned against real traffic. The timeout you set on a downstream call should also be shorter than the timeout your own caller is enforcing on you; if the caller has already given up, every millisecond you keep working is wasted capacity.\n\nThe subtle failure mode appears when each hop sets its own fixed, independent timeout. If service A allows 10 seconds for B, and B allows 10 seconds for C, and C allows 10 seconds for D, the worst-case end-to-end time is 30+ seconds even though the user gave up long ago. The fix is deadline propagation: attach an absolute deadline (a wall-clock instant, not a duration) to the request and pass it down the call chain. Each service computes the time remaining as deadline minus now, subtracts a small margin for its own work, and sends that reduced deadline to the next hop. gRPC does this natively; over plain HTTP it is a header convention. Because the deadline shrinks at every hop, the whole tree of calls is bounded by the original budget instead of the sum of per-hop timeouts.\n\nDeadline propagation also enables two important optimizations. First, fail-fast: if a service receives a request whose deadline is already in the past or only a few milliseconds away, and its downstream call typically takes far longer, it should immediately return a deadline-exceeded error without making the call at all, since nobody is still waiting for the result. Second, cancellation propagation: when the client disconnects or the deadline passes, that signal should propagate downstream (cancelling the context, closing the stream) so every service still working on the request stops. Without cancellation, 'zombie' requests keep consuming CPU and database connections long after the answer became useless, which is exactly the wrong behavior during overload. Timeouts, deadlines, retries, circuit breakers, and bulkheads are meant to compose: the timeout bounds a single attempt, the budget bounds the retries, and the deadline bounds the entire request across every hop it touches.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main resource risk of making a network call with no timeout?",
+      "options": [
+        "The call will silently return stale data instead of failing",
+        "Stuck calls accumulate and exhaust threads or connections, turning a slow dependency into a full outage",
+        "The compiler cannot optimize the call path",
+        "Retries become impossible because there is no failure signal"
+      ],
+      "answer": 1,
+      "explanation": "Without a timeout a frozen downstream call holds resources indefinitely, and under load these pile up until the caller's pool drains and it fails too."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If every hop in a call chain independently sets a comfortable fixed timeout (say 10 seconds each), the end-to-end request is still guaranteed to respect the user-facing time budget.",
+      "answer": false,
+      "explanation": "Independent per-hop timeouts add up, so a three-hop chain at 10s each can take 30+ seconds even though the user gave up long ago."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Attaching an absolute ____ to a request and passing a smaller one to each downstream hop keeps the whole call tree bounded by the original budget rather than the sum of per-hop timeouts.",
+      "answer": "deadline",
+      "acceptable": ["deadline (wall-clock)", "absolute deadline"],
+      "explanation": "A propagated absolute deadline shrinks at every hop, so the entire request is bounded by the original budget instead of the sum of independent timeouts."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A service receives a request whose propagated deadline is 5ms away, and its downstream call normally takes about 40ms. What is the best behavior?",
+      "options": [
+        "Make the call anyway; it might get lucky and finish in time",
+        "Immediately return a deadline-exceeded error without making the downstream call",
+        "Ignore the deadline and use the service's own default 10s timeout",
+        "Retry the downstream call three times to improve the odds"
+      ],
+      "answer": 1,
+      "explanation": "With no usable time left, making the call only wastes capacity on a result nobody is waiting for, so the service should fail fast."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Choosing a downstream timeout equal to the average (p50) latency of that dependency is a poor choice mainly because:",
+      "options": [
+        "Averages are hard to measure accurately",
+        "It will abort a large fraction of requests that were slower than average but would have succeeded, wasting work and adding retry load",
+        "The timeout must always be a round number of seconds",
+        "p50 latency changes only when the code changes"
+      ],
+      "answer": 1,
+      "explanation": "Roughly half of all calls exceed the median, so a p50-based timeout kills many requests that would have completed; a high percentile plus margin is the usual starting point."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps a service takes when handling a request that carries a propagated deadline, earliest first.",
+      "items": [
+        "Make the downstream call, passing the reduced deadline so the next hop inherits the remaining budget",
+        "Read the absolute deadline attached to the incoming request",
+        "If little or no time remains, return a deadline-exceeded error without calling downstream",
+        "Compute the time remaining as the deadline minus the current time",
+        "Subtract a margin for local work and use the result as the downstream call's deadline"
+      ],
+      "answer": [1, 3, 2, 4, 0],
+      "explanation": "Read the incoming deadline, compute what is left, fail fast if nothing is, otherwise shrink it by a local margin and pass it down with the call."
+    },
+    {
+      "id": "q7",
+      "type": "true_false",
+      "prompt": "When a client disconnects or the deadline expires, propagating a cancellation signal downstream is important because otherwise 'zombie' requests keep consuming CPU and connections after the result is useless.",
+      "answer": true,
+      "explanation": "Cancellation propagation stops every service still working on an abandoned request, which is exactly what you want during overload rather than continuing wasted work."
+    }
+  ]
+}

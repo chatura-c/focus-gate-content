@@ -55,6 +55,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 42 | 2026-09-13 | Tail-Latency Mitigation: Request Hedging and Tied Requests | `2026-09-13-request-hedging` |
 | 43 | 2026-09-14 | Anti-Entropy Repair Scheduling: When Read Repair and Hints Aren't Enough | `2026-09-14-anti-entropy-repair-scheduling` |
 | 44 | 2026-09-14 | Retries with Exponential Backoff, Jitter, and Retry Budgets | `2026-09-14-retries-backoff-jitter` |
+| 45 | 2026-09-15 | Timeouts and Deadline Propagation Across Service Hops | `2026-09-15-timeouts-and-deadline-propagation` |
+| 46 | 2026-09-15 | At-Least-Once vs Exactly-Once Delivery and Idempotent Consumers | `2026-09-15-delivery-semantics-and-idempotent-consumers` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -74,15 +76,14 @@ the 2026-09-02 run, the 2026-09-08 topics above were generated on the 2026-09-03
 2026-09-09 topics were generated on the 2026-09-04 run, the 2026-09-10 topics were
 generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the 2026-09-06 run,
 and the 2026-09-12 topics were generated on the 2026-09-07 run, and the 2026-09-13 topics were
-generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the 2026-09-09 run.
+generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the 2026-09-09 run,
+and the 2026-09-15 topics were generated on the 2026-09-10 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Timeouts and deadline propagation across service hops (follow-up to #15, #44)
-- Exactly-once vs. at-least-once delivery and idempotent consumers (follow-up to #9, #13, #34)
 - Event Sourcing and CQRS (follow-up to #21, #29)
 - CRDTs (conflict-free replicated data types) for coordination-free convergence (follow-up to #11, #23)
 - Probabilistic cardinality/frequency sketches: HyperLogLog and Count-Min Sketch (follow-up to #20)
