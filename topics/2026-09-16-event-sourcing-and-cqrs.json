@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-16-event-sourcing-and-cqrs",
+  "date": "2026-09-16",
+  "title": "Event Sourcing and CQRS",
+  "category": "system-design",
+  "lesson": "In a conventional CRUD system, a row holds the current state and every update overwrites the previous value, which is lost. Event sourcing inverts this: the system stores an append-only, ordered log of immutable events describing everything that has happened, such as 'OrderPlaced', 'ItemAdded', 'PaymentCaptured', 'OrderShipped'. Current state is not stored directly; it is derived by replaying (folding) those events from the beginning. The event log is the single source of truth, and any state representation is a rebuildable cache. This gives a complete audit trail for free, lets you reconstruct the exact state at any past instant for debugging, and lets you build entirely new read models retroactively by replaying history through new logic.\n\nThose benefits come with real costs. Replaying a long stream to answer a single query is slow, so systems periodically persist a snapshot of an entity's state and replay only the events recorded after it. Events are immutable and effectively live forever, so schema evolution is hard: old event shapes must still be readable years later, usually via 'upcasting' that transforms an old payload into the current shape on read. You also cannot simply delete or edit data to correct a mistake or satisfy a deletion request; you append a compensating event, and true erasure needs tricks like crypto-shredding (discarding the encryption key for a subject's events). Ad hoc queries like 'all orders over $100 last week' are not possible against the raw log; you must first build a projection.\n\nCQRS, Command Query Responsibility Segregation, is a separate idea that pairs naturally with event sourcing. It splits the write model, which handles commands that validate business rules and produce changes, from the read model, which serves queries out of denormalized views shaped for fast reads. The two sides can use different storage engines and scale independently. CQRS does not require event sourcing and event sourcing does not require CQRS, but together the write side appends events and asynchronous projectors consume that event stream to build and refresh read models. This makes the read side eventually consistent with the write side: a client that issues a command and then immediately queries may not see its own change yet, which must be designed around by returning the result from the command itself, by versioned or read-your-writes queries, or by waiting for the projection to catch up.\n\nOn the write side, invariants are enforced per aggregate, a small consistency boundary: the aggregate loads its events, replays them to current state, validates the incoming command, and atomically appends the new events, typically with an optimistic-concurrency check against an expected version so two concurrent commands cannot silently clobber each other. Projections should be idempotent and should track their position in the stream so they can resume after a crash and be fully rebuilt on demand. Common failure modes are treating the read model as authoritative, letting event streams grow without snapshots, and mis-sizing aggregates so they are either a contention hotspot or too small to enforce the rules they need to. It helps to contrast this with a write-ahead log: WAL entries are a private, low-level database implementation detail about page and row changes, whereas event-sourcing events are domain-meaningful facts that are part of the application's contract, and a CDC or outbox feed is often a lighter-weight way to publish such events from an otherwise state-oriented system.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In an event-sourced system, what is the source of truth for an entity's state?",
+      "options": [
+        "A row holding the entity's current values, updated in place",
+        "The ordered, append-only log of immutable events, which is replayed to derive current state",
+        "The read model's denormalized view of the entity",
+        "The most recent snapshot, with earlier history discarded"
+      ],
+      "answer": 1,
+      "explanation": "Event sourcing stores the full sequence of events as the single source of truth and derives current state by replaying them; snapshots and read models are rebuildable caches."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "CQRS can only be used together with event sourcing; separating the read and write models is not meaningful without an event log.",
+      "answer": false,
+      "explanation": "CQRS and event sourcing are independent ideas that happen to compose well; you can apply CQRS to a plain CRUD system and event-source a system without splitting its query model."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To avoid replaying an entire long event stream every time state is needed, an event-sourced system periodically persists a ____ so replay can start from a recent point.",
+      "answer": "snapshot",
+      "acceptable": ["snapshots"],
+      "explanation": "A snapshot stores an entity's state as of a given position in the stream, so rebuilding it only requires replaying the events recorded after that snapshot."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why is correcting or deleting data awkward in an event-sourced system?",
+      "options": [
+        "Events are immutable and retained permanently, so you append a compensating event rather than editing, and true erasure needs workarounds like crypto-shredding",
+        "The event store has no transactions, so writes cannot be rolled back",
+        "Events cannot be read once they are more than a few days old",
+        "Deleting an event automatically deletes every later event in the stream"
+      ],
+      "answer": 0,
+      "explanation": "Because the log is append-only and immutable, mistakes are fixed by adding new events, and physically removing a subject's data requires techniques such as discarding a per-subject encryption key."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "In a CQRS system where projections are updated asynchronously, a client that sends a command and then immediately queries the read model may not see the effect of that command yet.",
+      "answer": true,
+      "explanation": "The read model is eventually consistent with the write side, so there is a window before the projector consumes the new events; clients handle this with read-your-writes techniques or by using the command's own response."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps involved in handling a single command against an aggregate in an event-sourced CQRS system, earliest first.",
+      "items": [
+        "Validate the command against the current state and the aggregate's invariants",
+        "Load the stored events for the target aggregate",
+        "Asynchronous projectors consume the new events and refresh the read models",
+        "Replay the loaded events to reconstruct the aggregate's current state",
+        "Append the resulting new event(s), checking the expected version to catch concurrent writes"
+      ],
+      "answer": [1, 3, 0, 4, 2],
+      "explanation": "The aggregate loads and replays its history to rebuild state, validates the command, appends new events with an optimistic-concurrency check, and only afterward do projectors asynchronously update the read side."
+    },
+    {
+      "id": "q7",
+      "type": "mcq",
+      "prompt": "How does an event-sourcing event differ from a write-ahead log (WAL) record?",
+      "options": [
+        "A WAL record is durable while an event-sourcing event is kept only in memory",
+        "There is no difference; both are just the database's change log",
+        "A WAL record is a private low-level detail about page/row changes, while an event-sourcing event is a domain-meaningful fact that is part of the application's contract",
+        "A WAL record can be replayed but an event-sourcing event cannot"
+      ],
+      "answer": 2,
+      "explanation": "WAL exists to make a single database crash-safe and its entries are implementation detail, whereas event-sourcing events model business facts and are consumed by other components of the system."
+    }
+  ]
+}

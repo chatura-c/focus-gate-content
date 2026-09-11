@@ -57,6 +57,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 44 | 2026-09-14 | Retries with Exponential Backoff, Jitter, and Retry Budgets | `2026-09-14-retries-backoff-jitter` |
 | 45 | 2026-09-15 | Timeouts and Deadline Propagation Across Service Hops | `2026-09-15-timeouts-and-deadline-propagation` |
 | 46 | 2026-09-15 | At-Least-Once vs Exactly-Once Delivery and Idempotent Consumers | `2026-09-15-delivery-semantics-and-idempotent-consumers` |
+| 47 | 2026-09-16 | Event Sourcing and CQRS | `2026-09-16-event-sourcing-and-cqrs` |
+| 48 | 2026-09-16 | Probabilistic Sketches: HyperLogLog and Count-Min Sketch | `2026-09-16-probabilistic-sketches-hll-cms` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -77,17 +79,18 @@ the 2026-09-02 run, the 2026-09-08 topics above were generated on the 2026-09-03
 generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the 2026-09-06 run,
 and the 2026-09-12 topics were generated on the 2026-09-07 run, and the 2026-09-13 topics were
 generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the 2026-09-09 run,
-and the 2026-09-15 topics were generated on the 2026-09-10 run.
+and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-16 topics were
+generated on the 2026-09-11 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Event Sourcing and CQRS (follow-up to #21, #29)
 - CRDTs (conflict-free replicated data types) for coordination-free convergence (follow-up to #11, #23)
-- Probabilistic cardinality/frequency sketches: HyperLogLog and Count-Min Sketch (follow-up to #20)
 - Kafka-style partitioned logs, consumer groups, and log compaction (follow-up to #9)
+- Materialized view maintenance and read-model rebuilds (follow-up to #47, #29)
+- Approximate/streaming quantiles and t-digest for latency percentiles (follow-up to #42, #48)
 
 ## How to append
 

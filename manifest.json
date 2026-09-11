@@ -334,5 +334,19 @@
     "title": "At-Least-Once vs Exactly-Once Delivery and Idempotent Consumers",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-16-event-sourcing-and-cqrs",
+    "date": "2026-09-16",
+    "title": "Event Sourcing and CQRS",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-16-probabilistic-sketches-hll-cms",
+    "date": "2026-09-16",
+    "title": "Probabilistic Sketches: HyperLogLog and Count-Min Sketch",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

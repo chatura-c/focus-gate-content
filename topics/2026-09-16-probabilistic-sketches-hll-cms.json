@@ -1,0 +1,84 @@
+{
+  "id": "2026-09-16-probabilistic-sketches-hll-cms",
+  "date": "2026-09-16",
+  "title": "Probabilistic Sketches: HyperLogLog and Count-Min Sketch",
+  "category": "system-design",
+  "lesson": "Some questions over huge data streams are expensive to answer exactly. Counting distinct elements, such as 'how many unique users visited today', needs memory proportional to the number of distinct values if done exactly: a hash set of 100 million distinct identifiers is gigabytes, and analytics systems often need thousands of such counters at once (per page, per minute, per country). Counting per-key frequencies over a high-cardinality stream has the same problem. Probabilistic sketches trade a small, bounded, quantifiable error for a dramatic reduction in memory. They are fixed-size structures, often just kilobytes, that update in a single pass as data streams in, and crucially they are mergeable: sketches built independently on different shards can be combined into a global answer without re-reading the raw data.\n\nHyperLogLog estimates cardinality, the count of distinct elements. Each element is hashed to what behaves like a uniformly random bit string. A fixed prefix of p bits selects one of m = 2^p registers, and that register keeps the largest number of leading zeros seen in the remainder of any hash routed to it. The intuition is that observing a hash with k leading zeros is evidence that roughly 2^k distinct values have passed through, because that pattern occurs with probability 2 to the minus k. Combining the registers with a harmonic mean and bias corrections reduces the variance of a single noisy observation. The standard error is about 1.04 divided by the square root of m, so 16384 registers in roughly 12 KB give about 0.8 percent error across cardinalities from tens to billions. Two HyperLogLogs are unioned by taking the per-register maximum, which is what makes them ideal for distributed counting. They answer only 'how many distinct'; they cannot tell you whether a specific element was present.\n\nCount-Min Sketch estimates per-key frequency. It is a two-dimensional array of counters with d rows, each w wide, plus one independent hash function per row. To record an occurrence of key x, increment the counter at column h_i(x) in every row i. To estimate x's count, read those d counters and take the minimum. Because collisions from other keys can only ever add to a counter, every counter is an overestimate of the true count, and the minimum is the least-polluted of the d estimates. The error is therefore one-sided: the true count is never above the estimate, and with width w about e/epsilon and depth d about ln(1/delta) the overestimate stays within epsilon times the total stream volume with probability at least 1 minus delta. This makes Count-Min strong for finding heavy hitters (the most frequent keys) and for approximate rate limiting, and weak for rare keys, where the additive error can dwarf the real count. Sketches with matching dimensions and hash functions merge by adding counters cell-wise.\n\nReach for a sketch when an approximate answer is acceptable, the key space is large, and you need many counters or the ability to merge partial results; keep exact counts when the answer must be correct, as in billing, or when the cardinality is small enough to count cheaply. Typical pitfalls: trying to merge sketches that were built with different sizes or hash seeds, which is not valid; forgetting that Count-Min error scales with total volume, so a busier stream has a larger absolute error; and using a plain sketch where recent data should count more, which calls for a sliding-window or decaying variant. These structures are complementary rather than competing: a Bloom filter answers set membership with no counts, HyperLogLog answers distinct-count, and Count-Min answers per-key frequency, and real analytics pipelines often use all three together (for example, Redis implements PFADD and PFCOUNT with HyperLogLog).",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does a HyperLogLog sketch estimate?",
+      "options": [
+        "Whether a given element has been seen before",
+        "The number of distinct elements (cardinality) in a stream, using fixed memory",
+        "The frequency of the single most common element",
+        "The total number of elements processed, including duplicates"
+      ],
+      "answer": 1,
+      "explanation": "HyperLogLog approximates how many distinct values a stream contains while using a small fixed number of registers regardless of the true cardinality."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Given a HyperLogLog sketch of a stream, you can check whether one specific element X was among the values seen.",
+      "answer": false,
+      "explanation": "HyperLogLog only estimates the distinct count; testing membership of a particular element is what a Bloom filter is for."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To estimate a key's frequency from a Count-Min Sketch, you read the one counter it hashes to in each row and then take the ____ of those counters.",
+      "answer": "minimum",
+      "acceptable": ["min", "smallest"],
+      "explanation": "Collisions only add to counters, so each is an overestimate, and the minimum of the per-row counters is the least-inflated estimate."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "The estimation error of a Count-Min Sketch is one-sided. In which direction?",
+      "options": [
+        "It never overestimates a key's count",
+        "It never underestimates a key's count",
+        "It is unbiased, sometimes high and sometimes low by equal amounts",
+        "It only errs for keys seen an even number of times"
+      ],
+      "answer": 1,
+      "explanation": "Because other keys' hashes can only increment the same counters, every stored count is greater than or equal to the true count, so the estimate is never too low."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Two HyperLogLog sketches with the same configuration, built over different shards of a dataset, can be combined into a whole-dataset estimate by taking the per-register maximum of the two.",
+      "answer": true,
+      "explanation": "Each register holds a maximum-leading-zeros observation, so the union's register value is just the larger of the two, which is why HyperLogLog is well suited to distributed counting."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Which situation is the WORST fit for a probabilistic sketch?",
+      "options": [
+        "Approximating unique visitors per page across a large site",
+        "Finding the most frequent search terms in a firehose of queries",
+        "Computing the exact invoice total a customer will be charged",
+        "Merging per-region distinct-user counts into a global figure"
+      ],
+      "answer": 2,
+      "explanation": "Sketches deliberately return approximate answers, so anything correctness-critical like billing needs exact counting instead."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the steps to record an observed key in a Count-Min Sketch and later query its estimated frequency, earliest first.",
+      "items": [
+        "For each of the d rows, hash the key with that row's hash function to pick a column",
+        "An occurrence of a key arrives in the stream",
+        "To query the key later, hash it into a column in each row again",
+        "Increment the selected counter in every row",
+        "Return the minimum of the d selected counters as the frequency estimate"
+      ],
+      "answer": [1, 0, 3, 2, 4],
+      "explanation": "On each occurrence you hash the key into one column per row and increment those counters; a later query re-hashes the key into the same columns and reports the smallest of the counters it finds."
+    }
+  ]
+}
