@@ -348,5 +348,19 @@
     "title": "Probabilistic Sketches: HyperLogLog and Count-Min Sketch",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-17-crdts",
+    "date": "2026-09-17",
+    "title": "CRDTs: Conflict-Free Replicated Data Types",
+    "category": "system-design",
+    "questionCount": 7
+  },
+  {
+    "id": "2026-09-17-kafka-partitioned-logs",
+    "date": "2026-09-17",
+    "title": "Kafka-Style Partitioned Logs, Consumer Groups, and Log Compaction",
+    "category": "system-design",
+    "questionCount": 7
   }
 ]

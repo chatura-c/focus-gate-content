@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-17-kafka-partitioned-logs",
+  "date": "2026-09-17",
+  "title": "Kafka-Style Partitioned Logs, Consumer Groups, and Log Compaction",
+  "category": "system-design",
+  "lesson": "A Kafka-style partitioned log models a topic as an append-only, ordered sequence of records, split into a fixed number of partitions. Producers append to a partition and each record gets a monotonically increasing offset within that partition; consumers read forward from an offset. Ordering is only guaranteed within a single partition, never across the partitions of a topic, which is what makes the design scale: partitions can be written and read in parallel on different brokers, and a topic's total throughput scales roughly with its partition count. Producers usually route records by key, hashing the key to pick a partition, so all records sharing a key land on the same partition and are read back in the order they were written.\n\nConsumers read as members of a consumer group, and the broker guarantees that within one group, each partition is assigned to exactly one consumer at a time; adding consumers up to the partition count increases parallel consumption, but consumers beyond that count sit idle since a partition can't be split further within a group. The broker tracks committed offsets per group, so a group's consumers can restart or fail over without reprocessing everything, and independent consumer groups each track their own offsets and can replay the same topic from a different position without affecting each other. When group membership changes, whether a consumer joins, leaves, or is judged dead, a rebalance reassigns partitions among the surviving members.\n\nRecords are normally dropped after a configured retention window or size limit, but log compaction offers a different retention policy: for a compacted topic, the log retains at least the most recent record for each key indefinitely, discarding only older records for keys that were overwritten. Deleting a key is done by writing a tombstone (a record with that key and a null value), which compaction eventually removes along with the earlier records it obsoleted. This turns a compacted topic into a changelog that always holds the latest state per key, which is exactly the shape needed to rebuild a materialized view or a stateful service's local store from scratch by replaying the topic from the start.\n\nThe partition count is mostly a decision made upfront: it caps how many consumers in a group can work in parallel and it fixes the key-to-partition mapping, so changing it later reshuffles which partition a key lands on and breaks the per-key ordering guarantee that downstream consumers may be relying on. Too few partitions caps throughput and parallelism; too many adds per-partition overhead (open file handles, replication traffic, longer rebalances) without buying more effective parallelism than there are consumers to use it. Consumer lag, the gap between the latest produced offset and a group's committed offset, is the key operational signal that a consumer group is falling behind.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Within a single partition of a Kafka-style log, what ordering guarantee applies to records?",
+      "options": [
+        "No ordering guarantee at all, even for a single partition",
+        "Records are strictly ordered by their offset, in the order they were appended",
+        "Records are ordered only if they share the same producer",
+        "Records are reordered by timestamp before consumers read them"
+      ],
+      "answer": 1,
+      "explanation": "Each partition is an append-only sequence, so offsets strictly reflect append order within that one partition."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A Kafka-style topic guarantees a single global order across all of its partitions.",
+      "answer": false,
+      "explanation": "Ordering is only guaranteed within a partition; across partitions, records from different producers or different keys can be interleaved in any order."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Within one consumer group, the maximum number of consumers that can usefully process a topic in parallel is capped by the number of ____.",
+      "answer": "partitions",
+      "acceptable": ["partition", "partitions in the topic"],
+      "explanation": "Since a partition is assigned to exactly one consumer per group at a time, extra consumers beyond the partition count have no partition left to claim."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What does log compaction retain for a compacted topic?",
+      "options": [
+        "Only records produced within the last retention window, like a normal topic",
+        "Every record ever written, forever, with nothing ever removed",
+        "At least the most recent record for each key, discarding older records the key was overwritten by",
+        "Only tombstone records, discarding all real values"
+      ],
+      "answer": 2,
+      "explanation": "Compaction throws away superseded older records per key but always keeps at least the latest one, turning the topic into a changelog of current state."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Increasing a topic's partition count after it's already in production can change which partition a given key maps to, breaking per-key ordering that downstream consumers relied on.",
+      "answer": true,
+      "explanation": "Key-to-partition routing is typically a hash of the key modulo the partition count, so changing the partition count changes that mapping for existing keys going forward."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Two independent consumer groups read the same topic from the beginning. What happens?",
+      "options": [
+        "The second group gets no records because the first group already consumed them",
+        "Each group maintains its own committed offsets and can read the full topic independently, at its own pace",
+        "The groups must coordinate to avoid processing the same record twice",
+        "Only one consumer group is allowed to read a given topic at a time"
+      ],
+      "answer": 1,
+      "explanation": "Offsets are tracked per consumer group, not per topic, so separate groups don't interfere with or block each other."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order these events in a consumer group's lifecycle around a membership change, earliest first.",
+      "items": [
+        "Consumers in the group are steadily processing their assigned partitions",
+        "A consumer crashes or is judged dead by the broker",
+        "The broker triggers a rebalance among the remaining group members",
+        "Partitions are reassigned, and the surviving consumers resume from the group's last committed offsets"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Steady-state consumption continues until a membership change is detected, which triggers a rebalance that reassigns partitions and lets consumption resume from committed offsets."
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "id": "2026-09-17-crdts",
+  "date": "2026-09-17",
+  "title": "CRDTs: Conflict-Free Replicated Data Types",
+  "category": "system-design",
+  "lesson": "Eventual consistency promises that replicas converge once updates stop flowing, but it doesn't say how they converge when two replicas accepted different concurrent writes. The naive answer is to run a conflict-resolution step, comparing timestamps or asking an application callback which write should win. CRDTs (Conflict-free Replicated Data Types) take a different approach: design the data type itself so that any two replica states can be merged with a function that is commutative, associative, and idempotent, which guarantees replicas converge to the same result regardless of the order or number of times updates and merges happen, with no coordination and no conflict-resolution code required.\n\nThere are two families. State-based CRDTs (CvRDTs) ship their entire local state to other replicas; the receiver combines it with its own state using a join (merge) function, and periodic anti-entropy exchanges of full state are enough to converge even if messages are dropped or reordered, since merge is idempotent. Operation-based CRDTs (CmRDTs) instead broadcast the update operation itself rather than the resulting state, which is far cheaper on the wire, but in exchange they require that operations be delivered at least once and that concurrent operations commute, which in practice often means the delivery layer must preserve causal order so an operation is never applied before the operations it causally depended on.\n\nA few concrete types show the pattern. A G-Counter (grow-only counter) keeps one sub-counter per replica, each replica only increments its own slot, and the value is the sum across slots; merging takes the elementwise maximum, which is trivially commutative and idempotent. A PN-Counter supports decrements too, by pairing two G-Counters, one for increments and one for decrements, and reporting the difference. A G-Set only ever adds elements and merges by set union. Because a plain set can't remove anything, a 2P-Set (two-phase set) adds a second, 'tombstone' set for removals, though once removed an element can never be re-added. An OR-Set (observed-remove set) fixes that by tagging each add with a unique identifier, so a remove only removes the specific tags it observed, letting a concurrent re-add win deterministically. An LWW-Register resolves a single-value slot by keeping the write with the highest timestamp.\n\nCRDTs guarantee convergence but only for the specific semantics the data type encodes, and that's the real design cost: choosing an OR-Set versus a 2P-Set versus a plain G-Set is choosing how concurrent add/remove races are supposed to resolve, and that choice has to match what the application actually needs. Sending full state on every sync also doesn't scale well for large objects, which is why delta-CRDTs exist, propagating only the recently changed pieces of state rather than the whole thing. CRDTs show up in multi-datacenter databases like Riak and Redis's CRDT-backed data types, in collaborative editors merging concurrent edits without a lock, and in distributed counters and shopping carts where availability during a partition matters more than a single global order of operations.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What property must a CRDT's merge function have to guarantee replicas converge regardless of update order?",
+      "options": [
+        "It must be commutative, associative, and idempotent",
+        "It must run inside a two-phase commit across all replicas",
+        "It must consult a single designated leader replica before merging",
+        "It must reject any state received out of timestamp order"
+      ],
+      "answer": 0,
+      "explanation": "A merge function that is commutative, associative, and idempotent produces the same converged result no matter what order or how many times it's applied, with no coordination needed."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Operation-based CRDTs (CmRDTs) send their full local state on every sync, the same as state-based CRDTs.",
+      "answer": false,
+      "explanation": "Op-based CRDTs broadcast just the operation, which is cheaper on the wire, but in exchange they need at-least-once, causally-ordered delivery and commuting concurrent operations."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A CRDT set that tags every add with a unique identifier, so that a concurrent remove and re-add of the same value resolve deterministically, is called an ____.",
+      "answer": "OR-Set",
+      "acceptable": ["or-set", "observed-remove set"],
+      "explanation": "Tagging each add lets a remove target only the specific tags it has observed, so a concurrent re-add carries a fresh tag and survives."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How is a PN-Counter typically implemented?",
+      "options": [
+        "As a single integer guarded by a distributed lock",
+        "As two G-Counters, one for increments and one for decrements, reporting their difference",
+        "As a vector clock that tracks per-replica causality",
+        "As an OR-Set of increment events"
+      ],
+      "answer": 1,
+      "explanation": "Pairing two grow-only counters, one per direction, and subtracting them lets the counter support decrements while each sub-counter still merges by simple elementwise maximum."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "State-based CRDTs can tolerate dropped or duplicated sync messages between replicas without losing convergence.",
+      "answer": true,
+      "explanation": "Because the merge function is idempotent, applying the same state twice or missing one round of full-state exchange is harmless as long as a later sync eventually delivers the state."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Which use case is the WORST fit for a CRDT?",
+      "options": [
+        "A shared shopping cart merged across a customer's offline devices",
+        "A collaborative text document merging concurrent edits from multiple users",
+        "A bank ledger where concurrent transfers must never be double-applied or dropped",
+        "A multi-datacenter 'like' counter that should keep working during a network partition"
+      ],
+      "answer": 2,
+      "explanation": "A CRDT guarantees convergence to *some* consistent merged value, not that the merge matches the business rule a ledger needs; that kind of correctness-critical semantic conflict needs application-level coordination, not automatic merging."
+    },
+    {
+      "id": "q7",
+      "type": "ordering",
+      "prompt": "Order the steps of a state-based CRDT (CvRDT) anti-entropy sync between two replicas, earliest first.",
+      "items": [
+        "Each replica applies local updates independently, with no coordination with other replicas",
+        "Replica A sends its full local state to replica B",
+        "Replica B merges the received state with its own state using the join function",
+        "Replica B's local state now reflects every update replica A had applied"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Updates happen locally and independently, then a full-state exchange followed by a merge is enough to fold one replica's updates into the other's, and repeating this between all replicas eventually converges the whole system."
+    }
+  ]
+}

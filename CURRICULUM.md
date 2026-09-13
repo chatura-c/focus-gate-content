@@ -59,6 +59,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 46 | 2026-09-15 | At-Least-Once vs Exactly-Once Delivery and Idempotent Consumers | `2026-09-15-delivery-semantics-and-idempotent-consumers` |
 | 47 | 2026-09-16 | Event Sourcing and CQRS | `2026-09-16-event-sourcing-and-cqrs` |
 | 48 | 2026-09-16 | Probabilistic Sketches: HyperLogLog and Count-Min Sketch | `2026-09-16-probabilistic-sketches-hll-cms` |
+| 49 | 2026-09-17 | CRDTs (Conflict-Free Replicated Data Types) | `2026-09-17-crdts` |
+| 50 | 2026-09-17 | Kafka-Style Partitioned Logs, Consumer Groups, and Log Compaction | `2026-09-17-kafka-partitioned-logs` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -80,16 +82,14 @@ generated on the 2026-09-05 run, and the 2026-09-11 topics were generated on the
 and the 2026-09-12 topics were generated on the 2026-09-07 run, and the 2026-09-13 topics were
 generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the 2026-09-09 run,
 and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-16 topics were
-generated on the 2026-09-11 run.
+generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the 2026-09-13 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- CRDTs (conflict-free replicated data types) for coordination-free convergence (follow-up to #11, #23)
-- Kafka-style partitioned logs, consumer groups, and log compaction (follow-up to #9)
-- Materialized view maintenance and read-model rebuilds (follow-up to #47, #29)
+- Materialized view maintenance and read-model rebuilds (follow-up to #47, #29, #50)
 - Approximate/streaming quantiles and t-digest for latency percentiles (follow-up to #42, #48)
 
 ## How to append
