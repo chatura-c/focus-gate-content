@@ -362,5 +362,19 @@
     "title": "Kafka-Style Partitioned Logs, Consumer Groups, and Log Compaction",
     "category": "system-design",
     "questionCount": 7
+  },
+  {
+    "id": "2026-09-18-materialized-view-maintenance",
+    "date": "2026-09-18",
+    "title": "Materialized View Maintenance and Read-Model Rebuilds",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-18-streaming-quantiles-tdigest",
+    "date": "2026-09-18",
+    "title": "Approximate Streaming Quantiles and t-digest",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

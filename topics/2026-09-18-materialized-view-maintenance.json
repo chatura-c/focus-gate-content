@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-18-materialized-view-maintenance",
+  "date": "2026-09-18",
+  "title": "Materialized View Maintenance and Read-Model Rebuilds",
+  "category": "system-design",
+  "lesson": "A materialized view is a precomputed, denormalized read model derived from one or more source tables or event streams, stored so that reads don't have to redo the join or aggregation every time. The classic example is a dashboard counter: rather than running `COUNT(*) ... GROUP BY` over millions of order rows on every page load, a background process maintains a small `order_counts` table that's updated as orders come in, and the dashboard just reads that table directly. The tradeoff is staleness versus cost: a materialized view is only as fresh as its last maintenance pass, in exchange for reads that are orders of magnitude cheaper than recomputing from source.\n\nThere are two broad ways to keep a materialized view up to date. Incremental maintenance applies just the delta from each new write, for example turning an incoming order event into a `+1` on the relevant row of `order_counts`. This is cheap per update and often near-real-time, but it accumulates drift over time from bugs, dropped events, or races, and some aggregations (percentiles, distinct counts, complex joins) don't decompose cleanly into per-event deltas. Full rebuilds instead recompute the entire view from source data from scratch, which is simple and self-correcting, since there's no drift to accumulate, but is expensive and typically run on a schedule (nightly) or on demand rather than after every write. Real systems often use both: incremental updates for the common case, plus a periodic full rebuild as a correctness backstop.\n\nCQRS-style systems and CDC/outbox pipelines (see topics #47 and #29) usually implement materialized views as event-stream consumers: a projector subscribes to a change stream and applies each event to the read model, similarly to how a Kafka-style compacted topic (#50) can be replayed from the start to reconstruct current state. This event-sourced framing is what makes rebuilds tractable at all: if the read model is corrupted, or its shape needs to change because a new query pattern showed up, the fix is to build a new view from a replay of the event log, not to reason about how to patch the broken one in place.\n\nRebuilding a materialized view safely while it's serving live traffic is its own small design problem. The dominant pattern is blue-green (or 'shadow') rebuild: build the new version of the view under a different name or table while the old one keeps serving reads, then atomically swap a pointer, alias, or view name once the rebuild's projector has caught up to the current stream position. This avoids readers ever seeing a half-rebuilt, inconsistent view, and if the rebuild has a bug, the old view is still there to fall back to. The naive alternative, truncating and rebuilding the live table in place, exposes readers to an empty or partial table mid-rebuild and has no easy rollback.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main reason a system maintains a materialized view instead of just querying source tables directly?",
+      "options": [
+        "Materialized views are always more strongly consistent than source tables",
+        "To make reads cheap by precomputing the join/aggregation, at the cost of some staleness",
+        "Materialized views remove the need for any source-of-truth data at all",
+        "It's required by SQL databases before you can create an index"
+      ],
+      "answer": 1,
+      "explanation": "A materialized view trades some read-time freshness for avoiding an expensive recomputation on every query."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Incremental maintenance of a materialized view can accumulate drift over time from bugs or dropped events, which is why some systems also run periodic full rebuilds.",
+      "answer": true,
+      "explanation": "Applying deltas is cheap but errors compound silently, so a from-scratch rebuild acts as a correctness backstop that incremental updates alone can't provide."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The pattern of building a new version of a materialized view under a separate name while the old one keeps serving traffic, then atomically swapping a pointer once it's caught up, is commonly called a ____ rebuild.",
+      "answer": "blue-green",
+      "acceptable": ["blue green", "shadow"],
+      "explanation": "Blue-green (or shadow) rebuilds keep the old view serving reads until the new one is fully caught up, avoiding any window where readers see a half-built view."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why are event-sourced or CDC-fed materialized views easier to rebuild from scratch than views maintained by ad hoc in-place updates?",
+      "options": [
+        "Because event streams are always smaller than the source database",
+        "Because the event log can be replayed from the start to reconstruct current state, rather than needing to patch a broken view in place",
+        "Because event-sourced systems never need materialized views",
+        "Because CDC guarantees the view is never stale"
+      ],
+      "answer": 1,
+      "explanation": "A durable, replayable event log lets a projector rebuild the entire view by reprocessing history, which is much simpler than reasoning about incremental patches to a corrupted view."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Truncating a live materialized view table in place and then rebuilding it is generally safer than a blue-green rebuild because it uses less storage.",
+      "answer": false,
+      "explanation": "Truncate-in-place exposes readers to an empty or partially rebuilt table during the rebuild and offers no easy rollback if something goes wrong, which blue-green avoids."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a blue-green materialized view rebuild, earliest first.",
+      "items": [
+        "The old view continues serving all live reads",
+        "A new view is built in a separate table/name from a full replay of the source stream",
+        "The new view's projector catches up to the current stream position",
+        "A pointer/alias is atomically swapped so reads now hit the new view"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "The old view keeps serving throughout the build, the new view is constructed and catches up in the background, and only once it's current does the swap happen."
+    }
+  ]
+}

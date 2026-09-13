@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-18-streaming-quantiles-tdigest",
+  "date": "2026-09-18",
+  "title": "Approximate Streaming Quantiles and t-digest",
+  "category": "system-design",
+  "lesson": "Computing an exact percentile, like p99 latency, requires sorting or otherwise holding every observed value so you can find the one at the right rank. For a metrics pipeline observing millions of requests per second across many hosts, keeping every raw value in memory (or shipping them all to one place to sort) is exactly the kind of cost that motivated probabilistic sketches like HyperLogLog and Count-Min Sketch (topic #48): you want a compact summary that answers the query approximately, in bounded memory, updated in a single streaming pass.\n\nA naive fixed-width histogram approximates quantiles by bucketing values into ranges and counting per bucket, but it forces an upfront choice of bucket boundaries, and if the real data doesn't match that guess, either the buckets are too coarse where it matters or too many buckets are wasted where it doesn't. t-digest solves this by using variable-width buckets called centroids, each summarizing a mean value and a count, that are automatically sized smaller near the tails (the extreme low and high percentiles) and larger near the median. This directly targets the common case in latency monitoring: you rarely care about the precision of the median, but you care a lot about the exact shape of p99 and p999, and t-digest spends its limited memory budget where the accuracy actually matters.\n\nA t-digest is built incrementally: each new value is merged into the nearest existing centroid if doing so wouldn't make that centroid represent too large a share of the total count, or added as a new centroid otherwise; centroids are periodically compressed (merged) to keep the total count bounded, controlled by a compression parameter that trades memory for accuracy. Critically, t-digests are mergeable: two digests built independently, say one per host, can be combined into a single digest that approximates the quantiles of the combined dataset, without ever having centralized the raw values. This mergeability is what makes it a good fit for distributed systems, the same property that made HLL and Count-Min useful for combining per-shard estimates in topic #48.\n\nThe practical tradeoff is the same shape as other sketches: bounded memory and single-pass, mergeable updates, in exchange for an approximate rather than exact answer, with error concentrated away from the tails (t-digest is deliberately more accurate at p99 than at p50, which is usually the opposite of what you'd want from a fixed-width histogram of the same size). This is why monitoring systems (Prometheus's histogram-based summaries, Datadog, and similar tools) offer t-digest or similar sketch-based percentile aggregations as the practical alternative to exact percentiles at scale: exact p99 across a fleet requires centralizing every latency sample, while a mergeable sketch only requires shipping small, fixed-size summaries.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is computing an exact p99 latency across a large fleet of hosts expensive?",
+      "options": [
+        "Percentiles can only be computed on a single machine by design",
+        "It requires holding or centralizing every raw observed value to determine the correct rank",
+        "p99 is mathematically undefined for latency data",
+        "Exact percentiles require a distributed consensus protocol"
+      ],
+      "answer": 1,
+      "explanation": "Finding the value at an exact rank requires access to (effectively sorting) the full dataset, which is costly to centralize at high request volumes."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A t-digest uses variable-width centroids that are smaller (more precise) near the tails of the distribution and larger (less precise) near the median.",
+      "answer": true,
+      "explanation": "t-digest deliberately allocates more of its limited centroids to the extreme percentiles, since that's usually where accuracy matters most for monitoring use cases."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The property that lets two t-digests, each built independently on a different host, be combined into one digest approximating the combined dataset's quantiles, is called being ____.",
+      "answer": "mergeable",
+      "acceptable": ["mergeability"],
+      "explanation": "Mergeability means summaries can be combined without ever centralizing the original raw values, which is essential for computing fleet-wide percentiles cheaply."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main limitation of a naive fixed-width histogram for approximating percentiles, compared to t-digest?",
+      "options": [
+        "Fixed-width histograms cannot be updated incrementally at all",
+        "Fixed-width histograms require an upfront choice of bucket boundaries and spread accuracy evenly, rather than concentrating it where the data or the query needs it",
+        "Fixed-width histograms use more memory than storing every raw value",
+        "Fixed-width histograms are not compatible with streaming data"
+      ],
+      "answer": 1,
+      "explanation": "Committing to fixed bucket boundaries upfront means accuracy doesn't adapt to where the interesting tail behavior actually is, unlike t-digest's variable-width centroids."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Like HyperLogLog and Count-Min Sketch, t-digest trades exact answers for bounded memory and single-pass, mergeable streaming updates.",
+      "answer": true,
+      "explanation": "All three are probabilistic sketches built for the same constraint: approximate a statistic over a large stream in fixed memory, mergeable across shards."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of maintaining a t-digest as new latency values arrive, earliest first.",
+      "items": [
+        "A new latency value is observed from an incoming request",
+        "The value is merged into the nearest existing centroid, or added as a new centroid if merging would overweight it",
+        "Centroids are periodically compressed to keep the total centroid count bounded",
+        "A quantile query reads the compressed centroids to estimate p50, p99, etc."
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Each value is absorbed into the digest's centroids as it arrives, the digest is periodically compressed to bound memory, and queries read off the current centroid set."
+    }
+  ]
+}
