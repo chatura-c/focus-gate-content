@@ -376,5 +376,19 @@
     "title": "Approximate Streaming Quantiles and t-digest",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-19-distributed-id-generation",
+    "date": "2026-09-19",
+    "title": "Distributed ID Generation (Snowflake-Style IDs)",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-19-distributed-tracing",
+    "date": "2026-09-19",
+    "title": "Distributed Tracing: Spans, Context Propagation, and Sampling",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

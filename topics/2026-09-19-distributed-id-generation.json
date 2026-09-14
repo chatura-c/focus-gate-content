@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-19-distributed-id-generation",
+  "date": "2026-09-19",
+  "title": "Distributed ID Generation (Snowflake-Style IDs)",
+  "category": "system-design",
+  "lesson": "Once a system is sharded across many databases or nodes (topic #7, Database Sharding, and #30, Sharding Key Design), a simple auto-incrementing integer primary key stops working: two shards handing out IDs from the same counter would collide, and a single centralized counter service would become both a bottleneck and a single point of failure for every write in the system. Distributed ID generation is the general problem of producing IDs that are unique across an entire fleet, without any node having to coordinate with the others on every single ID it hands out.\n\nUUIDs are the simplest fix: generate 128 random (or partially random) bits locally, and the odds of collision are negligible without any coordination at all. The tradeoff is that random UUIDs are unordered, which is bad for database index locality (inserting random keys into a B-tree index, per topic #31's LSM-vs-B-tree comparison, causes expensive page splits scattered across the whole tree instead of appends at the end) and unhelpful when you actually want IDs to sort roughly by creation time, for example to page through \"recent items\" without a separate timestamp column.\n\nTwitter's Snowflake scheme, and the many descendants it inspired (Discord's, Instagram's, Sony's Sonyflake), solve this by structuring a 64-bit ID as concatenated fields: a timestamp (milliseconds since a custom epoch) in the high bits, a machine or worker ID in the middle bits, and a per-millisecond sequence counter in the low bits. Each node is assigned a distinct worker ID up front (often derived from a coordination service or static config), and then generates IDs completely independently: read the current timestamp, increment the local sequence counter for that millisecond, concatenate the bits. No two nodes ever produce the same ID, because either their timestamps differ, their worker IDs differ, or their sequence counters differ, and no node ever has to ask another node or a shared counter for permission.\n\nThe practical payoff is that Snowflake IDs are both globally unique without coordination and roughly time-sortable, since the timestamp occupies the most significant bits, an insert-heavy table indexed on this ID gets much better locality than one indexed on random UUIDs. The tradeoffs to know: the scheme leaks a rough creation timestamp and worker identity in every ID (a minor information-disclosure consideration for public-facing IDs), it's bounded by how many IDs one worker can generate per millisecond before the sequence counter for that timestamp overflows, and if a worker's clock jumps backward (NTP correction, VM pause), it must stall or reject requests until the clock catches back up to avoid reissuing an ID it already generated, since the whole uniqueness guarantee depends on time only moving forward per worker.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does a simple auto-incrementing integer primary key break down once a system is sharded across multiple databases?",
+      "options": [
+        "Integers cannot be compared across different database engines",
+        "Each shard's counter would independently produce overlapping IDs, causing collisions across shards",
+        "Sharding requires all IDs to be strings, not integers",
+        "Auto-increment columns are not supported by any sharded database"
+      ],
+      "answer": 1,
+      "explanation": "Without coordination, two shards each counting up from their own local sequence would eventually hand out the same integer, so IDs collide across the sharded system."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A Snowflake-style ID requires each node to contact a central coordinator every time it generates a new ID.",
+      "answer": false,
+      "explanation": "The whole point of the scheme is that each node generates IDs independently from its own timestamp, pre-assigned worker ID, and local sequence counter, with no per-ID coordination."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In a Snowflake-style 64-bit ID, the ____ occupies the highest-order bits, which is what makes the resulting IDs roughly sortable by creation order.",
+      "answer": "timestamp",
+      "acceptable": ["timestamp field", "millisecond timestamp"],
+      "explanation": "Because the timestamp is the most significant part of the ID, IDs generated later naturally sort as numerically larger, giving rough time-ordering."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Compared to random UUIDs, what is a key downside of using random values as primary keys in a B-tree-indexed table?",
+      "options": [
+        "Random UUIDs are always slower to generate than Snowflake IDs",
+        "Random keys scatter inserts across the whole index rather than appending near the end, causing more page splits and worse locality",
+        "B-tree indexes cannot store 128-bit values",
+        "Random UUIDs are not unique often enough for production use"
+      ],
+      "answer": 1,
+      "explanation": "Sequential or time-ordered keys tend to insert near the end of a B-tree index, while random keys insert scattered throughout it, which is more expensive to maintain."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "If a worker's clock jumps backward, a naive Snowflake-style generator risks reissuing an ID it has already generated, unless it stalls or rejects new IDs until the clock catches up.",
+      "answer": true,
+      "explanation": "The uniqueness guarantee depends on each worker's timestamp only ever moving forward; a backward clock jump could otherwise produce a duplicate (timestamp, worker ID, sequence) combination."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps a Snowflake-style worker takes when generating a new ID, earliest first.",
+      "items": [
+        "The worker is assigned a distinct worker ID at startup",
+        "The worker reads its current local timestamp in milliseconds",
+        "The worker increments its per-millisecond sequence counter",
+        "The worker concatenates timestamp, worker ID, and sequence bits into the final ID"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "Worker ID assignment happens once at startup, while the timestamp read, sequence increment, and final concatenation happen fresh for every ID generated."
+    }
+  ]
+}

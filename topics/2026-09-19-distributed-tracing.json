@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-19-distributed-tracing",
+  "date": "2026-09-19",
+  "title": "Distributed Tracing: Spans, Context Propagation, and Sampling",
+  "category": "system-design",
+  "lesson": "A single user request in a microservices architecture might touch an API gateway (topic #14), a handful of backend services, a cache, a database, and a message queue before a response goes back. When that request is slow or fails, a single service's logs only show its own narrow slice of the story; figuring out which of the ten hops actually caused a 2-second delay means reconstructing the whole request's path across every service it touched. Distributed tracing exists to make that reconstruction possible without manually correlating timestamps across a dozen separate log files.\n\nThe basic unit is a span: a single named operation with a start time, a duration, and metadata (tags like the HTTP route or database query), representing one unit of work such as \"handle incoming request\" or \"query the orders table.\" A trace is a tree of spans, one root span for the overall request and child spans for everything it caused downstream, linked together by parent-child relationships. To build that tree across process and network boundaries, every span carries a shared trace ID (identifying the whole request) and its own span ID plus a reference to its parent's span ID, so that spans generated in completely different services, with no shared memory or clock, can still be assembled into one coherent tree after the fact.\n\nThe part that makes this actually work across services is context propagation: when service A calls service B over HTTP or gRPC, it attaches the current trace ID and span ID as request headers (the W3C Trace Context standard defines a common `traceparent` header format so different vendors' tracing tools can interoperate), and service B reads those headers to create its own child span under the same trace instead of starting a disconnected new one. If any service in the chain drops or fails to forward that header, for example legacy code that doesn't know about tracing, or an async job queued without preserving context, the trace breaks into disconnected fragments at that point, which is why consistent propagation, not just span creation, is usually the hard part of adopting tracing across an existing codebase.\n\nTracing every single request in a high-throughput system is often too expensive to store and index, so most systems apply sampling: recording only a fraction of traces in full detail. Head-based sampling decides whether to record a trace at its very start (e.g., a random 1% of requests, propagated as a sampling decision alongside the trace context so every downstream service honors the same choice), which is cheap but means you might not have detailed data for the one slow or erroring request you actually care about. Tail-based sampling instead buffers spans for a request and decides after the fact, keeping traces that were slow or errored even if they weren't in the original random sample, at the cost of needing every span buffered somewhere until the decision is made. OpenTelemetry has become the de facto standard for instrumenting spans and propagating context in a vendor-neutral way, with backends like Jaeger, Zipkin, and various commercial APM tools consuming and visualizing the resulting traces.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does distributed tracing primarily solve?",
+      "options": [
+        "It replaces the need for individual services to write logs at all",
+        "It reconstructs the end-to-end path and timing of a single request as it crosses multiple services",
+        "It automatically fixes slow database queries",
+        "It guarantees exactly-once delivery of messages between services"
+      ],
+      "answer": 1,
+      "explanation": "Tracing correlates the separate pieces of work done by each service into one coherent picture of what happened for a given request, which individual per-service logs can't do alone."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A trace is a single flat list of log lines, with no parent-child structure between the operations it records.",
+      "answer": false,
+      "explanation": "A trace is a tree of spans connected by parent-child relationships, rooted at the span for the overall incoming request."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The mechanism by which a trace ID and parent span ID are attached to outgoing requests (e.g. as HTTP headers) so a downstream service can join the same trace is called context ____.",
+      "answer": "propagation",
+      "acceptable": ["context propagation"],
+      "explanation": "Context propagation is what carries trace identity across process and network boundaries; without it, each service would start a disconnected, separate trace."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the key difference between head-based and tail-based sampling?",
+      "options": [
+        "Head-based sampling only works for HTTP, tail-based only works for gRPC",
+        "Head-based sampling decides whether to record a trace at its start, while tail-based sampling decides after the fact, once it knows whether the request was slow or errored",
+        "Tail-based sampling records every single trace with no exceptions",
+        "Head-based sampling is only used for database queries"
+      ],
+      "answer": 1,
+      "explanation": "Head-based sampling commits to a decision upfront (e.g. random 1%), while tail-based sampling buffers spans and can preferentially keep traces that turned out slow or erroring."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "If a service in a request chain fails to forward trace context headers to the next service, the trace can end up broken into disconnected fragments.",
+      "answer": true,
+      "explanation": "Consistent propagation across every hop is what keeps a trace connected; a single service that drops the headers breaks the chain from that point onward."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events in the life of a traced request as it flows from a client through two services, earliest first.",
+      "items": [
+        "Service A receives the request and starts the root span with a new trace ID",
+        "Service A calls Service B, attaching the trace ID and its span ID as propagated context",
+        "Service B reads the propagated context and starts a child span under the same trace",
+        "Both spans are exported and assembled into one trace tree for viewing"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "The root span is created first, its context is propagated to the downstream call, the downstream service joins the same trace as a child span, and the full tree is assembled from the exported spans afterward."
+    }
+  ]
+}

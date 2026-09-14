@@ -63,6 +63,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 50 | 2026-09-17 | Kafka-Style Partitioned Logs, Consumer Groups, and Log Compaction | `2026-09-17-kafka-partitioned-logs` |
 | 51 | 2026-09-18 | Materialized View Maintenance and Read-Model Rebuilds | `2026-09-18-materialized-view-maintenance` |
 | 52 | 2026-09-18 | Approximate Streaming Quantiles and t-digest | `2026-09-18-streaming-quantiles-tdigest` |
+| 53 | 2026-09-19 | Distributed ID Generation (Snowflake-Style IDs) | `2026-09-19-distributed-id-generation` |
+| 54 | 2026-09-19 | Distributed Tracing: Spans, Context Propagation, and Sampling | `2026-09-19-distributed-tracing` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -85,15 +87,17 @@ and the 2026-09-12 topics were generated on the 2026-09-07 run, and the 2026-09-
 generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the 2026-09-09 run,
 and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-16 topics were
 generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the 2026-09-13 run,
-and the 2026-09-18 topics were generated on a second 2026-09-13 run.
+and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 2026-09-19
+topics were generated on the 2026-09-14 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- (candidate list emptied by the 2026-09-18 topics above; next run should pick a new, equally
-  well-established system-design concept not yet covered)
+- (candidate list emptied by the 2026-09-19 topics above; next run should pick a new, equally
+  well-established system-design concept not yet covered — e.g. service meshes, three-phase
+  commit, blue-green/canary deployments, or backend-for-frontend/API composition)
 
 ## How to append
 
