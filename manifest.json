@@ -390,5 +390,19 @@
     "title": "Distributed Tracing: Spans, Context Propagation, and Sampling",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-20-service-meshes",
+    "date": "2026-09-20",
+    "title": "Service Meshes: Sidecar Proxies and the Data Plane/Control Plane Split",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-20-blue-green-canary-deployments",
+    "date": "2026-09-20",
+    "title": "Blue-Green and Canary Deployments",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

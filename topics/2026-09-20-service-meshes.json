@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-20-service-meshes",
+  "date": "2026-09-20",
+  "title": "Service Meshes: Sidecar Proxies and the Data Plane/Control Plane Split",
+  "category": "system-design",
+  "lesson": "Once a system grows past a handful of services, every one of them ends up needing the same cross-cutting behavior: retries with backoff, mutual TLS between services, load balancing across instances, circuit breaking, and metrics on every call. The naive fix is a shared client library that every service links against, but that means every team has to adopt the same language and the same library version, and upgrading the retry logic means redeploying every service in the fleet. A service mesh solves this by moving that behavior out of application code entirely and into infrastructure that sits next to each service instead of inside it.\n\nThe mechanism is the sidecar proxy: a small proxy process (Envoy is the most common one) deployed alongside every service instance, transparently intercepting all inbound and outbound network traffic for that instance. When service A calls service B, the call actually goes A's sidecar to B's sidecar to B, and each sidecar applies whatever policy is configured, mutual TLS encryption, retries on transient failures, timeouts, load balancing across B's healthy instances, without either A or B's application code knowing the sidecar is there. This collection of sidecars, handling the actual traffic, is called the data plane.\n\nThe other half is the control plane (Istio's istiod is the best-known example), a central component that doesn't touch any application traffic itself but computes and pushes configuration to every sidecar: which routing rules apply, which services are allowed to talk to which others, what percentage of traffic should go to a canary version, and the certificates each sidecar needs for mTLS. An operator changes a single traffic-routing rule in the control plane, and it propagates to every relevant sidecar's data plane without touching or redeploying any service. This separation is also what makes a mesh's traffic-splitting features composable with deployment strategies like canary releases, since shifting a percentage of traffic to a new version is just a control-plane routing rule applied uniformly at the sidecar layer.\n\nThe cost is real: every call now takes at least one extra network hop through a sidecar (usually sub-millisecond with Envoy, but not zero), every pod runs an additional proxy process consuming its own CPU and memory, and the control plane itself becomes a critical piece of infrastructure that has to be operated and upgraded carefully. For a handful of services, this overhead usually isn't worth it, and a mesh only pays for itself once a fleet is large and polyglot enough that per-language client libraries would otherwise mean re-implementing the same retry and mTLS logic five separate times.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main problem a service mesh is designed to solve?",
+      "options": [
+        "Replacing the need for a database in microservices architectures",
+        "Moving cross-cutting concerns like retries, mTLS, and load balancing out of application code and into a shared infrastructure layer",
+        "Automatically writing application business logic for new services",
+        "Eliminating the need for any network calls between services"
+      ],
+      "answer": 1,
+      "explanation": "A mesh extracts behavior like retries, encryption, and load balancing into sidecar proxies so every service doesn't need its own copy of that logic in a shared library."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a service mesh, application code typically has to be modified to call a special SDK in order to get retries and mTLS.",
+      "answer": false,
+      "explanation": "The sidecar proxy transparently intercepts traffic, so application code is unaware of the mesh and doesn't need SDK changes."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The collection of sidecar proxies that actually carry and act on service-to-service traffic is called the ____ plane.",
+      "answer": "data",
+      "acceptable": ["data plane"],
+      "explanation": "The data plane is made up of the sidecars handling real traffic, as opposed to the control plane that configures them."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What role does a mesh's control plane (e.g. Istio's istiod) play?",
+      "options": [
+        "It proxies every service request directly, in place of the sidecars",
+        "It stores the application's business data",
+        "It computes and distributes configuration, like routing rules and certificates, to every sidecar, without touching application traffic itself",
+        "It replaces the need for a container orchestrator like Kubernetes"
+      ],
+      "answer": 2,
+      "explanation": "The control plane pushes policy and certificates out to the data plane's sidecars; it doesn't sit in the request path itself."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Adopting a service mesh has no real cost or overhead compared to a shared client library approach.",
+      "answer": false,
+      "explanation": "Sidecars add an extra network hop and per-pod resource overhead, and the control plane itself becomes infrastructure that must be operated, so a mesh isn't free."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events for a call from Service A to Service B in a mesh with mTLS enabled, earliest first.",
+      "items": [
+        "Service A's application code makes a normal outbound call, unaware of the mesh",
+        "Service A's sidecar intercepts the call and encrypts it using a control-plane-issued certificate",
+        "Service B's sidecar receives the encrypted call and decrypts it",
+        "Service B's application code receives the plain request as if no mesh were involved"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "The application code on both ends stays unaware of the mesh; the sidecars on each side handle interception, encryption, and decryption transparently in between."
+    }
+  ]
+}

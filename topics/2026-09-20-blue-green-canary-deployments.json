@@ -1,0 +1,69 @@
+{
+  "id": "2026-09-20-blue-green-canary-deployments",
+  "date": "2026-09-20",
+  "title": "Blue-Green and Canary Deployments",
+  "category": "system-design",
+  "lesson": "Shipping a new version of a service is risky: even with tests passing in CI, a bug that only shows up under real production traffic, load, or data can hit every user the moment a naive rolling deploy finishes replacing old instances with new ones. Blue-green and canary deployments are two different strategies for controlling the blast radius of a bad release, trading off differently between cost, rollback speed, and how quickly a problem gets detected.\n\nA blue-green deployment runs two complete, identically-sized production environments at once: \"blue\" (the current live version) and \"green\" (the new version), both fully deployed and warmed up before any real traffic touches green. The switch itself is a single atomic change at the load balancer or DNS layer, redirecting all traffic from blue to green at once. If something is wrong, rollback is just as instant: flip the router back to blue, which is still fully running and untouched. The cost is that it requires paying for two full-scale environments during the switch, and anything stateful, most notably database schema migrations, has to be handled carefully since both versions may briefly need to work against the same underlying data store.\n\nA canary deployment instead shifts a small percentage of real traffic, say 1%, to the new version while the rest keeps hitting the old one, then gradually ramps that percentage up over minutes or hours while watching health signals like error rate, latency, and business metrics. If those signals degrade, an automated or human-triggered rollback shifts traffic back to the old version, having only exposed a small fraction of users to the bug. This requires infrastructure capable of fine-grained traffic splitting, often a load balancer, API gateway, or a service mesh's sidecar-level routing rules, plus solid observability (metrics and traces) to actually detect a regression before it reaches 100% of traffic.\n\nThe two strategies suit different failure modes: blue-green gives an instant, complete rollback and is well suited to major or risky releases where you want a clean before/after boundary, but it detects problems only once traffic fully lands on green, and provides no partial exposure. Canary limits how many users see a bad release at any given moment and catches gradual regressions early, but takes longer to reach full rollout and can miss a bug that only manifests for a segment of users the canary percentage happens not to include. In practice, many teams combine both approaches with feature flags, which allow toggling a code path per user or cohort independently of which infrastructure version is deployed, giving control over exposure without needing a new deployment at all.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the defining characteristic of a blue-green deployment?",
+      "options": [
+        "Traffic is gradually shifted to the new version in small increments",
+        "Two full environments run simultaneously, and traffic is switched atomically from one to the other",
+        "The new version is only deployed to a single server for testing",
+        "Database migrations are always avoided entirely"
+      ],
+      "answer": 1,
+      "explanation": "Blue-green keeps both the old (blue) and new (green) environments fully running and switches all traffic to green in one atomic step at the router or DNS layer."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a canary deployment, 100% of production traffic is immediately routed to the new version as soon as it passes CI tests.",
+      "answer": false,
+      "explanation": "A canary deployment starts with only a small percentage of traffic on the new version and ramps up gradually while monitoring health metrics."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In a blue-green deployment, rolling back a bad release is fast because it only requires flipping the router back to the ____ environment, which was never touched.",
+      "answer": "blue",
+      "explanation": "Because blue is left fully running and untouched during the switch, rollback is just re-pointing traffic back to it."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Compared to blue-green, what is a key advantage of canary deployments?",
+      "options": [
+        "They require no additional infrastructure for traffic splitting",
+        "They limit how many users are exposed to a bad release at any given moment, rather than switching everyone at once",
+        "They always complete a full rollout faster than blue-green",
+        "They eliminate the need for monitoring or observability"
+      ],
+      "answer": 1,
+      "explanation": "By exposing only a small, gradually increasing fraction of traffic to the new version, canary deployments cap the blast radius of a bad release."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Feature flags can be used alongside blue-green or canary deployments to control which users see a code path, independent of which infrastructure version is deployed.",
+      "answer": true,
+      "explanation": "Feature flags toggle behavior per user or cohort at the application level, complementing deployment-level traffic control rather than replacing it."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a typical canary deployment, earliest first.",
+      "items": [
+        "Deploy the new version alongside the existing production version",
+        "Route a small percentage of real traffic to the new version",
+        "Monitor error rate, latency, and other health signals on that traffic slice",
+        "Gradually increase the traffic percentage, or roll back if signals degrade"
+      ],
+      "answer": [0, 1, 2, 3],
+      "explanation": "The new version is deployed first, given a small initial slice of traffic, watched closely, and then either ramped up further or rolled back based on what the monitoring shows."
+    }
+  ]
+}

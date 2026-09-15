@@ -65,6 +65,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 52 | 2026-09-18 | Approximate Streaming Quantiles and t-digest | `2026-09-18-streaming-quantiles-tdigest` |
 | 53 | 2026-09-19 | Distributed ID Generation (Snowflake-Style IDs) | `2026-09-19-distributed-id-generation` |
 | 54 | 2026-09-19 | Distributed Tracing: Spans, Context Propagation, and Sampling | `2026-09-19-distributed-tracing` |
+| 55 | 2026-09-20 | Service Meshes: Sidecar Proxies and the Data Plane/Control Plane Split | `2026-09-20-service-meshes` |
+| 56 | 2026-09-20 | Blue-Green and Canary Deployments | `2026-09-20-blue-green-canary-deployments` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -88,16 +90,21 @@ generated on the 2026-09-08 run, and the 2026-09-14 topics were generated on the
 and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-16 topics were
 generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the 2026-09-13 run,
 and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 2026-09-19
-topics were generated on the 2026-09-14 run.
+topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were generated on
+the 2026-09-15 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- (candidate list emptied by the 2026-09-19 topics above; next run should pick a new, equally
-  well-established system-design concept not yet covered — e.g. service meshes, three-phase
-  commit, blue-green/canary deployments, or backend-for-frontend/API composition)
+- Three-phase commit (as a contrast to 2PC, #19)
+- Backend-for-frontend (BFF) / API composition
+- Feature flags / progressive delivery as a standalone topic (touched on briefly in #56, could
+  go deeper on flag evaluation, targeting rules, and kill-switch patterns)
+- Chaos engineering / fault injection
+- Multi-region active-active vs active-passive architectures
+- Write-behind / write-through caching (contrast with #3's caching strategies)
 
 ## How to append
 
