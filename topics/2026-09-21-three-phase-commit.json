@@ -1,0 +1,69 @@
+{
+  "id": "2026-09-21-three-phase-commit",
+  "date": "2026-09-21",
+  "title": "Three-Phase Commit (3PC)",
+  "category": "system-design",
+  "lesson": "Two-phase commit (2PC) has a well-known flaw: if the coordinator crashes right after a participant votes \"yes\" but before it sends the final commit or abort decision, that participant is stuck. It can't safely commit (the coordinator might have decided to abort based on another participant's \"no\"), and it can't safely abort either (the coordinator might already have told other participants to commit). It has to sit there blocked, holding its locks, until the coordinator recovers or someone intervenes. Three-phase commit (3PC) is a protocol designed specifically to close that blocking window.\n\n3PC does this by splitting 2PC's single \"decision\" step into two separate phases, for three phases total. First, CanCommit: the coordinator asks every participant if it's able to commit, just like 2PC's prepare phase, and each replies yes or no. Second, PreCommit: if every participant voted yes, the coordinator sends a precommit message to all of them and waits for acknowledgment; a participant that receives precommit now knows that everyone voted yes, even though nothing has actually been committed yet. Third, DoCommit: once the coordinator has all the precommit acknowledgments, it sends the final commit message and every participant applies the change.\n\nThe extra precommit phase is what removes the blocking problem for coordinator crashes. If a participant has received precommit, it knows with certainty that every other participant voted yes, so if the coordinator disappears at that point, the participant can safely proceed to commit on its own (or after a new coordinator is elected) instead of waiting indefinitely, because there's no scenario in which the group was supposed to abort. Conversely, if a participant crashes or times out before ever receiving precommit, it's still safe to abort, because no participant could have committed without first passing through that phase. In 2PC there was only one ambiguous state after voting yes; 3PC turns that into two more precisely defined states so a stuck participant always has enough information to make a safe unilateral decision on timeout.\n\nThe catch is that 3PC's safety guarantee only holds under a fail-stop model, where nodes simply crash and network messages either arrive or don't get lost in a way indistinguishable from a crash. Under an actual network partition, it's possible for some participants to time out and independently proceed to commit while others, on the other side of the partition, time out and abort, producing exactly the inconsistent outcome the protocol was meant to prevent. Combined with the extra network round trip 3PC requires over 2PC, this partition weakness is a big part of why 3PC stayed mostly academic rather than seeing wide production use; most real systems either accept 2PC's bounded blocking window (mitigated with timeouts and monitoring) or move away from two/three-phase commit entirely toward consensus protocols like Paxos or Raft, which are designed to tolerate partitions from the start.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What specific problem does 3PC add a phase to solve, compared to 2PC?",
+      "options": [
+        "2PC uses too much network bandwidth",
+        "2PC can leave a participant blocked indefinitely if the coordinator crashes after it votes yes but before the final decision arrives",
+        "2PC cannot support more than two participants",
+        "2PC does not allow participants to vote no"
+      ],
+      "answer": 1,
+      "explanation": "3PC's extra phase exists specifically to give a participant enough information to make a safe decision on its own if the coordinator disappears after votes are in but before the final decision is sent."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "3PC guarantees no blocking and no inconsistency even during an actual network partition, not just a coordinator crash.",
+      "answer": false,
+      "explanation": "3PC's safety guarantee assumes a fail-stop model; under a real network partition, participants on different sides can time out and reach different decisions, reproducing the inconsistency the protocol tries to avoid."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The phase 3PC inserts between the initial vote and the final commit, so a participant can know all votes were yes before anything is actually committed, is called ____.",
+      "answer": "precommit",
+      "acceptable": ["pre-commit", "PreCommit"],
+      "explanation": "PreCommit is only sent once every participant has voted yes, so receiving it tells a participant the group is guaranteed to commit."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "If a participant has received and acknowledged the precommit message, and the coordinator then crashes, what can that participant safely do?",
+      "options": [
+        "It must still wait indefinitely, exactly like in 2PC",
+        "It must always abort to be safe",
+        "It can proceed to commit, because precommit is only sent after every participant already voted yes",
+        "It should ask a randomly chosen participant to decide for it"
+      ],
+      "answer": 2,
+      "explanation": "Receiving precommit guarantees unanimous yes votes already happened, so committing after a coordinator crash at that point cannot violate the group's agreement."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these phases of three-phase commit, earliest first.",
+      "items": [
+        "DoCommit: the coordinator tells every participant to apply the change",
+        "CanCommit: the coordinator asks each participant if it is able to commit",
+        "PreCommit: the coordinator confirms to all participants that every vote was yes"
+      ],
+      "answer": [1, 2, 0],
+      "explanation": "3PC first collects votes (CanCommit), then confirms unanimous agreement to everyone (PreCommit), and only then finalizes the change (DoCommit)."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Despite solving 2PC's blocking problem under crash failures, 3PC saw little real-world production adoption.",
+      "answer": true,
+      "explanation": "Its vulnerability to real network partitions plus the added round trip over 2PC meant most production systems either kept 2PC's bounded blocking window or adopted partition-tolerant consensus protocols like Paxos or Raft instead."
+    }
+  ]
+}

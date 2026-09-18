@@ -67,6 +67,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 54 | 2026-09-19 | Distributed Tracing: Spans, Context Propagation, and Sampling | `2026-09-19-distributed-tracing` |
 | 55 | 2026-09-20 | Service Meshes: Sidecar Proxies and the Data Plane/Control Plane Split | `2026-09-20-service-meshes` |
 | 56 | 2026-09-20 | Blue-Green and Canary Deployments | `2026-09-20-blue-green-canary-deployments` |
+| 57 | 2026-09-21 | Three-Phase Commit (3PC) | `2026-09-21-three-phase-commit` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -74,6 +75,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 |------------|--------------------|-------------------------------------|-------|
 | 2026-09-02 | CAP Theorem (orig. `2026-08-21-cap-theorem`) | `2026-09-02-cap-theorem-review` | Same lesson text, fresh questions covering the CAP definition of availability, AP reconciliation, PACELC, and per-request quorum tuning. |
 | 2026-09-13 | Consistent Hashing (orig. `2026-08-20-consistent-hashing`) | `2026-09-13-consistent-hashing-review` | Same lesson text, fresh questions covering the naive-modulo failure mode, virtual nodes, removal behavior, and real-world users of the technique. |
+| 2026-09-21 | Database Replication (orig. `2026-08-24-database-replication`) | `2026-09-21-database-replication-review` | Same lesson text, fresh questions covering replication's purpose, semi-synchronous acking, split-brain, read-scaling rationale, and the synchronous write ordering. |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with
@@ -91,14 +93,13 @@ and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-
 generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the 2026-09-13 run,
 and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 2026-09-19
 topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were generated on
-the 2026-09-15 run.
+the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Three-phase commit (as a contrast to 2PC, #19)
 - Backend-for-frontend (BFF) / API composition
 - Feature flags / progressive delivery as a standalone topic (touched on briefly in #56, could
   go deeper on flag evaluation, targeting rules, and kill-switch patterns)

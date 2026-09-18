@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-21-database-replication-review",
+  "date": "2026-09-21",
+  "title": "Database Replication",
+  "category": "system-design",
+  "lesson": "Database replication is the practice of copying data from one database to one or more other databases, so the same data lives on multiple machines. It's used to protect against data loss if a machine fails, to scale read throughput beyond what one machine can serve, and to enable failover so the system can keep running if the primary database goes down.\n\nThe most common setup is leader-follower (also called primary-replica or master-slave) replication. All writes go to a single leader, which applies them locally and then streams the changes to its followers, typically via a replication log (e.g. a write-ahead log shipped to each replica, which replays it to stay in sync). Followers can serve read traffic, which is how this pattern scales reads horizontally — add more followers, handle more concurrent readers — while writes stay funneled through the one leader, which keeps write ordering simple and unambiguous.\n\nHow the leader waits on followers before confirming a write to the client is the synchronous-vs-asynchronous tradeoff. In synchronous replication, the leader waits for a follower's acknowledgment before telling the client the write succeeded, which guarantees that any acknowledged write already exists on at least one other node — but it adds latency and can stall writes entirely if that follower is slow or unreachable. In asynchronous replication, the leader confirms the write to the client immediately and propagates it to followers in the background; this keeps write latency low, but it opens a window called replication lag, where a leader crash before a follower catches up can silently lose the most recently acknowledged writes. A common middle ground is semi-synchronous replication, where the leader waits for acknowledgment from just one follower (not all of them) before confirming, balancing durability against latency.\n\nWhen the leader fails, the system needs a failover process: a failure detector notices the leader has stopped sending heartbeats, the remaining followers (or an external coordinator) elect a new leader, and clients and remaining followers are redirected to it. This has to be done carefully to avoid split-brain, where two nodes each believe they're the leader and accept conflicting writes, and to reconcile any writes that were in flight or hadn't yet replicated to the newly promoted leader at the moment of failure.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which of these is NOT a reason systems use database replication?",
+      "options": [
+        "Protecting against data loss if a machine fails",
+        "Scaling read throughput beyond a single machine",
+        "Enabling failover if the primary database goes down",
+        "Guaranteeing writes never take more than one millisecond"
+      ],
+      "answer": 3,
+      "explanation": "Replication protects against data loss, scales reads, and enables failover, but it does not by itself bound write latency to any fixed number."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Semi-synchronous replication requires the leader to wait for acknowledgment from every single follower before confirming a write.",
+      "answer": false,
+      "explanation": "Semi-synchronous replication only waits for acknowledgment from one follower, not all of them, which is what makes it a middle ground between full synchronous and asynchronous replication."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The dangerous failover scenario where two nodes each believe they are the leader and accept conflicting writes is called ____.",
+      "answer": "split-brain",
+      "acceptable": ["split brain"],
+      "explanation": "Split-brain happens when a failover process doesn't cleanly agree on a single new leader, leaving two nodes both accepting writes as if they were in charge."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "In leader-follower replication, why can followers serve read traffic while writes stay funneled through the single leader?",
+      "options": [
+        "Followers store a completely different copy of the schema",
+        "Reads don't need to modify data, so any replica with sufficiently up-to-date data can answer them, while routing all writes through one leader keeps write ordering unambiguous",
+        "Followers are always faster hardware than the leader",
+        "Writes are actually processed by followers first, then sent to the leader"
+      ],
+      "answer": 1,
+      "explanation": "Reads can be served from any replica because they don't change data, while keeping all writes on one leader avoids the ordering conflicts that would arise from accepting writes on multiple nodes at once."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of a write under synchronous replication, earliest first.",
+      "items": [
+        "The leader confirms the write as successful to the client",
+        "The client sends a write to the leader",
+        "The leader applies the write locally and sends it to a follower",
+        "The follower applies the write and sends an acknowledgment back to the leader"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "Under synchronous replication the leader applies and forwards the write, then waits for the follower's acknowledgment before it is allowed to confirm success back to the client."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Asynchronous replication always confirms a write to the client only after the write has reached at least one follower.",
+      "answer": false,
+      "explanation": "Asynchronous replication confirms the write to the client immediately and propagates it to followers afterward in the background, which is exactly what creates the replication lag window."
+    }
+  ]
+}

@@ -404,5 +404,19 @@
     "title": "Blue-Green and Canary Deployments",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-21-three-phase-commit",
+    "date": "2026-09-21",
+    "title": "Three-Phase Commit (3PC)",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-21-database-replication-review",
+    "date": "2026-09-21",
+    "title": "Database Replication",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
