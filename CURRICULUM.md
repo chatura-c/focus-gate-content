@@ -68,6 +68,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 55 | 2026-09-20 | Service Meshes: Sidecar Proxies and the Data Plane/Control Plane Split | `2026-09-20-service-meshes` |
 | 56 | 2026-09-20 | Blue-Green and Canary Deployments | `2026-09-20-blue-green-canary-deployments` |
 | 57 | 2026-09-21 | Three-Phase Commit (3PC) | `2026-09-21-three-phase-commit` |
+| 58 | 2026-09-22 | Multi-Region Architectures: Active-Active vs Active-Passive | `2026-09-22-multi-region-active-active-passive` |
+| 59 | 2026-09-22 | Chaos Engineering and Fault Injection | `2026-09-22-chaos-engineering` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -93,7 +95,8 @@ and the 2026-09-15 topics were generated on the 2026-09-10 run, and the 2026-09-
 generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the 2026-09-13 run,
 and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 2026-09-19
 topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were generated on
-the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run.
+the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run, and
+the 2026-09-22 topics were generated on the 2026-09-19 run.
 
 ## Candidate next topics
 
@@ -103,8 +106,6 @@ system-design concept not listed) before repeating anything above:
 - Backend-for-frontend (BFF) / API composition
 - Feature flags / progressive delivery as a standalone topic (touched on briefly in #56, could
   go deeper on flag evaluation, targeting rules, and kill-switch patterns)
-- Chaos engineering / fault injection
-- Multi-region active-active vs active-passive architectures
 - Write-behind / write-through caching (contrast with #3's caching strategies)
 
 ## How to append

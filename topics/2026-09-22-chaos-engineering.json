@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-22-chaos-engineering",
+  "date": "2026-09-22",
+  "title": "Chaos Engineering and Fault Injection",
+  "category": "system-design",
+  "lesson": "Most resilience mechanisms in a distributed system, retries, timeouts, circuit breakers, failover, are written to handle failures that the engineer imagined in advance. Chaos engineering is the practice of deliberately injecting real failures into a system, often in production or a production-like environment, to find out whether those mechanisms actually work under real conditions, rather than assuming they do because the code compiles. It became widely known through Netflix's Chaos Monkey, a tool that randomly terminated live production instances so that engineers were forced to design for instance failure as a routine occurrence rather than a rare edge case.\n\nA chaos experiment follows a fairly disciplined method, not random destruction. First, define a steady-state hypothesis: a measurable expectation for how the system should behave, such as \"if we kill one instance of this service, error rate stays under 1% and P99 latency stays under 300ms because of retries and redundant instances.\" Second, limit the blast radius, starting with a small, safe scope, like a single canary instance or a small percentage of traffic, rather than the whole fleet. Third, inject the fault and observe whether the steady state actually held. If it did, the hypothesis is confirmed and confidence in that resilience mechanism goes up; if it didn't, the experiment just found a real weakness under controlled conditions, before it could cause an uncontrolled incident. Throughout, monitoring and a fast abort mechanism are non-negotiable, so an experiment that starts causing more damage than expected can be stopped immediately.\n\nFaults worth injecting go well beyond killing a process. Network-level faults add latency, drop packets, or simulate a partition between two services. Resource faults exhaust CPU, memory, or disk to see how the system behaves under real pressure rather than idealized load. Dependency faults make a downstream call blackhole, time out, or return errors, to verify that circuit breakers and fallbacks actually trip the way they're supposed to. At the largest scale, region- or availability-zone-level failure drills simulate an entire datacenter going dark, which is the only real way to verify that a multi-region failover design actually works end to end, rather than just looking correct on a whiteboard.\n\nSome organizations go a step further with game days: planned, scheduled exercises where a team deliberately simulates a major failure scenario and role-plays the response in real time, testing not just whether the software degrades gracefully but whether the on-call runbooks, alerts, and escalation paths actually work under pressure. What separates chaos engineering from simply causing outages is that it is hypothesis-driven, scoped, and monitored, the goal is to surface weaknesses on your own terms so a real incident is smaller and better understood, not to inflict damage for its own sake. Teams typically start with a small blast radius on non-critical paths and expand it as confidence grows, eventually running chaos experiments continuously rather than as one-off events.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the primary goal of chaos engineering?",
+      "options": [
+        "To reduce cloud costs by shutting down unused instances",
+        "To deliberately and safely inject failure so real resilience weaknesses are found before an uncontrolled incident does",
+        "To replace load testing entirely",
+        "To test only the on-call team's response, without involving the software"
+      ],
+      "answer": 1,
+      "explanation": "Chaos engineering exists to surface real weaknesses in a system's resilience mechanisms under controlled conditions, rather than discovering them for the first time during a real outage."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Chaos experiments should start with the largest possible blast radius to get the most realistic results.",
+      "answer": false,
+      "explanation": "Good practice is to start with a small, safe blast radius, such as one canary instance or a small percentage of traffic, and expand it only as confidence grows."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A planned, scheduled exercise where a team simulates a major failure and rehearses its real incident response, including runbooks and alerting, is called a ____.",
+      "answer": "game day",
+      "acceptable": ["game-day", "gameday"],
+      "explanation": "Game days test the humans and processes around a system, not just the software, by role-playing a major failure scenario end to end."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Netflix's Chaos Monkey is best known for randomly terminating production instances in order to:",
+      "options": [
+        "Save money by identifying idle servers",
+        "Force engineers to treat instance failure as a normal, expected condition rather than a rare exception",
+        "Automatically scale services up during traffic spikes",
+        "Detect security vulnerabilities in running instances"
+      ],
+      "answer": 1,
+      "explanation": "By making instance failure a routine, frequent event, Chaos Monkey pushed teams to build genuine redundancy instead of code that only theoretically tolerated failure."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of a disciplined chaos experiment, earliest first.",
+      "items": [
+        "Inject the fault into the scoped subset of the system",
+        "Form a measurable steady-state hypothesis for how the system should behave under the fault",
+        "Compare the observed behavior against the hypothesis to find gaps",
+        "Limit the blast radius to a small, safe subset before running the experiment"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "A chaos experiment starts with a hypothesis, then scopes the blast radius, then injects the fault, and finally compares what actually happened against the hypothesis."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Chaos engineering is only meaningful when run against production or production-like environments; it provides no value in a lightly-used staging environment.",
+      "answer": false,
+      "explanation": "Production is the most realistic environment and the ultimate target, but chaos experiments in staging can still validate resilience mechanisms before a team is confident enough to run them against live traffic."
+    }
+  ]
+}

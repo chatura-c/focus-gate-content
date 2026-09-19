@@ -418,5 +418,19 @@
     "title": "Database Replication",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-22-multi-region-active-active-passive",
+    "date": "2026-09-22",
+    "title": "Multi-Region Architectures: Active-Active vs Active-Passive",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-22-chaos-engineering",
+    "date": "2026-09-22",
+    "title": "Chaos Engineering and Fault Injection",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

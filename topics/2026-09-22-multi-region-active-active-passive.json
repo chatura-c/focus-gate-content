@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-22-multi-region-active-active-passive",
+  "date": "2026-09-22",
+  "title": "Multi-Region Architectures: Active-Active vs Active-Passive",
+  "category": "system-design",
+  "lesson": "Running a service out of a single region leaves it exposed to a single point of failure: if that region has an outage, the whole service goes down, and users far from that region pay a latency tax on every request. Multi-region architectures spread a service across two or more geographic regions to address both problems, but there are two fundamentally different ways to do it: active-passive and active-active.\n\nIn active-passive, one region (the primary) serves all live traffic, and one or more other regions (standbys) just replicate the primary's data, usually asynchronously, without serving production traffic themselves. If the primary fails, a standby is promoted to become the new primary, and traffic is redirected to it, typically via DNS or a global load balancer. This is comparatively simple to reason about: since only one region accepts writes at a time, there's no risk of two regions disagreeing about the same record. The tradeoffs are that standby capacity mostly sits idle, and failover has real cost: however much data the standby hadn't yet replicated when the primary died is lost (the recovery point objective, or RPO), and however long detection plus promotion plus traffic redirection takes is downtime (the recovery time objective, or RTO).\n\nIn active-active, every region accepts both reads and writes simultaneously, and the regions replicate changes to each other. This eliminates idle standby capacity and gives every user a nearby region to write to, cutting write latency for a globally distributed user base. The catch is that it turns single-region strong consistency into a genuinely hard distributed-systems problem: if a user in one region and a user in another region both write to the same record before replication catches up, the two regions now disagree, and something has to reconcile it. Common approaches are partitioning data so each record has one \"home\" region that owns writes to it (sidestepping conflicts entirely for that record), last-writer-wins with synchronized clocks, or conflict-free replicated data types that merge deterministically regardless of the order updates arrive in.\n\nNeither option is strictly better; the right choice depends on what the data actually needs. Systems with a natural single source of truth and low tolerance for conflicting writes, like a financial ledger, tend to fit active-passive, using the second region purely for disaster recovery. Systems that can partition cleanly by user or tolerate eventual consistency, like a social feed or a collaborative document, are better candidates for active-active, since the latency win is real and the conflict problem is tractable. A common middle ground is a hybrid: a single active write region with read replicas fanned out globally, which gets most of the read-latency benefit of active-active while keeping active-passive's simple, unambiguous write path.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the defining difference between active-active and active-passive multi-region architectures?",
+      "options": [
+        "Active-active uses more storage per region than active-passive",
+        "In active-active, every region accepts live writes simultaneously; in active-passive, only the primary region does",
+        "Active-passive is only usable with SQL databases",
+        "Active-active requires exactly two regions, no more"
+      ],
+      "answer": 1,
+      "explanation": "The core distinction is whether standby regions merely replicate data (active-passive) or also accept live writes themselves (active-active)."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In an active-active setup, concurrent writes to the same record in two different regions can never conflict with each other.",
+      "answer": false,
+      "explanation": "Because every region can accept writes, two regions can update the same record before replication catches up, which is exactly the conflict that active-active systems must resolve with strategies like partitioning, last-writer-wins, or CRDTs."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The maximum amount of data an organization is willing to lose during a failover, typically expressed as a duration of unreplicated writes, is called the ____.",
+      "answer": "RPO",
+      "acceptable": ["recovery point objective"],
+      "explanation": "RPO measures how much data can be lost, driven by how far behind the standby's replication was when the primary failed."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is a common hybrid pattern that gets most of active-active's read-latency benefit without full active-active write-conflict complexity?",
+      "options": [
+        "Running active-active but disabling replication entirely",
+        "A single active write region with read replicas distributed globally",
+        "Randomly picking a different write region for every request",
+        "Storing all data only in the passive region"
+      ],
+      "answer": 1,
+      "explanation": "Keeping one authoritative write region avoids cross-region write conflicts, while distributing read replicas still lets nearby users read with low latency."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of an active-passive failover, earliest first.",
+      "items": [
+        "Traffic is redirected, via DNS or a global load balancer, to the newly promoted region",
+        "Monitoring detects that the primary region is unreachable or has failed",
+        "The standby region's replica is promoted to become the new primary",
+        "The newly promoted region begins accepting writes from clients"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "Failover starts with detecting the primary's failure, then promoting the standby, then redirecting traffic to it, and only then does the new primary start accepting writes."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Active-active architectures generally make consistency easier to reason about than active-passive architectures.",
+      "answer": false,
+      "explanation": "It's the opposite: active-passive keeps a single write path so there's nothing to reconcile, while active-active requires explicit conflict resolution because multiple regions can write concurrently."
+    }
+  ]
+}
