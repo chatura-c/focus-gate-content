@@ -70,6 +70,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 57 | 2026-09-21 | Three-Phase Commit (3PC) | `2026-09-21-three-phase-commit` |
 | 58 | 2026-09-22 | Multi-Region Architectures: Active-Active vs Active-Passive | `2026-09-22-multi-region-active-active-passive` |
 | 59 | 2026-09-22 | Chaos Engineering and Fault Injection | `2026-09-22-chaos-engineering` |
+| 60 | 2026-09-23 | Backend-for-Frontend (BFF) and API Composition | `2026-09-23-backend-for-frontend` |
+| 61 | 2026-09-23 | Feature Flags and Progressive Delivery | `2026-09-23-feature-flags-progressive-delivery` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -96,17 +98,23 @@ generated on the 2026-09-11 run, and the 2026-09-17 topics were generated on the
 and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 2026-09-19
 topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were generated on
 the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run, and
-the 2026-09-22 topics were generated on the 2026-09-19 run.
+the 2026-09-22 topics were generated on the 2026-09-19 run, and the 2026-09-23 topics
+were generated on the 2026-09-20 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Backend-for-frontend (BFF) / API composition
-- Feature flags / progressive delivery as a standalone topic (touched on briefly in #56, could
-  go deeper on flag evaluation, targeting rules, and kill-switch patterns)
-- Write-behind / write-through caching (contrast with #3's caching strategies)
+- Connection pooling (database and general RPC connection pools: sizing, exhaustion, and
+  head-of-line blocking under load)
+- Realtime transport tradeoffs: WebSockets vs Server-Sent Events vs long polling
+- Sticky sessions / session affinity at the load balancer (and why it's in tension with #2's
+  load-balancing lesson and horizontal scaling in general)
+
+Note: write-behind/write-through caching, originally listed here, turned out to already be
+covered in reasonable depth by #3's lesson (`2026-08-23-caching-strategies` covers cache-aside,
+write-through, and write-back); dropped as a candidate rather than generated as a near-duplicate.
 
 ## How to append
 

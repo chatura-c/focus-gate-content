@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-23-backend-for-frontend",
+  "date": "2026-09-23",
+  "title": "Backend-for-Frontend (BFF) and API Composition",
+  "category": "system-design",
+  "lesson": "Different clients of the same backend rarely want the same data shaped the same way. A native mobile app wants small, battery- and bandwidth-friendly payloads with just the fields its screens render; a web dashboard might want a much richer, deeply nested response to populate a dozen widgets at once; a partner integration might need a completely different contract for compliance reasons. If every client talks directly to the same general-purpose API, that API either over-fetches for the client that needed less, under-fetches for the client that needed more, or accumulates a pile of client-specific query parameters and conditional fields that nobody wants to maintain.\n\nThe backend-for-frontend (BFF) pattern solves this by giving each client type, or sometimes each client team, its own dedicated backend layer that sits between that client and the underlying domain services. The BFF's job is presentation shaping: it composes calls to one or more downstream services, aggregates and reshapes their responses into exactly what its one client needs, and absorbs churn in the internal service topology so the client doesn't have to change when a domain service is split, merged, or renamed. This is a different job than a general API gateway, which typically applies the same routing, authentication, and rate-limiting rules uniformly across all clients rather than tailoring the actual response shape per client.\n\nA common piece of a BFF's job is API composition: instead of a mobile client making three separate round trips to fetch a user profile, their recent orders, and a recommendation list, the BFF fires those three calls to downstream services in parallel, waits for all of them, and joins the results into one response tailored to that screen. This cuts the number of round trips the client makes over a possibly slow or high-latency network, at the cost of adding a layer that itself has to be deployed, scaled, and kept available. GraphQL is one popular way to implement this same idea, letting a client ask for exactly the fields it needs from a single composed graph, though teams can just as easily build BFFs as plain per-team REST services without adopting GraphQL at all.\n\nThe pattern is worth its cost when client needs genuinely diverge, such as very different mobile versus web versus third-party integration requirements, or when client teams want the autonomy to evolve their own composition layer without waiting on a shared backend team's release cycle. It's overkill for a system with a single client type or a small team, since every BFF is another service to own, another network hop adding latency, and a place where business logic can accidentally leak in and get duplicated across BFFs if teams aren't careful to keep real domain logic in the underlying services and keep the BFF focused on shaping and aggregating, not deciding.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the primary job of a backend-for-frontend (BFF), as distinct from a general-purpose API gateway?",
+      "options": [
+        "Enforcing authentication and rate limits uniformly across all clients",
+        "Composing and reshaping downstream service responses into exactly what one specific client needs",
+        "Storing the canonical copy of business data",
+        "Load balancing traffic across multiple data centers"
+      ],
+      "answer": 1,
+      "explanation": "A BFF exists to tailor and aggregate data for one client type, while a gateway typically applies the same routing and policy rules uniformly across all clients."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A well-designed BFF should own core business logic, since it already sits closest to the client and knows exactly what that client needs.",
+      "answer": false,
+      "explanation": "Business logic should stay in the underlying domain services; a BFF is meant to shape and aggregate their responses, not become a second place where business rules are decided."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "A mobile client screen needs data from three separate downstream services. How does a BFF typically avoid forcing the mobile client to make three separate round trips?",
+      "options": [
+        "It redirects the client to call each service directly, one after another",
+        "It caches the entire downstream database locally on the device",
+        "It fires the calls to the three services (often in parallel) and composes their results into one response",
+        "It disables two of the three services and only serves data from one"
+      ],
+      "answer": 2,
+      "explanation": "API composition inside the BFF lets it fan out to multiple services and join their results into a single client-facing response, cutting round trips over the client's network."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "A ____ per client type lets a mobile app, a web app, and a partner integration each get differently shaped responses instead of sharing one general-purpose API contract.",
+      "answer": "backend-for-frontend",
+      "acceptable": ["BFF", "bff"],
+      "explanation": "The backend-for-frontend pattern gives each client its own tailored layer rather than forcing all clients onto one shared API shape."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "One real cost of adopting the BFF pattern is that it adds an extra network hop and an extra service that needs to be deployed and kept available.",
+      "answer": true,
+      "explanation": "Every BFF is another running service in the request path, so it adds latency and operational overhead even though it simplifies the client's contract."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a BFF handling one mobile screen's request, earliest first.",
+      "items": [
+        "The BFF joins the responses into one payload shaped for the mobile screen",
+        "The mobile client sends a single request to the BFF",
+        "The downstream services return their individual results",
+        "The BFF fans out parallel calls to the profile, orders, and recommendation services"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "The client calls the BFF once, the BFF fans out to the services it needs, those services respond, and the BFF composes the final tailored payload before returning it."
+    }
+  ]
+}
