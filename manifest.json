@@ -446,5 +446,19 @@
     "title": "Feature Flags and Progressive Delivery",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-24-connection-pooling",
+    "date": "2026-09-24",
+    "title": "Connection Pooling",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-24-realtime-transport-tradeoffs",
+    "date": "2026-09-24",
+    "title": "Realtime Transport Tradeoffs: WebSockets vs Server-Sent Events vs Long Polling",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

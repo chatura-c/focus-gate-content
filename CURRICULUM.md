@@ -72,6 +72,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 59 | 2026-09-22 | Chaos Engineering and Fault Injection | `2026-09-22-chaos-engineering` |
 | 60 | 2026-09-23 | Backend-for-Frontend (BFF) and API Composition | `2026-09-23-backend-for-frontend` |
 | 61 | 2026-09-23 | Feature Flags and Progressive Delivery | `2026-09-23-feature-flags-progressive-delivery` |
+| 62 | 2026-09-24 | Connection Pooling | `2026-09-24-connection-pooling` |
+| 63 | 2026-09-24 | Realtime Transport Tradeoffs: WebSockets vs Server-Sent Events vs Long Polling | `2026-09-24-realtime-transport-tradeoffs` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -99,16 +101,14 @@ and the 2026-09-18 topics were generated on a second 2026-09-13 run, and the 202
 topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were generated on
 the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run, and
 the 2026-09-22 topics were generated on the 2026-09-19 run, and the 2026-09-23 topics
-were generated on the 2026-09-20 run.
+were generated on the 2026-09-20 run, and the 2026-09-24 topics were generated on the
+2026-09-21 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Connection pooling (database and general RPC connection pools: sizing, exhaustion, and
-  head-of-line blocking under load)
-- Realtime transport tradeoffs: WebSockets vs Server-Sent Events vs long polling
 - Sticky sessions / session affinity at the load balancer (and why it's in tension with #2's
   load-balancing lesson and horizontal scaling in general)
 

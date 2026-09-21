@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-24-connection-pooling",
+  "date": "2026-09-24",
+  "title": "Connection Pooling",
+  "category": "system-design",
+  "lesson": "Opening a connection, whether it's a TCP socket to a database, a TLS-wrapped HTTP connection to another service, or a gRPC channel, is expensive relative to the work a single request does once it's open. A fresh database connection typically means a TCP handshake, a TLS handshake, and an authentication round trip before a single query can run. A connection pool avoids paying that cost on every request by keeping a small set of connections open and handing them out to callers as needed, then taking them back (not closing them) when the caller is done, so the next caller reuses the same already-established connection.\n\nPool sizing is a real tuning problem, not a set-and-forget default. Too small a pool means requests pile up waiting for a connection to free up, a form of head-of-line blocking where a burst of traffic queues behind a handful of connections even though the downstream service itself isn't overloaded. Too large a pool causes different problems: a database has a hard cap on concurrent connections (each one costs the server memory and, in a thread-per-connection model, a thread), so an oversized pool from one client can starve other clients or the server itself, and past a certain point more concurrent connections just adds contention rather than throughput, since the underlying resource (disk, CPU, lock manager) doesn't scale with connection count.\n\nA connection leak is one of the most common pool-related bugs: code checks a connection out of the pool, hits an error or an early return before its work is done, and never returns the connection. The pool's available count silently shrinks until the pool is fully exhausted and every caller blocks or times out waiting for a connection that will never come back, often with no obvious single cause in the logs since the leak happened in a code path that failed earlier. This is why pooling libraries default to a checkout timeout and encourage using a scoped pattern (try/finally, or a context manager) that returns the connection even when the calling code throws.\n\nPooling isn't unique to databases. HTTP clients keep-alive and reuse TCP connections to the same host instead of reconnecting per request, and gRPC channels are typically long-lived and pooled per target rather than created per call. The same tradeoff applies everywhere: a pool amortizes connection setup cost across many requests, but its size has to be matched to both the caller's concurrency needs and the callee's actual capacity, and sizing it purely by guesswork in either direction causes a real production incident sooner or later.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is reusing a pooled connection generally cheaper than opening a new one per request?",
+      "options": [
+        "It skips the handshake and authentication overhead (TCP/TLS/auth) that setting up a fresh connection requires",
+        "It automatically makes every query run faster",
+        "It bypasses the database's query planner",
+        "It compresses the data sent over the connection"
+      ],
+      "answer": 0,
+      "explanation": "The expensive part of a new connection is the setup work (handshakes, auth), not the request itself, and a pool lets that cost be paid once and amortized across many requests."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A bigger connection pool always improves throughput.",
+      "answer": false,
+      "explanation": "Past the point where the downstream server's real capacity (connections, threads, disk, CPU) is saturated, more pooled connections just adds contention rather than more throughput, and can starve other clients."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "What's a typical symptom of a connection pool that's sized too small for the traffic hitting it?",
+      "options": [
+        "The database silently returns wrong query results",
+        "Requests queue and wait for a free connection, a form of head-of-line blocking, even though the downstream service isn't itself overloaded",
+        "TLS certificates expire faster",
+        "Connections are reused in a random, non-deterministic order"
+      ],
+      "answer": 1,
+      "explanation": "When every connection is checked out, new requests have to wait in line for one to free up, creating queuing delay independent of whether the backend itself has spare capacity."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "When code checks a connection out of the pool but a bug (like an early error return) causes it to never be returned, the pool's available connections silently shrink; this bug is called a connection ____.",
+      "answer": "leak",
+      "acceptable": ["connection leak"],
+      "explanation": "A connection leak is a checked-out connection that never gets returned to the pool, and enough of them eventually exhaust the pool entirely."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Connection pooling is a technique specific to database connections and doesn't apply to other protocols like HTTP or gRPC.",
+      "answer": false,
+      "explanation": "HTTP clients pool and reuse keep-alive connections and gRPC channels are pooled per target too; the setup-cost tradeoff that motivates pooling applies to any connection-oriented protocol, not just databases."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a request going through a connection pool, earliest first.",
+      "items": [
+        "The connection is returned to the pool for reuse rather than closed",
+        "The application uses the connection to issue its request or query",
+        "The application asks the pool for a connection",
+        "The pool hands over an idle connection if one is available, or opens a new one if under its max size"
+      ],
+      "answer": [2, 3, 1, 0],
+      "explanation": "A pooled request asks the pool for a connection, the pool serves an idle one or opens a new one within its limit, the caller uses it, then returns it for the next caller instead of closing it."
+    }
+  ]
+}

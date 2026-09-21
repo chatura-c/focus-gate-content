@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-24-realtime-transport-tradeoffs",
+  "date": "2026-09-24",
+  "title": "Realtime Transport Tradeoffs: WebSockets vs Server-Sent Events vs Long Polling",
+  "category": "system-design",
+  "lesson": "Long polling is the oldest way to fake server push over plain HTTP: the client sends a normal request, but instead of answering immediately, the server holds that request open until either new data is available or a timeout elapses, then responds. The client immediately fires off a new request to resume waiting, so from the outside it looks like a stream of near-real-time updates. Because it's just repeated HTTP requests, long polling works through essentially any proxy, firewall, or piece of infrastructure that already handles normal HTTP traffic, but it pays for that compatibility with overhead: every cycle re-pays connection and request overhead, there's a small gap in coverage between one response and the next request, and the server has to juggle a lot of held-open requests under load.\n\nServer-Sent Events (SSE) improve on this by keeping a single long-lived HTTP connection open and streaming a sequence of text/event-stream formatted events down it as they happen, instead of opening a fresh request per update. Because it's still plain HTTP, SSE plays nicely with existing infrastructure and needs no special server upgrade handling, and the browser's built-in EventSource API adds automatic reconnection and resumption (via a last-event-id the server can use to replay only what was missed) for free. The tradeoff is that SSE is strictly one-directional: the server can push to the client over that connection, but the client has no way to send data back over the same channel and has to make ordinary separate HTTP requests for anything it needs to send.\n\nWebSockets solve the directionality problem: after an initial HTTP request that gets upgraded to a WebSocket connection, both sides hold open a persistent, full-duplex connection over which either side can send text or binary messages at any time, with no request/response pairing required. That makes WebSockets the natural fit for chat, multiplayer games, or collaborative editing, where low-latency messages need to flow both ways. The cost is operational complexity: a WebSocket connection is stateful and pinned to whichever server instance accepted it, which complicates horizontal scaling behind a load balancer (often requiring sticky routing, or a shared pub/sub backplane so a message published on one instance reaches a client connected to another), and unlike SSE there's no built-in reconnection or missed-message replay, so the application has to implement that itself.\n\nChoosing between them comes down to what the traffic actually looks like. If updates are mostly server-to-client and the infrastructure is otherwise ordinary HTTP, SSE gets most of the benefit of WebSockets with far less operational overhead. If the application genuinely needs low-latency bidirectional messaging, WebSockets are worth the added complexity. Long polling remains a reasonable fallback for the small slice of clients or networks that can't sustain a long-lived connection at all, which is why some production systems layer a WebSocket as the primary transport with an SSE or long-polling fallback underneath it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which of these transports is inherently one-directional, server to client only, over its streaming connection?",
+      "options": [
+        "WebSockets",
+        "Server-Sent Events",
+        "Long polling",
+        "None of them are one-directional"
+      ],
+      "answer": 1,
+      "explanation": "SSE streams events from server to client over a single long-lived connection, but the client has no way to send data back over that same channel."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A WebSocket connection begins as a normal HTTP request that is then upgraded into a persistent, full-duplex connection.",
+      "answer": true,
+      "explanation": "WebSockets start with an HTTP handshake that negotiates an upgrade, after which the connection becomes a persistent bidirectional channel outside the normal HTTP request/response model."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "What's a key operational downside of WebSockets compared to Server-Sent Events?",
+      "options": [
+        "WebSockets cannot carry binary data",
+        "WebSocket connections are stateful and pinned to one server instance, complicating load balancing without sticky routing or a shared backplane",
+        "WebSockets require the client to poll repeatedly",
+        "WebSockets aren't supported by modern browsers"
+      ],
+      "answer": 1,
+      "explanation": "Because a WebSocket connection is a stateful, persistent link to a specific server instance, scaling horizontally requires either sticky routing or a pub/sub backplane to fan messages out across instances, unlike stateless request/response HTTP."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "In long polling, after the server responds with data or a timeout, the client immediately ____ to keep the illusion of a continuous push channel.",
+      "answer": "sends a new request",
+      "acceptable": ["reopens the request", "opens a new request", "reconnects", "issues a new request"],
+      "explanation": "Long polling simulates push by having the client re-issue a request the instant the previous one completes, so from the outside it looks like a steady stream of updates."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "The browser's built-in EventSource API for Server-Sent Events includes automatic reconnection and can resume from the last received event.",
+      "answer": true,
+      "explanation": "EventSource automatically reconnects on a dropped connection and can send a last-event-id so the server replays only what the client missed."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a single long-polling request/response cycle, earliest first.",
+      "items": [
+        "Server responds with whatever new data it has, or an empty response on timeout",
+        "Client immediately issues a new request to resume waiting",
+        "Client sends a request to the server",
+        "Server holds the request open until new data is available or a timeout elapses"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "Long polling holds each request open until there's something to send or a timeout hits, then the client immediately re-requests to keep the near-real-time illusion going."
+    }
+  ]
+}
