@@ -460,5 +460,19 @@
     "title": "Realtime Transport Tradeoffs: WebSockets vs Server-Sent Events vs Long Polling",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-25-sticky-sessions",
+    "date": "2026-09-25",
+    "title": "Sticky Sessions (Session Affinity) at the Load Balancer",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-25-inverted-indexes-full-text-search",
+    "date": "2026-09-25",
+    "title": "Inverted Indexes and Full-Text Search",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

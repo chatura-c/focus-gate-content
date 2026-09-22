@@ -74,6 +74,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 61 | 2026-09-23 | Feature Flags and Progressive Delivery | `2026-09-23-feature-flags-progressive-delivery` |
 | 62 | 2026-09-24 | Connection Pooling | `2026-09-24-connection-pooling` |
 | 63 | 2026-09-24 | Realtime Transport Tradeoffs: WebSockets vs Server-Sent Events vs Long Polling | `2026-09-24-realtime-transport-tradeoffs` |
+| 64 | 2026-09-25 | Sticky Sessions (Session Affinity) at the Load Balancer | `2026-09-25-sticky-sessions` |
+| 65 | 2026-09-25 | Inverted Indexes and Full-Text Search | `2026-09-25-inverted-indexes-full-text-search` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -102,15 +104,15 @@ topics were generated on the 2026-09-14 run, and the 2026-09-20 topics were gene
 the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 run, and
 the 2026-09-22 topics were generated on the 2026-09-19 run, and the 2026-09-23 topics
 were generated on the 2026-09-20 run, and the 2026-09-24 topics were generated on the
-2026-09-21 run.
+2026-09-21 run, and the 2026-09-25 topics were generated on the 2026-09-22 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- Sticky sessions / session affinity at the load balancer (and why it's in tension with #2's
-  load-balancing lesson and horizontal scaling in general)
+- (list exhausted — pick the most natural next well-established concept, e.g. time-series
+  storage, geospatial indexing, or hot-key/hot-partition mitigation)
 
 Note: write-behind/write-through caching, originally listed here, turned out to already be
 covered in reasonable depth by #3's lesson (`2026-08-23-caching-strategies` covers cache-aside,

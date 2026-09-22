@@ -1,0 +1,76 @@
+{
+  "id": "2026-09-25-inverted-indexes-full-text-search",
+  "date": "2026-09-25",
+  "title": "Inverted Indexes and Full-Text Search",
+  "category": "system-design",
+  "lesson": "Scanning every document for a word is far too slow at scale, and an ordinary B-tree index on a text column only helps with exact or prefix matches on the whole value. Full-text search engines such as Lucene, Elasticsearch, and the search features built into many databases solve this with an inverted index: a map from each term to a posting list of the documents that contain it, often with per-document term frequencies and the positions where the term occurs. It is called inverted because it flips the natural document-to-words relationship into word-to-documents, so finding candidates for a query means looking up terms instead of reading documents.\n\nBefore terms go in the index, text passes through an analysis pipeline: it is split into tokens, lowercased, and often has stop words removed and words reduced to a stem so that \"running\" and \"runs\" match \"run\". The same analysis must be applied to the query text, otherwise the query terms won't line up with what was indexed. Multi-term queries are then answered by combining posting lists: an AND query intersects them, an OR query unions them, and a phrase query uses stored positions to check the words appear next to each other. Keeping posting lists sorted by document ID makes intersection an efficient merge.\n\nMatching is only half the job; results also need ranking. Scoring functions such as TF-IDF and its successor BM25 favor documents where the query term appears often (term frequency), weigh rare terms more heavily than common ones (inverse document frequency), and normalize for document length so long documents don't win just by being long.\n\nAt scale the index is split across machines. The common approach is to shard by document: each shard holds a full inverted index over its own subset of documents, a query is sent to all shards in a scatter-gather, and the coordinator merges each shard's top results. Within a shard, Lucene-style engines write data into immutable segments that are periodically merged in the background; a deleted document is only marked as deleted until a merge rewrites the segment. This makes writes cheap and searches fast, but means new documents become searchable only after a refresh and that the search index is normally a derived copy kept in sync from a primary database, not the source of truth.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What does an inverted index store?",
+      "options": [
+        "For each document, the full text in reverse order",
+        "For each term, a list of the documents (and often positions) that contain it",
+        "For each user, the queries they have run",
+        "A hash of every document, for detecting duplicates"
+      ],
+      "answer": 1,
+      "explanation": "An inverted index maps terms to posting lists of documents, so query candidates are found by looking up terms rather than scanning documents."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "The same text analysis (tokenizing, lowercasing, stemming) should be applied to the query as was applied at indexing time.",
+      "answer": true,
+      "explanation": "If query terms are processed differently from indexed terms, they won't match the entries in the index."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A search query for documents containing both \"cache\" and \"eviction\" is answered by taking the ____ of the two terms' posting lists.",
+      "answer": "intersection",
+      "acceptable": ["intersect", "intersecting"],
+      "explanation": "An AND query requires both terms, so only document IDs present in both posting lists qualify."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "In BM25/TF-IDF style scoring, why is a rare query term weighted more heavily than a very common one?",
+      "options": [
+        "Rare terms are cheaper to look up",
+        "A term that appears in few documents is better at distinguishing relevant documents than one that appears almost everywhere",
+        "Common terms are always stop words",
+        "Rare terms have shorter posting lists, so they must be more accurate"
+      ],
+      "answer": 1,
+      "explanation": "Inverse document frequency rewards terms that are selective, since matching a word found in nearly every document tells you little."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "In a document-sharded search cluster, how is a typical query executed?",
+      "options": [
+        "It is sent to one shard chosen by hashing the query text",
+        "It is sent to every shard, and a coordinator merges each shard's top results",
+        "It is sent to the primary database, which then updates the index",
+        "It is answered from the coordinator's cache without touching shards"
+      ],
+      "answer": 1,
+      "explanation": "Each shard indexes only some documents, so any shard might hold matches and all must be queried, then their top-k results merged."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of indexing and searching a document, earliest first.",
+      "items": [
+        "The query's terms are looked up and their posting lists combined and scored",
+        "The text is tokenized, lowercased, and stemmed into terms",
+        "The document's terms are added to the inverted index",
+        "A document is submitted for indexing"
+      ],
+      "answer": [3, 1, 2, 0],
+      "explanation": "A document is analyzed into terms and added to the index, after which queries can look up those terms and combine and score their posting lists."
+    }
+  ]
+}
