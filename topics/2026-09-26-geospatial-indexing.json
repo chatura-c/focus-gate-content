@@ -1,0 +1,76 @@
+{
+  "id": "2026-09-26-geospatial-indexing",
+  "date": "2026-09-26",
+  "title": "Geospatial Indexing: Geohashing and Quadtrees",
+  "category": "system-design",
+  "lesson": "Queries like \"find restaurants within 2km\" or \"which delivery zone contains this point\" need an index over two dimensions at once, and a plain B-tree can't help much: sorting rows by latitude groups points into north-south bands but scatters points that are close in longitude, so a radius search would still need to scan far more rows than actually matter. Geospatial indexing exists to preserve two-dimensional locality—so that points near each other in space also end up near each other in the index.\n\nOne popular family encodes location as a single sortable string or integer using a space-filling curve. Geohashing interleaves the bits of a latitude and longitude, recursively halving the world into a grid of cells and encoding the path as a base32 string; each added character narrows the cell further, so two geohashes sharing a long prefix are usually (though not always—more below) close together. Because the result is just a string, geohashes slot directly into an ordinary B-tree or key-value store's index: a bounding-box query becomes a small set of prefix range scans, no specialized data structure required. Uber's H3 is a newer variant that indexes a hexagonal grid instead of geohash's rectangles, avoiding some of the distortion rectangles introduce near the poles.\n\nThe other family uses tree structures built directly around geometry. A quadtree recursively splits a 2D region into four quadrants, subdividing further wherever point density is high, until each leaf holds few enough points to search directly—dense areas end up with many small cells, sparse areas with a few large ones. An R-tree generalizes this to arbitrary shapes, not just points: it groups nearby objects into minimum bounding rectangles and nests those rectangles in a balanced tree, so a range query only needs to descend into branches whose bounding rectangle overlaps the query area. Most production spatial databases (PostGIS, for instance) use R-trees under the hood for exactly this reason.\n\nEach approach has a real cost. Geohashing's biggest gotcha is that two points can be geographically adjacent yet fall on opposite sides of a cell boundary, giving them completely different prefixes—so a naive prefix-range query can miss nearby matches near edges, and implementations typically compensate by also checking neighboring cells. Quadtrees and R-trees avoid that boundary problem and support exact nearest-neighbor and arbitrary-shape queries more precisely, but need a dedicated tree structure rather than piggybacking on an existing ordered index. Large distributed systems often combine both: a coarse geohash-like value is used as a shard/partition key to route a query to the right machines, and a local R-tree or quadtree on each shard handles precise proximity search within it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a plain B-tree index sorted on latitude a poor fit for \"find all points within 2km\" queries?",
+      "options": [
+        "B-trees cannot store decimal numbers like coordinates",
+        "Sorting by one dimension (latitude) scatters points that are close together in the other dimension (longitude), so nearby points aren't stored near each other",
+        "B-trees only support exact-match lookups, never ranges",
+        "Latitude values are always duplicated across many rows"
+      ],
+      "answer": 1,
+      "explanation": "A 1D sort preserves locality in only one dimension, so points close in the un-sorted dimension end up far apart in the index, defeating an efficient range scan."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A geohash prefix match approximates spatial proximity well, but two points can be geographically close and still end up with completely different geohash prefixes near a cell boundary.",
+      "answer": true,
+      "explanation": "Points just across a grid cell edge diverge early in the interleaved-bit encoding, so naive prefix matching can miss genuinely nearby points unless neighboring cells are also checked."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A tree structure that recursively splits a 2D region into four quadrants, subdividing further wherever points are dense, until each leaf is small enough to search directly, is called a ____.",
+      "answer": "quadtree",
+      "acceptable": ["quad tree", "quad-tree"],
+      "explanation": "A quadtree adaptively subdivides space into four quadrants at a time, producing small cells in dense areas and large cells in sparse ones."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What do R-trees group together to support efficient queries over arbitrary shapes, not just points?",
+      "options": [
+        "Raw geohash strings sorted alphabetically",
+        "Objects into minimum bounding rectangles, nested hierarchically in a balanced tree",
+        "Points into fixed-size grid cells with no hierarchy",
+        "Objects into hash buckets keyed by a rounded coordinate"
+      ],
+      "answer": 1,
+      "explanation": "R-trees nest minimum bounding rectangles inside larger ones, so a query only needs to descend into branches whose bounding rectangle overlaps the search area."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of answering a bounding-box query using a geohash-backed index, earliest first.",
+      "items": [
+        "The query's bounding box is translated into one or more geohash prefixes to search",
+        "Latitude and longitude bits are interleaved to compute each point's geohash when it is written",
+        "A prefix range scan on the existing ordered index retrieves candidate points",
+        "Neighboring cells are also checked to catch points split across a boundary"
+      ],
+      "answer": [1, 0, 2, 3],
+      "explanation": "Geohashes are computed at write time by interleaving lat/lon bits, then a query derives the relevant prefixes, scans the index for candidates, and checks neighbors to cover boundary cases."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "Why might a large distributed system use a coarse geohash as a shard key while still running an R-tree or quadtree on each shard?",
+      "options": [
+        "R-trees cannot be built without a geohash existing first",
+        "The geohash routes a query to the right machines cheaply, while the local tree handles precise proximity search within that shard's data",
+        "Geohashes and R-trees index completely unrelated data and are never used together",
+        "It avoids having to interleave latitude and longitude bits at all"
+      ],
+      "answer": 1,
+      "explanation": "The geohash gives a cheap, index-friendly way to partition data across machines, while a per-shard R-tree or quadtree gives more precise local proximity queries than prefix matching alone."
+    }
+  ]
+}

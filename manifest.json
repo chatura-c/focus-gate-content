@@ -474,5 +474,19 @@
     "title": "Inverted Indexes and Full-Text Search",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-26-time-series-storage",
+    "date": "2026-09-26",
+    "title": "Time-Series Data Storage and Compression",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-26-geospatial-indexing",
+    "date": "2026-09-26",
+    "title": "Geospatial Indexing: Geohashing and Quadtrees",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

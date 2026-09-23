@@ -1,0 +1,76 @@
+{
+  "id": "2026-09-26-time-series-storage",
+  "date": "2026-09-26",
+  "title": "Time-Series Data Storage and Compression",
+  "category": "system-design",
+  "lesson": "Time-series data—metrics, sensor readings, logs, prices—shares a distinctive shape: an ever-growing stream of (timestamp, value) points, almost always appended in increasing time order, rarely updated once written, and queried mostly as ranges (\"give me the last hour\") or aggregates (\"average per minute over the last day\"). A general-purpose row store built around a B-tree keyed on a random ID is a poor fit for this: it's tuned for point lookups and scattered updates, not for a firehose of sequential, timestamp-ordered inserts and wide time-range scans.\n\nPurpose-built time-series databases (InfluxDB, TimescaleDB, Prometheus's own TSDB, M3, and others) instead cluster data physically by time and often by series (a unique combination of metric name and tags, like `cpu_usage{host=web1}`). Each series' points land in a chunk covering a fixed time window; new chunks are append-only and immutable once sealed, similar in spirit to an LSM-tree's sorted segments. Because a query for \"web1's CPU over the last hour\" only touches the chunks overlapping that hour for that one series, this layout turns what would be a scattered index lookup into a handful of sequential reads.\n\nThe append-only, slowly-changing nature of the data also unlocks compression ratios far beyond generic techniques. Facebook's Gorilla format popularized two tricks now used widely: for timestamps, store the delta between consecutive points, then the delta-of-deltas—since samples usually arrive at a near-constant interval, most delta-of-deltas are zero and compress to almost nothing. For floating-point values, XOR each value with the previous one; slowly-changing metrics produce XOR results with long runs of leading and trailing zero bits, which a compact bit-packed encoding shrinks dramatically. Together these can compress raw time-series data by 90%+ compared to storing raw 8-byte timestamps and doubles.\n\nKeeping every raw point forever is rarely worth the storage cost, so time-series systems pair compression with rollups and retention policies. A rollup precomputes lower-resolution aggregates—min, max, average, count per minute or hour—over older data, so trend queries over long ranges stay cheap without scanning raw points. A retention policy then deletes raw data past some age (say, 30 days) once its rollups exist, bounding total storage while still answering \"what did this look like over the last year\" from the aggregates.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do time-series workloads favor storage engines that cluster data by time and series, rather than a general B-tree table keyed by row ID?",
+      "options": [
+        "Because time-series writes are almost always sequential inserts with increasing timestamps and queries are mostly time-range scans over one series",
+        "Because B-trees cannot store floating-point numbers",
+        "Because time-series data is always small enough to fit in memory",
+        "Because B-trees do not support range queries at all"
+      ],
+      "answer": 0,
+      "explanation": "Clustering by time and series turns the dominant access pattern—sequential appends and time-range scans of one series—into cheap sequential I/O instead of scattered index lookups."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Gorilla-style compression relies on the fact that consecutive timestamps and values in a time series usually change only a little, so delta and XOR encoding shrink storage significantly.",
+      "answer": true,
+      "explanation": "Near-constant sampling intervals make delta-of-delta timestamps mostly zero, and slowly-changing values produce XOR results with long runs of zero bits, both of which compress well."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Precomputing lower-resolution aggregates (min/max/average) over older data so long time-range queries stay cheap without scanning every raw point is called a ____.",
+      "answer": "rollup",
+      "acceptable": ["downsampling", "roll-up", "down-sampling"],
+      "explanation": "A rollup (or downsampling) stores coarser aggregates for older data so trend queries don't need to touch every raw sample."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What does Gorilla's delta-of-delta encoding exploit when compressing timestamps?",
+      "options": [
+        "That timestamps can be discarded entirely once values are known",
+        "That the interval between consecutive samples is usually near-constant, so the second-order delta is usually zero",
+        "That all timestamps in a series are identical",
+        "That timestamps compress best when stored as random access hashes"
+      ],
+      "answer": 1,
+      "explanation": "When samples arrive at a roughly fixed interval, the delta between consecutive deltas is almost always zero, which a bit-packed encoding represents in very few bits."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these stages in the life of a time-series data point, from ingestion to eventual expiry.",
+      "items": [
+        "Older raw data is summarized into lower-resolution rollups",
+        "The point is written into the current in-memory chunk for its series",
+        "The chunk is sealed and compressed onto disk once its time window closes",
+        "Raw data past the retention window is deleted, leaving only its rollups"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "A point is first buffered in memory, then its chunk is sealed and compressed, then eventually summarized into rollups before the raw copy is deleted once it ages out."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "A retention policy that deletes raw points older than 30 days, while keeping hourly rollups indefinitely, mainly trades away what?",
+      "options": [
+        "The ability to run any query older than 30 days",
+        "Fine-grained (e.g. per-second) precision for old data, in exchange for bounded storage growth",
+        "Write throughput for new incoming points",
+        "Compression of the remaining raw data"
+      ],
+      "answer": 1,
+      "explanation": "Rollups keep long-term trend queries answerable, but only at the coarser resolution they were computed at—exact old raw values are gone once retention expires them."
+    }
+  ]
+}
