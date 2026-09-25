@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-27-hot-key-mitigation",
+  "date": "2026-09-27",
+  "title": "Hot Keys and Hot Partitions: Detection and Mitigation",
+  "category": "system-design",
+  "lesson": "Partitioning spreads data across nodes on the assumption that load spreads with it. That breaks when access is skewed: a celebrity's profile, a viral post, a flash-sale product, or a single tenant's ID can draw a large share of traffic to one key. Every request for that key lands on the one partition (or cache node) that owns it, so that node saturates on CPU, network, or disk while the rest of the cluster sits idle. Adding nodes doesn't help, because the hot key still maps to exactly one of them. This is a hot key; when a whole key range or shard is overloaded (for example, a monotonically increasing timestamp key sending all new writes to the newest range), it is a hot partition.\n\nStep one is detection: per-partition and per-key request-rate metrics, top-K heavy-hitter tracking (often using a Count-Min Sketch to keep memory bounded), and alerts when one partition's load diverges sharply from the median. Step two is picking a mitigation that fits whether the hot traffic is reads or writes. For read-heavy hot keys, the standard fixes are replication of the hot item and caching in front of it: a local in-process cache on each app server, or several copies of the key in a distributed cache under suffixed names (key#1 ... key#N) with clients picking a copy at random, spreads reads across N nodes. Short TTLs plus request coalescing keep the origin from being overwhelmed on misses.\n\nWrite-heavy hot keys are harder because copies must stay consistent. The common technique is key splitting (also called write sharding or salting): append a small random or hashed suffix so writes to one logical key spread across N physical keys. Reads then fan out to all N and merge the results. This works well for aggregations such as counters, where each sub-counter is incremented independently and summed on read (a natural fit for commutative operations). It costs read amplification and doesn't suit data that needs strict ordering or uniqueness on the single logical key. Buffering and batching writes in memory before flushing is another way to cut pressure on a hot row.\n\nPrevention starts at key design: avoid keys that concentrate traffic by construction, such as sequential IDs or timestamps as the leading part of a partition key, or a low-cardinality field like country. Combining a high-cardinality field with a time bucket often works better. Some systems also rebalance automatically by splitting hot ranges, but splitting can't divide a single key, which is why replication and salting remain necessary for true single-key hotspots.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "One product ID receives a large share of all traffic and its owning shard is saturated. Why doesn't adding more shards fix it?",
+      "options": [
+        "New shards can't store existing data",
+        "The hot key still maps to exactly one shard, so the same node takes all of its load",
+        "Adding shards always lowers cache hit rates",
+        "Hash partitioning stops working above a certain shard count"
+      ],
+      "answer": 1,
+      "explanation": "Partitioning assigns a key to one owner, so extra nodes don't divide the load of a single key."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Splitting one hot counter key into N randomly suffixed sub-keys and summing them on read is a reasonable way to spread heavy writes.",
+      "answer": true,
+      "explanation": "Writes are spread across N physical keys, at the cost of reads fanning out to all N and merging."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Appending a random or hashed suffix to a key so its writes spread over several physical keys is called key ____ (or salting).",
+      "answer": "splitting",
+      "acceptable": ["sharding", "write sharding", "salting"],
+      "explanation": "Key splitting turns one hot logical key into several physical keys so no single partition owns all the writes."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of handling a hot-key incident, earliest first.",
+      "items": [
+        "Apply a mitigation such as replication, caching, or key splitting",
+        "Redesign the key so traffic is spread by construction",
+        "Alert on one partition's load diverging from the median",
+        "Identify the hot key using top-K heavy-hitter tracking"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "You notice the imbalance, pinpoint the key, mitigate it, then fix the key design so it doesn't recur."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Which partition key is most likely to create a hot partition for a write-heavy events table?",
+      "options": [
+        "A hash of user ID combined with a day bucket",
+        "A random UUID",
+        "The event timestamp as the leading key component",
+        "A composite of tenant ID and a random shard number"
+      ],
+      "answer": 2,
+      "explanation": "Time-ordered keys send all current writes to the newest range, concentrating load on one partition."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Automatically splitting an overloaded key range into two ranges solves a hotspot caused by a single extremely popular key.",
+      "answer": false,
+      "explanation": "A single key can't be divided across ranges, so replication, caching, or key splitting is needed instead."
+    }
+  ]
+}

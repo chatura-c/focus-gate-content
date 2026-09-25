@@ -78,6 +78,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 65 | 2026-09-25 | Inverted Indexes and Full-Text Search | `2026-09-25-inverted-indexes-full-text-search` |
 | 66 | 2026-09-26 | Time-Series Data Storage and Compression | `2026-09-26-time-series-storage` |
 | 67 | 2026-09-26 | Geospatial Indexing: Geohashing and Quadtrees | `2026-09-26-geospatial-indexing` |
+| 68 | 2026-09-27 | Hot Keys and Hot Partitions: Detection and Mitigation | `2026-09-27-hot-key-mitigation` |
+| 69 | 2026-09-27 | Pagination: Offset vs Cursor (Keyset) Approaches | `2026-09-27-pagination-offset-vs-cursor` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -107,14 +109,16 @@ the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 r
 the 2026-09-22 topics were generated on the 2026-09-19 run, and the 2026-09-23 topics
 were generated on the 2026-09-20 run, and the 2026-09-24 topics were generated on the
 2026-09-21 run, and the 2026-09-25 topics were generated on the 2026-09-22 run, and
-the 2026-09-26 topics were generated on the 2026-09-23 run.
+the 2026-09-26 topics were generated on the 2026-09-23 run, and the 2026-09-27 topics were generated on the 2026-09-25 run.
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- hot-key / hot-partition mitigation
+- (list exhausted — pick the next natural well-established concept, e.g. search relevance ranking, database connection failover, or API versioning)
+
+Note: hot-key mitigation is now covered by #68 (`2026-09-27-hot-key-mitigation`).
 
 Note: time-series storage and geospatial indexing, previously listed here, are now covered by
 #66 (`2026-09-26-time-series-storage`) and #67 (`2026-09-26-geospatial-indexing`).

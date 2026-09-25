@@ -488,5 +488,19 @@
     "title": "Geospatial Indexing: Geohashing and Quadtrees",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-27-hot-key-mitigation",
+    "date": "2026-09-27",
+    "title": "Hot Keys and Hot Partitions: Detection and Mitigation",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-27-pagination-offset-vs-cursor",
+    "date": "2026-09-27",
+    "title": "Pagination: Offset vs Cursor (Keyset) Approaches",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]

@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-27-pagination-offset-vs-cursor",
+  "date": "2026-09-27",
+  "title": "Pagination: Offset vs Cursor (Keyset) Approaches",
+  "category": "system-design",
+  "lesson": "Any API that returns a large list has to page through it. The simplest scheme is offset pagination: the client asks for LIMIT 20 OFFSET 40 and the database skips the first 40 rows. It is easy to implement and allows jumping to an arbitrary page number, but it has two well-known problems. First, cost: the database still has to walk past all the skipped rows, so deep pages get slower as the offset grows. Second, correctness under change: if rows are inserted or deleted between requests, the window shifts and the client sees duplicates or misses items.\n\nCursor-based (keyset) pagination avoids both. Instead of a position, the client sends the sort-key value of the last item it received, and the query asks for rows after it, for example WHERE (created_at, id) < (:last_created_at, :last_id) ORDER BY created_at DESC, id DESC LIMIT 20. With an index on those columns the database seeks directly to the starting point, so cost stays roughly constant however deep you go, and inserts or deletes earlier in the list don't shift what comes next. The sort must be deterministic, which is why a unique tiebreaker column such as id is included; without it, rows sharing the same timestamp can be skipped or repeated across pages.\n\nAPIs usually hand the cursor back as an opaque token (often an encoded version of the last row's sort key) alongside a next-page token, rather than exposing raw column values. Opaque tokens let the server change its internal scheme later without breaking clients, and can carry the filter and sort settings so they stay consistent across pages.\n\nThe tradeoffs: keyset pagination can't jump straight to page 50 or show a precise total page count cheaply, and it works best with a single stable ordering that has a supporting index. It fits infinite scroll, feeds, and export or sync jobs. Offset pagination remains acceptable for small, mostly static datasets or admin screens where page-number navigation matters more than deep-page performance.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do deep pages get slower with OFFSET-based pagination?",
+      "options": [
+        "The database must still walk past all skipped rows before returning results",
+        "Offsets are stored in a separate table that grows over time",
+        "Deep pages can't use indexes at all",
+        "The client must download all earlier pages first"
+      ],
+      "answer": 0,
+      "explanation": "The database scans and discards the skipped rows, so cost grows with the offset."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With offset pagination, a row inserted at the top of the list between two page requests can cause the client to see a duplicate item.",
+      "answer": true,
+      "explanation": "Inserts shift the window, pushing an already-seen row into the next page's range."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Keyset pagination queries for rows after the last-seen sort-key value; this is also known as ____-based pagination.",
+      "answer": "cursor",
+      "acceptable": ["cursor-based", "seek"],
+      "explanation": "The client passes a cursor identifying the last item seen, and the database seeks to it via an index."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why should a keyset query on created_at also sort by a unique column like id?",
+      "options": [
+        "To make the query use less memory",
+        "To give a deterministic order so rows with equal timestamps aren't skipped or repeated",
+        "To allow jumping to arbitrary page numbers",
+        "To avoid needing an index"
+      ],
+      "answer": 1,
+      "explanation": "Ties on the sort key make order ambiguous, so a unique tiebreaker ensures each row appears exactly once."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of one round of cursor-based paging, earliest first.",
+      "items": [
+        "Server returns rows plus an opaque token for the last row",
+        "Client sends the token with the next request",
+        "Server seeks via the index to rows after the token's sort key",
+        "Client requests the first page with no cursor"
+      ],
+      "answer": [3, 0, 1, 2],
+      "explanation": "The first page has no cursor; the server returns a token, the client sends it back, and the server seeks past it."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Keyset pagination is the best choice when users need to jump directly to page 50 of results.",
+      "answer": false,
+      "explanation": "Keyset pagination only moves relative to a known cursor, so arbitrary page jumps are what offset pagination is better at."
+    }
+  ]
+}
