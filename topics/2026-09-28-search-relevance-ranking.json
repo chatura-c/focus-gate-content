@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-28-search-relevance-ranking",
+  "date": "2026-09-28",
+  "title": "Search Relevance Ranking: TF-IDF and BM25",
+  "category": "system-design",
+  "lesson": "An inverted index tells a search engine which documents contain a query term, but for most queries thousands match, so results must be ranked. The classic idea is TF-IDF. Term frequency (TF) rewards a document that mentions a query term more often, on the theory that it is more about that term. Inverse document frequency (IDF) down-weights terms that appear in many documents, since a word like \"the\" says little about relevance while a rare word like \"quorum\" is highly discriminating. A document's score for a query is roughly the sum, over query terms, of TF times IDF.\n\nBM25 is the modern refinement and the default scoring function in engines such as Lucene, Elasticsearch, and OpenSearch. It keeps the TF and IDF intuition but fixes two weaknesses of plain TF-IDF. First, term frequency saturates: the tenth occurrence of a word adds much less than the second, controlled by a parameter usually called k1, so keyword stuffing pays off less. Second, it normalizes for document length, controlled by a parameter b, so a long document isn't favored just because it has more chances to contain the term.\n\nRelevance in production usually goes beyond text statistics. Engines let you boost matches in important fields such as the title over the body, use phrase and proximity matching, and combine text scores with signals like recency, popularity, or click-through data. Many systems use a two-stage design: a cheap retrieval stage (BM25 over the inverted index) fetches a few hundred candidates, then a slower learned re-ranker orders them.\n\nRanking quality is measured, not guessed. Teams build judged query sets and track metrics such as precision at k or NDCG, and compare changes with offline evaluation and online A/B tests. Tuning k1, b, and field boosts without measuring tends to fix one query while quietly breaking others.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In TF-IDF, what does inverse document frequency do?",
+      "options": [
+        "Boosts terms that appear in almost every document",
+        "Down-weights terms that appear in many documents",
+        "Counts how often a term appears within one document",
+        "Normalizes scores by document length"
+      ],
+      "answer": 1,
+      "explanation": "Common terms are poor discriminators, so IDF lowers their weight and raises the weight of rare terms."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In BM25, each additional occurrence of a term in a document increases the score by the same amount.",
+      "answer": false,
+      "explanation": "BM25 saturates term frequency, so repeated occurrences add progressively less."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "BM25 adjusts scores so long documents are not unfairly favored; this is called document ____ normalization.",
+      "answer": "length",
+      "acceptable": [
+        "length normalization"
+      ],
+      "explanation": "The b parameter controls how strongly document length reduces the score."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do many search systems use a two-stage retrieve-then-re-rank design?",
+      "options": [
+        "Inverted indexes cannot return more than one result",
+        "A cheap first stage narrows to candidates so an expensive model only scores a few hundred documents",
+        "Re-ranking removes the need for an index",
+        "It guarantees perfect relevance"
+      ],
+      "answer": 1,
+      "explanation": "Expensive models are too slow to run over the whole corpus, so they re-order a small candidate set."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a typical search-relevance improvement loop, earliest first.",
+      "items": [
+        "Compare the change with an A/B test or offline evaluation",
+        "Build a set of judged queries and a metric such as NDCG",
+        "Adjust boosts or scoring parameters",
+        "Ship the change if metrics improve"
+      ],
+      "answer": [
+        1,
+        2,
+        0,
+        3
+      ],
+      "explanation": "Measure first, then tune, then compare against the baseline, and only then ship."
+    }
+  ]
+}

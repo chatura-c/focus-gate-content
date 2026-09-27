@@ -502,5 +502,19 @@
     "title": "Pagination: Offset vs Cursor (Keyset) Approaches",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-09-28-api-versioning",
+    "date": "2026-09-28",
+    "title": "API Versioning and Backward Compatibility",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-09-28-search-relevance-ranking",
+    "date": "2026-09-28",
+    "title": "Search Relevance Ranking: TF-IDF and BM25",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

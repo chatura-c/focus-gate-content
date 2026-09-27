@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-28-api-versioning",
+  "date": "2026-09-28",
+  "title": "API Versioning and Backward Compatibility",
+  "category": "system-design",
+  "lesson": "Once clients you don't control depend on an API, you can't change it freely. Versioning is how you evolve an API without breaking those clients. The common schemes are URL path versioning (/v1/orders), header or media-type versioning (Accept: application/vnd.example.v2+json), and query-parameter versioning (?version=2). Path versioning is the most visible and easiest to route, cache, and debug; header-based versioning keeps URLs stable but is harder to test from a browser and easier to forget.\n\nThe best strategy is to avoid needing a new version at all by making backward-compatible (additive) changes. Adding a new optional response field, a new optional request parameter, or a new endpoint doesn't break well-behaved clients, provided they ignore unknown fields (the tolerant reader principle). Breaking changes include removing or renaming a field, changing a field's type or meaning, making an optional parameter required, and tightening validation. Those require a new version or a long migration.\n\nWhen you do ship a breaking change, run the old and new versions side by side and deprecate deliberately: announce a sunset date, signal it in responses (for example with Deprecation and Sunset headers), and monitor per-version and per-client traffic so you know who is still on the old version before turning it off. Keeping many versions alive is costly, so most teams limit how many majors they support and put version-specific translation at the edge, mapping old request shapes onto a single internal implementation rather than forking business logic.\n\nSome APIs take a different path. Stripe-style date-pinned versions lock each account to the version it first used and let it upgrade on its own schedule, while GraphQL and protobuf-style schemas lean on additive evolution and field deprecation instead of numbered versions. Whatever the scheme, the core rule is the same: never break a published contract silently.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which change is generally backward compatible for existing API clients?",
+      "options": [
+        "Renaming a response field",
+        "Adding a new optional field to a response",
+        "Changing a field from string to integer",
+        "Making an optional request parameter required"
+      ],
+      "answer": 1,
+      "explanation": "Additive changes are safe as long as clients ignore fields they don't recognize."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Removing a field from a response is a breaking change even if most clients never read it.",
+      "answer": true,
+      "explanation": "Any client that depends on the field will break, and you usually can't know which clients those are."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The principle that clients should ignore unknown fields in a response rather than failing is called the ____ reader principle.",
+      "answer": "tolerant",
+      "acceptable": [
+        "tolerant reader"
+      ],
+      "explanation": "Tolerant readers let servers add fields without breaking existing clients."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is a main advantage of URL path versioning (/v2/...) over header-based versioning?",
+      "options": [
+        "It avoids ever needing a breaking change",
+        "It is explicit, easy to route and cache, and easy to try in a browser",
+        "It requires no deprecation process",
+        "It lets one client use several versions in one request"
+      ],
+      "answer": 1,
+      "explanation": "The version is visible in the URL, so routing, caching, and debugging are straightforward."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of retiring an old API version responsibly, earliest first.",
+      "items": [
+        "Turn the old version off",
+        "Announce a sunset date and mark the version deprecated",
+        "Release the new version alongside the old one",
+        "Monitor per-client traffic on the old version"
+      ],
+      "answer": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "explanation": "Ship the replacement, announce deprecation, watch remaining usage, and only then shut the old version down."
+    }
+  ]
+}
