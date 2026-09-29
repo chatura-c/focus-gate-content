@@ -1,0 +1,71 @@
+{
+  "id": "2026-09-29-schema-migrations-expand-contract",
+  "date": "2026-09-29",
+  "title": "Zero-Downtime Schema Migrations (Expand-Contract)",
+  "category": "system-design",
+  "lesson": "Changing a database schema is easy when you can take the whole system offline. It's much harder when old application code, new application code, and in-flight requests all need to keep working against the same table during a rolling deploy. The standard technique for this is the expand-contract pattern (also called parallel change): split one risky schema change into several small, individually safe, individually reversible steps instead of one big cutover.\n\nThe expand phase adds new structure without removing anything old. For example, to rename a column, you add the new column alongside the old one, then deploy application code that writes to both (dual writes) while still reading from the old one. A backfill job then copies existing rows into the new column. Only once the new column is fully populated and verified do you deploy code that reads from the new column instead of the old one. Every step in this sequence leaves the schema in a state both the old and new application code can use, which is what makes rolling deploys safe.\n\nThe contract phase happens last, and only after the new code path has been running in production long enough to trust it: stop writing to the old column, then in a later, separate deploy, drop it. Collapsing expand and contract into one step is the classic mistake — dropping or renaming a column in the same deploy that stops using it means any old server process still running during the rollout, or any code you forgot about, breaks immediately with no way to roll back cleanly.\n\nA few operational details matter as much as the sequence itself. Long-running schema changes (adding an index, changing a column type on a huge table) should use non-locking or online variants where the database supports them, so migrations don't block reads and writes for the whole table. Migrations should be backward compatible with the previous application version, not just the next one, since rollback of a bad deploy is itself a deploy. And because two code versions can be live simultaneously during a rollout, the database schema must support both at once — the migration isn't really 'done' until the old path is both unused and removed.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main risk of dropping an old column in the same deploy that stops writing to it?",
+      "options": [
+        "The table will be locked forever",
+        "A still-running old server process, or forgotten code, can break immediately with no clean rollback",
+        "The database will refuse to accept the drop",
+        "It has no risk if the migration ran successfully"
+      ],
+      "answer": 1,
+      "explanation": "During a rolling deploy, old and new code can run simultaneously, so removing something the old code still needs breaks it with no way back."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In the expand-contract pattern, the expand phase should leave the schema usable by both the old and new application code at once.",
+      "answer": true,
+      "explanation": "That dual-compatibility is exactly what lets you roll the deploy out (and back) safely while both versions may be running."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Writing to both the old and new column at the same time during a migration, before reads are switched over, is called a ____ write.",
+      "answer": "dual",
+      "acceptable": [
+        "dual write",
+        "double write"
+      ],
+      "explanation": "Dual writes keep the old and new columns in sync while a backfill catches up existing rows."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why should a schema migration be backward compatible with the previous application version, not just the next one?",
+      "options": [
+        "Because databases require it by default",
+        "Because rolling back a bad deploy is itself a deploy, and the old code may need to run again against the same schema",
+        "Because forward compatibility is not possible in SQL databases",
+        "Because it makes the migration run faster"
+      ],
+      "answer": 1,
+      "explanation": "If you need to roll back, the previous version of the application has to keep working against whatever schema state exists at that point."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of an expand-contract column rename, earliest first.",
+      "items": [
+        "Drop the old column",
+        "Add the new column and dual-write to old and new",
+        "Deploy code that reads from the new column only",
+        "Backfill existing rows into the new column"
+      ],
+      "answer": [
+        1,
+        3,
+        2,
+        0
+      ],
+      "explanation": "You expand first (add the column, write to both), backfill history, switch reads over, and only then contract by dropping the old column."
+    }
+  ]
+}

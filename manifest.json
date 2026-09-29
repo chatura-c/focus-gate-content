@@ -516,5 +516,19 @@
     "title": "Search Relevance Ranking: TF-IDF and BM25",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-09-29-schema-migrations-expand-contract",
+    "date": "2026-09-29",
+    "title": "Zero-Downtime Schema Migrations (Expand-Contract)",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-09-29-multi-tenancy-patterns",
+    "date": "2026-09-29",
+    "title": "Multi-Tenancy Architecture Patterns",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

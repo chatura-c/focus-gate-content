@@ -1,0 +1,68 @@
+{
+  "id": "2026-09-29-multi-tenancy-patterns",
+  "date": "2026-09-29",
+  "title": "Multi-Tenancy Architecture Patterns",
+  "category": "system-design",
+  "lesson": "A multi-tenant system serves many independent customers (tenants) from shared infrastructure instead of standing up a separate deployment per customer. The central design question is isolation: how much do tenants share, and what does that buy or cost you? Three common data-layer patterns sit on a spectrum. Siloed (database-per-tenant) gives each tenant its own database — the strongest isolation, since one tenant's load, schema, or a runaway query can't affect another, and per-tenant backup, encryption keys, or regional placement are trivial. The cost is operational: hundreds or thousands of databases to migrate, monitor, and back up, and resource waste from small tenants each paying for a full database's overhead.\n\nPooled (shared database, shared schema) puts every tenant's rows in the same tables, distinguished by a tenant_id column present on every table and enforced on every query. This is the cheapest to run and easiest to scale, since one connection pool and one set of indexes serve everyone, but it demands strict discipline: a missing tenant_id filter in application code or an ORM query is a direct cross-tenant data leak, not just a bug. Many databases mitigate this with row-level security policies that enforce the tenant filter at the database layer so it can't be forgotten in application code. Schema-per-tenant (one database, one schema per tenant) is the middle ground — cheaper to operate than full siloing since it's still one database instance, while keeping tenants in logically separate namespaces that are harder to cross-contaminate by accident than a shared table.\n\nIsolation decisions aren't only about the database. Compute can be pooled (all tenants' requests hit the same fleet, isolated only by request-scoped tenant context) or siloed (dedicated containers or clusters per tenant, common for large enterprise customers with strict compliance or noisy-neighbor concerns). A single system often mixes tiers: most tenants share pooled infrastructure while a few large or regulated customers get dedicated resources, sometimes called the 'pool with silo escape hatches' approach. Noisy-neighbor effects — one tenant's traffic spike degrading everyone else's latency — are the main reason pooled systems need per-tenant rate limiting and resource quotas even though the infrastructure itself is shared.\n\nThe pattern you pick also shapes migrations, backups, and compliance. Pooled schemas mean one migration touches every tenant at once, which is fast to roll out but riskier if it's wrong; siloed databases mean migrations must run per-tenant, which is slower but limits a bad migration's blast radius to one customer. Regulatory requirements (data residency, a tenant demanding their data never share physical storage with another) often force siloing regardless of what the engineering cost model would otherwise prefer.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In a pooled, shared-schema multi-tenant database, what is the most direct risk of a missing tenant_id filter on a query?",
+      "options": [
+        "Slightly slower query performance",
+        "A cross-tenant data leak — one tenant seeing another tenant's rows",
+        "The query will fail to execute",
+        "Increased storage costs"
+      ],
+      "answer": 1,
+      "explanation": "Without the tenant_id filter, a query over a shared table can return or modify another tenant's rows directly."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Database-per-tenant (siloed) isolation generally limits the blast radius of a bad migration to a single tenant, at the cost of having to run and manage many more databases.",
+      "answer": true,
+      "explanation": "Siloing trades operational overhead (more databases to migrate and monitor) for strong per-tenant fault and blast-radius isolation."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A database feature that enforces a tenant filter at the database layer, so application code can't accidentally omit it, is called ____ security.",
+      "answer": "row-level",
+      "acceptable": [
+        "row level"
+      ],
+      "explanation": "Row-level security policies make the database itself reject or filter rows outside the current tenant's context, even if the application query forgets to."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the 'noisy neighbor' problem in a pooled multi-tenant system?",
+      "options": [
+        "Two tenants having the same tenant_id by mistake",
+        "One tenant's traffic spike degrading latency or throughput for other tenants sharing the same infrastructure",
+        "A tenant leaking data to another tenant",
+        "A schema migration failing for one tenant only"
+      ],
+      "answer": 1,
+      "explanation": "Because pooled tenants share compute and database resources, one tenant's heavy load can starve resources needed by others unless quotas or rate limits are enforced."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these data-isolation patterns from weakest to strongest tenant isolation.",
+      "items": [
+        "Schema-per-tenant (one database, separate schema per tenant)",
+        "Database-per-tenant (fully siloed)",
+        "Shared database, shared schema with a tenant_id column"
+      ],
+      "answer": [
+        2,
+        0,
+        1
+      ],
+      "explanation": "Shared-schema pooling offers the least isolation, schema-per-tenant adds a logical boundary within one database, and database-per-tenant siloing gives each tenant fully separate infrastructure."
+    }
+  ]
+}
