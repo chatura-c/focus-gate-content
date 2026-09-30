@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-30-database-connection-failover",
+  "date": "2026-09-30",
+  "title": "Database Connection Failover",
+  "category": "system-design",
+  "lesson": "Database connection failover is the process of redirecting clients away from a database primary (or replica) that has become unreachable or unhealthy, onto a surviving node, without a human manually rewiring connection strings. The first challenge is detection: something has to decide the primary is actually down, not just slow. Naive heartbeat checks that fire on a single missed ping cause flapping — brief network blips get treated as full outages — so real systems require several consecutive failed health checks over a short window before declaring a failure, trading a few extra seconds of downtime for confidence that the failure is real.\n\nOnce a failure is confirmed, there are a few common ways to actually redirect traffic. DNS-based failover repoints a hostname to a new IP, but DNS records carry a time-to-live (TTL) and many clients and resolvers cache aggressively past that TTL, so propagation can lag well behind the failure itself. Virtual IP (VIP) takeover moves a floating IP address from the dead node to a healthy one at the network layer, which is faster than DNS but requires the nodes to be on the same network segment. Proxy-based failover puts a connection proxy (like PgBouncer, ProxySQL, or a cloud provider's managed endpoint such as RDS's Multi-AZ writer endpoint) between clients and the database; clients connect to the stable proxy address, and the proxy alone needs to learn about the new primary, which is usually the fastest and most operationally simple option. Client-driven failover pushes the list of candidate hosts into the driver itself (e.g. a JDBC connection string listing multiple hosts), letting the client retry against the next host in the list on connection failure, at the cost of every client needing that host-list logic.\n\nRedirecting connections is only half the problem — something also has to promote a replica to become the new primary. If replication was asynchronous, the promoted replica may be missing the last few transactions the old primary acknowledged, meaning failover trades some availability for data loss unless the system uses semi-synchronous replication to guarantee at least one replica is fully caught up before a write is acknowledged. Promotion also creates a dangerous failure mode called split-brain: if the old primary comes back online after a promotion (say, after a network partition heals) without knowing it's been replaced, two nodes can both accept writes as if they were the authoritative primary, silently diverging the data. Production failover systems guard against this with fencing — actively cutting off the old primary's ability to accept writes (revoking its access, powering it off, or having it self-demote on detecting a newer primary) before traffic is redirected to the new one.\n\nFailover isn't just a database-and-network concern; the application layer has to cooperate too. Connection pools need to detect and discard stale connections that silently point at a now-dead node rather than handing them back out, and clients need retry logic with backoff so a burst of reconnect attempts during the failover window doesn't itself overwhelm the new primary. Because failover can cause a write to be retried after the client never received the original response, idempotent write design (or idempotency keys) matters just as much here as it does for any other retry-driven failure mode.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do failover systems typically require several consecutive failed health checks before declaring a primary down, rather than acting on a single missed check?",
+      "options": [
+        "A single check is technically impossible to perform",
+        "To avoid flapping — treating a brief network blip as a full outage and triggering an unnecessary failover",
+        "Because DNS requires multiple checks by protocol",
+        "To reduce the cost of health check requests"
+      ],
+      "answer": 1,
+      "explanation": "Requiring multiple consecutive failures filters out transient blips, trading a few extra seconds of detection time for confidence that the primary is genuinely down."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "DNS-based failover typically redirects clients faster than proxy-based failover because DNS changes propagate instantly to all clients.",
+      "answer": false,
+      "explanation": "DNS records carry a TTL and are widely cached by resolvers and clients, so DNS-based failover is usually slower than a proxy that clients already connect through."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The dangerous failure mode where a recovered old primary and a newly promoted primary both accept writes at the same time, silently diverging data, is called ____.",
+      "answer": "split-brain",
+      "acceptable": ["split brain"],
+      "explanation": "Split-brain occurs when two nodes each believe they are the sole authoritative primary and both accept writes, causing the data to diverge."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What technique directly prevents split-brain by cutting off a demoted or failed primary's ability to accept writes before traffic moves to the new primary?",
+      "options": [
+        "Fencing",
+        "DNS caching",
+        "Connection pooling",
+        "Sharding"
+      ],
+      "answer": 0,
+      "explanation": "Fencing actively revokes or disables the old primary's write access so it cannot accept writes even if it comes back online, closing the window for split-brain."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "If a primary used only asynchronous replication before failing, the promoted replica is guaranteed to have every transaction the old primary had acknowledged to clients.",
+      "answer": false,
+      "explanation": "Asynchronous replication doesn't wait for a replica to confirm receipt before acknowledging a write, so a promoted replica can be missing the most recent acknowledged transactions unless semi-synchronous replication was used."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these steps of a proxy-mediated database failover, earliest first.",
+      "items": [
+        "The proxy redirects new connections to the promoted replica",
+        "A replica is promoted to primary",
+        "Health checks report several consecutive failures for the primary",
+        "Clients keep connecting to the same stable proxy address throughout, unaware of the underlying change"
+      ],
+      "answer": [2, 1, 0, 3],
+      "explanation": "Failover starts with confirmed health-check failures, followed by promoting a replica, then the proxy routing new connections to it, all while clients keep using the same proxy endpoint without needing to change anything."
+    }
+  ]
+}

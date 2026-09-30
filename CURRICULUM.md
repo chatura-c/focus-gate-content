@@ -84,6 +84,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 71 | 2026-09-28 | Search Relevance Ranking: TF-IDF and BM25 | `2026-09-28-search-relevance-ranking` |
 | 72 | 2026-09-29 | Zero-Downtime Schema Migrations (Expand-Contract) | `2026-09-29-schema-migrations-expand-contract` |
 | 73 | 2026-09-29 | Multi-Tenancy Architecture Patterns | `2026-09-29-multi-tenancy-patterns` |
+| 74 | 2026-09-30 | Database Connection Failover | `2026-09-30-database-connection-failover` |
+| 75 | 2026-09-30 | SLOs, SLIs, and Error Budgets | `2026-09-30-slo-sli-error-budgets` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -113,17 +115,20 @@ the 2026-09-15 run, and the 2026-09-21 topics were generated on the 2026-09-18 r
 the 2026-09-22 topics were generated on the 2026-09-19 run, and the 2026-09-23 topics
 were generated on the 2026-09-20 run, and the 2026-09-24 topics were generated on the
 2026-09-21 run, and the 2026-09-25 topics were generated on the 2026-09-22 run, and
-the 2026-09-26 topics were generated on the 2026-09-23 run, and the 2026-09-27 topics were generated on the 2026-09-25 run, and the 2026-09-28 topics were generated on the 2026-09-27 run, and the 2026-09-29 topics were generated on the 2026-09-29 run (same day, no backlog gap).
+the 2026-09-26 topics were generated on the 2026-09-23 run, and the 2026-09-27 topics were generated on the 2026-09-25 run, and the 2026-09-28 topics were generated on the 2026-09-27 run, and the 2026-09-29 topics were generated on the 2026-09-29 run (same day, no backlog gap), and the 2026-09-30 topics were generated on the 2026-09-30 run (same day, no backlog gap).
 
 ## Candidate next topics
 
 Not yet covered — the generation job should pick from here (or an equally well-established
 system-design concept not listed) before repeating anything above:
 
-- (list exhausted — pick the next natural well-established concept, e.g. database connection failover)
+- (list exhausted — pick the next natural well-established concept)
 
 Note: schema migrations (expand-contract pattern), previously listed here as an example, is now
 covered by #72 (`2026-09-29-schema-migrations-expand-contract`).
+
+Note: database connection failover, previously listed here as an example, is now covered by #74
+(`2026-09-30-database-connection-failover`).
 
 Note: hot-key mitigation is now covered by #68 (`2026-09-27-hot-key-mitigation`).
 

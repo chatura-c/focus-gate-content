@@ -1,0 +1,70 @@
+{
+  "id": "2026-09-30-slo-sli-error-budgets",
+  "date": "2026-09-30",
+  "title": "SLOs, SLIs, and Error Budgets",
+  "category": "system-design",
+  "lesson": "Reliability targets get precise names in site reliability engineering, and the distinction matters because each one answers a different question. A Service Level Indicator (SLI) is a directly measured metric of behavior — the fraction of requests that succeeded, the fraction of requests served under 300ms, and so on. A Service Level Objective (SLO) is an internal target for that indicator over a time window, such as '99.9% of requests succeed over a trailing 30 days.' A Service Level Agreement (SLA) is an external, often contractual, commitment to customers, usually set looser than the internal SLO so there's margin to notice and fix problems before a real customer-facing breach — and an SLA breach typically carries a concrete consequence, like a service credit.\n\nThe gap between 100% and the SLO is the error budget: the amount of unreliability the system is allowed to spend before it's out of compliance. A 99.9% availability SLO over 30 days allows roughly 43 minutes of downtime in that window; a 99.99% SLO allows only about 4.3 minutes. That budget isn't just an accounting artifact — it's a deliberate lever for balancing reliability work against feature velocity. As long as the budget isn't exhausted, teams are free to ship, run experiments, and take on some risk. Once the budget runs out, the standard response is to freeze non-essential changes and redirect engineering effort toward reliability work until the budget recovers. This turns 'how reliable should we be' from an endless argument into a number both product and infrastructure teams already agreed to.\n\nSpending doesn't happen at a constant rate, so teams track burn rate — how fast the error budget is being consumed relative to what a steady, on-pace consumption would look like. A burn rate of 1x means the budget will be exactly exhausted right at the end of the window if the current error rate continues; a burn rate of 10x means it'll be gone in a tenth of the time. Alerting directly on 'the SLO was violated' is too slow, since by the time a 30-day window has technically failed, the outage is long over. Instead, production alerting typically uses multi-window, multi-burn-rate rules: a very high burn rate sustained over a short window (e.g. a fast, severe spike) pages someone immediately, while a moderate burn rate sustained over a longer window creates a lower-urgency ticket, because a project consuming its budget slowly still needs attention but doesn't justify waking anyone up.\n\nNone of this works if the underlying SLI is a poor proxy for what users actually experience. A good SLI is measured as close to the user's real experience as possible — client-observed latency rather than only server-side processing time, for example, since a fast server response that never reaches the user due to a network issue is still a bad experience. Picking too many SLIs makes the system hard to reason about, while picking metrics that are easy to measure but don't reflect real user pain (like raw CPU utilization) can keep an error budget looking healthy while users are actually unhappy. The discipline of choosing a small number of well-chosen SLIs, setting an achievable SLO on each, and deriving an error budget from that SLO is what turns reliability from a vague aspiration into something that can actually be measured, alerted on, and traded off against deliberately.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the key difference between an SLO and an SLA?",
+      "options": [
+        "There is no real difference, they are two names for the same thing",
+        "An SLO is an internal target; an SLA is an external, often contractual, commitment usually set looser than the SLO",
+        "An SLA is measured continuously while an SLO is only measured once a year",
+        "An SLO applies to customers while an SLA applies only to internal teams"
+      ],
+      "answer": 1,
+      "explanation": "SLOs are internal targets teams hold themselves to, while SLAs are external commitments to customers, typically set with more slack than the SLO so a breach can be caught and fixed first."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A 99.99% availability SLO allows less downtime over a 30-day window than a 99.9% availability SLO.",
+      "answer": true,
+      "explanation": "A 99.9% SLO allows roughly 43 minutes of downtime over 30 days, while a 99.99% SLO allows only about 4.3 minutes — a tighter target allows less budget to be spent."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The amount of allowed unreliability between 100% and an SLO's target, which teams can 'spend' on risk before needing to freeze changes, is called the ____.",
+      "answer": "error budget",
+      "acceptable": ["error budgets"],
+      "explanation": "The error budget is the gap between perfect reliability and the SLO target, and it's the mechanism used to balance shipping velocity against reliability work."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do production alerting systems typically use multi-window, multi-burn-rate rules instead of simply alerting when the SLO has been violated?",
+      "options": [
+        "Because SLOs cannot be computed in real time at all",
+        "By the time a long measurement window has technically failed, a fast severe outage would already be long over, so burn-rate alerts catch problems earlier at appropriate urgency",
+        "Because burn rate is unrelated to the SLO",
+        "To reduce the total number of SLIs a team needs to track"
+      ],
+      "answer": 1,
+      "explanation": "Burn-rate alerts catch a fast, severe budget drain within minutes and a slower drain over a longer window, giving each the right urgency instead of waiting for the whole window to already have failed."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A good SLI should be measured as close to the actual user experience as possible, rather than relying only on server-side internal metrics.",
+      "answer": true,
+      "explanation": "A server-side metric can look healthy even when users experience failures introduced elsewhere (e.g. the network), so SLIs measured closer to the user better reflect real experience."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order these events in a typical error-budget-driven workflow, earliest first.",
+      "items": [
+        "The team freezes non-essential feature releases and prioritizes reliability work",
+        "An SLI is measured and an SLO target is set for it over a time window",
+        "A string of incidents burns through most of the error budget",
+        "The team resumes normal feature velocity once the budget has recovered"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "The process starts with defining the SLI and SLO, incidents then consume the resulting error budget, a near-exhausted budget triggers a change freeze focused on reliability, and normal velocity resumes once the budget recovers."
+    }
+  ]
+}

@@ -530,5 +530,19 @@
     "title": "Multi-Tenancy Architecture Patterns",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-09-30-database-connection-failover",
+    "date": "2026-09-30",
+    "title": "Database Connection Failover",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-09-30-slo-sli-error-budgets",
+    "date": "2026-09-30",
+    "title": "SLOs, SLIs, and Error Budgets",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
