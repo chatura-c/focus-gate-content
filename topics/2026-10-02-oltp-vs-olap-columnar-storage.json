@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-02-oltp-vs-olap-columnar-storage",
+  "date": "2026-10-02",
+  "title": "OLTP vs OLAP and Columnar Storage",
+  "category": "system-design",
+  "lesson": "Databases serve two very different workloads. OLTP (online transaction processing) handles many small, latency-sensitive operations that touch a few rows at a time: place an order, update a profile, look up an account. OLAP (online analytical processing) runs fewer but much heavier queries that scan large portions of a table and aggregate a handful of columns: total revenue by region over the last year. Their access patterns pull storage design in opposite directions.\n\nRow-oriented storage keeps all columns of a row together on disk. That layout is ideal for OLTP, because reading or writing one whole record is a single contiguous access, and inserts are cheap. Column-oriented storage keeps each column's values together instead. An analytical query that needs only 3 of 100 columns reads just those 3 columns' data rather than every full row, cutting I/O dramatically.\n\nColumnar layout has a second advantage: values within a column are the same type and often similar, so they compress very well using techniques like run-length encoding, dictionary encoding, and delta encoding. Compressed columns also let engines process data in batches (vectorized execution) and skip blocks using per-block min/max statistics. The cost is that writing or fetching a single full row means touching many separate column files, so point updates and single-row inserts are comparatively expensive.\n\nBecause of this tradeoff, production systems commonly keep the two separate: an OLTP database serves the application, and data is copied into a columnar warehouse (via batch ETL or change data capture) for analytics. This also keeps heavy scans from competing with user-facing transactions for the same resources.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does columnar storage speed up analytical queries like 'sum of revenue by region'?",
+      "options": [
+        "It stores data in memory only",
+        "The query reads only the needed columns instead of every full row",
+        "It avoids compression overhead",
+        "It makes single-row inserts faster"
+      ],
+      "answer": 1,
+      "explanation": "Analytical queries touch few columns across many rows, and columnar layout lets the engine read just those columns, reducing I/O."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Row-oriented storage is generally a better fit for OLTP workloads that read or write whole records.",
+      "answer": true,
+      "explanation": "Keeping a row's columns contiguous makes fetching or writing one full record a single access, which suits OLTP."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Storing each column's values together compresses well because values in a column share the same ____.",
+      "answer": "type",
+      "acceptable": ["data type", "datatype"],
+      "explanation": "Same-typed, often similar values in a column enable encodings like run-length and dictionary encoding that compress effectively."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the typical flow that feeds an analytics warehouse, earliest first.",
+      "items": [
+        "Analysts run large aggregate queries on columnar storage",
+        "Changes are extracted via ETL or change data capture",
+        "The application writes transactions to the OLTP database",
+        "Data is loaded into the columnar warehouse"
+      ],
+      "answer": [2, 1, 3, 0],
+      "explanation": "Transactions land in the OLTP store, changes are extracted, loaded into the warehouse, and only then queried analytically."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What is the main weakness of columnar storage?",
+      "options": [
+        "Poor compression",
+        "Slow aggregate scans",
+        "Expensive single-row inserts and updates, since a row spans many column files",
+        "Inability to store numeric data"
+      ],
+      "answer": 2,
+      "explanation": "A full row is split across per-column storage, so point writes and whole-row reads touch many locations."
+    }
+  ]
+}

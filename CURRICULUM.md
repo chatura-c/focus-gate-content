@@ -86,6 +86,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 73 | 2026-09-29 | Multi-Tenancy Architecture Patterns | `2026-09-29-multi-tenancy-patterns` |
 | 74 | 2026-09-30 | Database Connection Failover | `2026-09-30-database-connection-failover` |
 | 75 | 2026-09-30 | SLOs, SLIs, and Error Budgets | `2026-09-30-slo-sli-error-budgets` |
+| 76 | 2026-10-02 | Optimistic vs Pessimistic Concurrency Control | `2026-10-02-optimistic-vs-pessimistic-concurrency` |
+| 77 | 2026-10-02 | OLTP vs OLAP and Columnar Storage | `2026-10-02-oltp-vs-olap-columnar-storage` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

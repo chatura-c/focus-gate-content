@@ -544,5 +544,19 @@
     "title": "SLOs, SLIs, and Error Budgets",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-10-02-optimistic-vs-pessimistic-concurrency",
+    "date": "2026-10-02",
+    "title": "Optimistic vs Pessimistic Concurrency Control",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-02-oltp-vs-olap-columnar-storage",
+    "date": "2026-10-02",
+    "title": "OLTP vs OLAP and Columnar Storage",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
