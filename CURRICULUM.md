@@ -88,6 +88,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 75 | 2026-09-30 | SLOs, SLIs, and Error Budgets | `2026-09-30-slo-sli-error-budgets` |
 | 76 | 2026-10-02 | Optimistic vs Pessimistic Concurrency Control | `2026-10-02-optimistic-vs-pessimistic-concurrency` |
 | 77 | 2026-10-02 | OLTP vs OLAP and Columnar Storage | `2026-10-02-oltp-vs-olap-columnar-storage` |
+| 78 | 2026-10-03 | Transaction Isolation Levels and Anomalies | `2026-10-03-transaction-isolation-levels` |
+| 79 | 2026-10-03 | Reliable Webhook Delivery and Verification | `2026-10-03-webhook-delivery` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

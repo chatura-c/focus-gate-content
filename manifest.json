@@ -558,5 +558,19 @@
     "title": "OLTP vs OLAP and Columnar Storage",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-03-transaction-isolation-levels",
+    "date": "2026-10-03",
+    "title": "Transaction Isolation Levels and Anomalies",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-03-webhook-delivery",
+    "date": "2026-10-03",
+    "title": "Reliable Webhook Delivery and Verification",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
