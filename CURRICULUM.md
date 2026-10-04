@@ -90,6 +90,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 77 | 2026-10-02 | OLTP vs OLAP and Columnar Storage | `2026-10-02-oltp-vs-olap-columnar-storage` |
 | 78 | 2026-10-03 | Transaction Isolation Levels and Anomalies | `2026-10-03-transaction-isolation-levels` |
 | 79 | 2026-10-03 | Reliable Webhook Delivery and Verification | `2026-10-03-webhook-delivery` |
+| 80 | 2026-10-04 | News Feed Design: Fan-out on Write vs Fan-out on Read | `2026-10-04-fanout-on-write-vs-read` |
+| 81 | 2026-10-04 | Leaderboards and Top-K with Sorted Sets | `2026-10-04-leaderboards-sorted-sets` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

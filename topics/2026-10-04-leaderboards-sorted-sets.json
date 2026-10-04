@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-04-leaderboards-sorted-sets",
+  "date": "2026-10-04",
+  "title": "Leaderboards and Top-K with Sorted Sets",
+  "category": "system-design",
+  "lesson": "A leaderboard needs three operations to be fast: update a player's score, fetch the top N, and find a specific player's rank. Doing this with a relational table means sorting or counting rows on every request, for example counting rows with a higher score than mine to compute rank. That is an O(n) scan or at best an index range count, which becomes painful at millions of players with frequent updates.\n\nA sorted set is the data structure built for this. Each member (a player ID) has a score, and the set keeps members ordered by score. Redis implements sorted sets with a skip list plus a hash table, so adding or updating a member, looking up its rank, and reading a range by rank are all O(log n) (plus the size of the range returned). Commands like ZADD, ZINCRBY, ZREVRANK, and ZREVRANGE map directly onto leaderboard operations, and the hash table gives O(1) lookup of a member's score.\n\nScaling beyond one node needs care. A single sorted set lives on one shard, which works well into the millions of members but can become a hot key. Sharding by player ID breaks global ranking, because no single shard knows the full order. Common approaches are to keep the global set on one large node, to shard by score range so each shard holds a contiguous slice, or to compute top-K per shard and merge the small results. Per-shard top-K merge works because the global top K must be contained in the union of each shard's top K.\n\nOther practical choices: time-bounded boards (daily, weekly) use a separate key per period that expires automatically. Ties are broken by encoding a secondary value, such as earliest achievement time, into the score. Because an in-memory set is not the system of record, scores should also be persisted durably, and the set can be rebuilt from that source after a loss.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a sorted set a better fit than a plain SQL table for computing a player's live rank?",
+      "options": [
+        "It stores data on disk more compactly",
+        "Rank lookup is O(log n) rather than counting all higher-scoring rows",
+        "It guarantees unique scores",
+        "It removes the need to persist scores"
+      ],
+      "answer": 1,
+      "explanation": "Skip-list-backed sorted sets keep members ordered, so rank is found in logarithmic time instead of scanning or counting rows."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If you shard a leaderboard by player ID across nodes, any single shard can report a player's global rank.",
+      "answer": false,
+      "explanation": "Each shard only knows its own members, so global rank needs data from all shards or a different partitioning scheme."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Redis implements sorted sets using a hash table plus a ____ list to keep members ordered.",
+      "answer": "skip",
+      "acceptable": ["skiplist", "skip list"],
+      "explanation": "The skip list gives O(log n) ordered operations while the hash table gives O(1) member score lookup."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "To get a correct global top 10 from sharded data, what is it sufficient to collect from each shard?",
+      "options": [
+        "Only the single top player",
+        "Each shard's own top 10, then merge them",
+        "A random sample of 10 players",
+        "Every player's score"
+      ],
+      "answer": 1,
+      "explanation": "Any global top-10 member must be in the top 10 of its own shard, so merging per-shard top 10s is enough."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of recording a score and showing the player their rank, earliest first.",
+      "items": [
+        "Fetch the player's rank from the sorted set",
+        "Persist the new score durably",
+        "Update the player's score in the sorted set",
+        "Return the rank to the client"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "Persist the source of truth, update the in-memory set, read the rank, then respond."
+    }
+  ]
+}

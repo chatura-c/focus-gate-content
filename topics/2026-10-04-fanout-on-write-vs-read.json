@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-04-fanout-on-write-vs-read",
+  "date": "2026-10-04",
+  "title": "News Feed Design: Fan-out on Write vs Fan-out on Read",
+  "category": "system-design",
+  "lesson": "A news feed answers one question: given the accounts a user follows, what are the most recent posts, ranked? There are two classic ways to build it. Fan-out on read (the pull model) stores each post once, in the author's own timeline. When a user opens their feed, the system looks up everyone they follow, fetches each author's recent posts, and merges them. Writes are cheap and storage is minimal, but every feed read touches many authors, so read latency grows with the number of followees.\n\nFan-out on write (the push model) flips the cost. When an author posts, the system looks up their followers and inserts the post ID into a precomputed feed list for each one, typically in an in-memory store such as a Redis list or sorted set. Reading a feed becomes a single cheap lookup of one list. Since most social products are heavily read-dominated, paying at write time is usually a good trade, and feeds feel instant.\n\nPush breaks down for accounts with millions of followers. One post from a celebrity would trigger millions of feed insertions, which delays delivery, floods the write path, and wastes work on followers who rarely log in. Pull handles such accounts well because their post is stored once. The widely used answer is a hybrid: push for ordinary authors, and skip fan-out for high-follower authors. At read time, the system loads the user's precomputed feed and merges in recent posts from the few celebrity accounts they follow.\n\nSeveral details make push practical. Feeds store post IDs rather than full posts, and the content is hydrated from a post cache at read time, so edits and deletes need no rewrite across millions of lists. Feed lists are capped to a bounded length, and fan-out is done asynchronously through a queue so the author's post request returns quickly. Inactive users can be skipped and their feeds rebuilt on demand when they return.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "In a fan-out on write news feed, what is the main cost of publishing a post?",
+      "options": [
+        "Merging many authors' timelines at read time",
+        "Inserting the post into every follower's precomputed feed",
+        "Re-ranking all posts in the system",
+        "Deleting older posts from the author's timeline"
+      ],
+      "answer": 1,
+      "explanation": "Push moves the work to write time: one insertion per follower, so write cost scales with follower count."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Fan-out on read makes feed reads slower as the number of accounts a user follows grows.",
+      "answer": true,
+      "explanation": "Each read must fetch and merge recent posts from every followed author, so the work grows with the followee count."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Most large feed systems combine push for normal authors with pull for celebrities, which is called a ____ approach.",
+      "answer": "hybrid",
+      "acceptable": ["hybrid model", "hybrid fan-out"],
+      "explanation": "A hybrid avoids millions of insertions per celebrity post while keeping feed reads cheap for everyone else."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do precomputed feeds usually store post IDs instead of full post bodies?",
+      "options": [
+        "IDs are required by the database schema",
+        "Edits and deletes then don't need to be rewritten across millions of feed lists",
+        "Post bodies cannot be cached",
+        "It makes fan-out synchronous"
+      ],
+      "answer": 1,
+      "explanation": "Hydrating from a shared post cache at read time means one update to the post is reflected in every feed."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a push-model post publication, earliest first.",
+      "items": [
+        "Workers insert the post ID into each follower's feed list",
+        "The author's post is saved and a fan-out job is enqueued",
+        "The author's request returns success",
+        "Workers look up the author's followers"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The post is persisted and queued, the client gets a fast response, and asynchronous workers then resolve followers and write to their feeds."
+    }
+  ]
+}
