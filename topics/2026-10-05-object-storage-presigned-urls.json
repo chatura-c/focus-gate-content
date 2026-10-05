@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-05-object-storage-presigned-urls",
+  "date": "2026-10-05",
+  "title": "Object Storage and Presigned URLs",
+  "category": "system-design",
+  "lesson": "Object storage (S3, GCS, Azure Blob) stores immutable blobs addressed by a bucket and key in a flat namespace. There are no real directories (a slash in a key is just a character), no in-place partial updates, and no POSIX semantics: you PUT a whole object and GET it back, optionally with a byte range. In exchange you get enormous scale, very high durability through replication or erasure coding across failure domains, and low cost per gigabyte. That makes it the default home for images, video, backups, logs, and data-lake files, while a database keeps only the metadata and the object's key.\n\nA common mistake is proxying every upload and download through your application servers. Large files then consume your bandwidth, connections, and memory, and your API tier becomes the bottleneck. A presigned URL fixes this: your backend, which holds the storage credentials, signs a URL that grants one specific operation (for example PUT on one key, or GET on one key) for a short time window. The client then talks directly to the object store, and the store verifies the signature and expiry. Your server only does a cheap signing step and never touches the bytes.\n\nFor large uploads, use multipart upload: the file is split into parts that are uploaded in parallel, each retried independently, and then committed as one object. A failed part does not force restarting the whole file, and unfinished uploads should be cleaned up with a lifecycle rule so orphaned parts do not accrue cost. After the upload, the store can emit an event notification so a backend can validate the file, create a thumbnail, or record the metadata, instead of trusting the client to report completion.\n\nSecurity and consistency details matter. Presigned URLs are bearer credentials: anyone holding one can use it until it expires, so keep expiry short, scope it to a single key, and constrain content type and size where the store supports it. Never make a bucket public just to serve private files. For public, read-heavy content, put a CDN in front of the bucket to cut latency and request cost. Modern major object stores provide strong read-after-write consistency for objects, but you should still design the metadata row and the object as two separate writes that can fail independently, and reconcile orphans periodically."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main benefit of using a presigned URL for large file uploads?",
+      "options": [
+        "The file is encrypted without any keys",
+        "The client sends bytes directly to the object store, bypassing your app servers",
+        "The object store skips authentication",
+        "Uploads become atomic across multiple buckets"
+      ],
+      "answer": 1,
+      "explanation": "Your server only signs a scoped, expiring URL, so the heavy data transfer never passes through your API tier."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In object storage, you can efficiently modify a few bytes in the middle of an existing object without rewriting it.",
+      "answer": false,
+      "explanation": "Objects are immutable blobs; changing one means writing a whole new object under that key."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Splitting a large file into parts uploaded in parallel and then committed as one object is called ____ upload.",
+      "answer": "multipart",
+      "acceptable": ["multi-part", "multi part"],
+      "explanation": "Multipart upload lets parts be sent and retried independently, so one failure does not restart the whole transfer."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which practice best reduces the risk of a leaked presigned URL?",
+      "options": [
+        "Making the URL valid for a year so it never needs reissuing",
+        "Scoping it to one key and operation with a short expiry",
+        "Making the whole bucket public",
+        "Reusing one URL for all users"
+      ],
+      "answer": 1,
+      "explanation": "A presigned URL is a bearer credential, so narrow scope and short lifetime limit what a leak can do."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a direct-to-storage upload flow, earliest first.",
+      "items": [
+        "Backend validates or processes the object after a storage event",
+        "Client requests an upload URL from the backend",
+        "Client uploads the file directly to the object store",
+        "Backend returns a presigned URL for a specific key"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "The client asks, the backend signs, the client uploads straight to storage, and an event triggers server-side processing."
+    }
+  ]
+}

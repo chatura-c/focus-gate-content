@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-05-autoscaling-strategies",
+  "date": "2026-10-05",
+  "title": "Autoscaling: Reactive, Scheduled, and Predictive",
+  "category": "system-design",
+  "lesson": "Autoscaling adjusts the number of running instances to match load, so you do not pay for peak capacity all day or fall over when traffic spikes. It works best on stateless tiers that can be added or removed freely behind a load balancer. Stateful tiers like databases are much harder to scale this way because adding a node implies moving data.\n\nReactive autoscaling watches a metric and adds or removes capacity when it crosses a target. Typical signals are CPU utilization, requests per second per instance, or queue depth for workers. Target tracking is the simplest policy: you say keep average CPU near 60 percent and the scaler computes the instance count needed. CPU is a weak signal for I/O-bound services, so a signal tied to the actual bottleneck, such as in-flight requests or backlog per worker, usually behaves better. Leaving headroom below 100 percent matters because new capacity is not instant.\n\nThat delay is the central difficulty. Detecting the metric breach, launching an instance, pulling the image, starting the process, and passing health checks can take minutes, during which existing instances absorb the spike. Scaling out should therefore be quick and scaling in slow. Cooldown periods and stabilization windows prevent flapping, where the system adds and removes instances in a loop because each change shifts the metric. Scale-in should also drain connections gracefully before terminating an instance.\n\nWhen load is predictable, other strategies beat pure reaction. Scheduled scaling raises capacity ahead of a known event such as a daily peak or a product launch. Predictive scaling uses historical patterns to provision before demand arrives. Keep a minimum capacity floor for availability and a maximum ceiling to cap cost and protect downstream dependencies, since scaling a front tier tenfold can simply push the overload onto a database that cannot scale as fast."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is reactive autoscaling often insufficient for a sudden traffic spike?",
+      "options": [
+        "Metrics cannot be collected during spikes",
+        "New instances take time to detect, launch, and become healthy",
+        "Load balancers refuse new instances",
+        "Autoscalers only work at night"
+      ],
+      "answer": 1,
+      "explanation": "Detection plus startup and health-check delay means existing instances must absorb the spike before new capacity arrives."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A good autoscaling policy should usually scale in faster than it scales out.",
+      "answer": false,
+      "explanation": "Scale out quickly to protect users and scale in cautiously to avoid flapping and removing capacity right before load returns."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A configured waiting period after a scaling action, used to stop the system from adding and removing instances in a loop, is called a ____ period.",
+      "answer": "cooldown",
+      "acceptable": ["cool-down", "cool down", "stabilization"],
+      "explanation": "Cooldowns let the metric settle after a change so the next decision is based on the new state."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A worker fleet processes jobs from a queue. Which scaling signal best reflects the real bottleneck?",
+      "options": [
+        "Backlog (queue depth) per worker",
+        "Disk size of the worker image",
+        "Time of day only",
+        "Number of git commits"
+      ],
+      "answer": 0,
+      "explanation": "Queue depth per worker directly measures unprocessed work, unlike CPU which may stay low while jobs wait."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages of a reactive scale-out event, earliest first.",
+      "items": [
+        "New instance passes health checks and receives traffic",
+        "Metric crosses the target threshold",
+        "Scaler launches new instances",
+        "Instance boots and starts the application"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The breach is detected, instances are launched, they boot, and only then do they serve traffic."
+    }
+  ]
+}

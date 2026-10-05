@@ -92,6 +92,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 79 | 2026-10-03 | Reliable Webhook Delivery and Verification | `2026-10-03-webhook-delivery` |
 | 80 | 2026-10-04 | News Feed Design: Fan-out on Write vs Fan-out on Read | `2026-10-04-fanout-on-write-vs-read` |
 | 81 | 2026-10-04 | Leaderboards and Top-K with Sorted Sets | `2026-10-04-leaderboards-sorted-sets` |
+| 82 | 2026-10-05 | Object Storage and Presigned URLs | `2026-10-05-object-storage-presigned-urls` |
+| 83 | 2026-10-05 | Autoscaling: Reactive, Scheduled, and Predictive | `2026-10-05-autoscaling-strategies` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

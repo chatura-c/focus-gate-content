@@ -586,5 +586,19 @@
     "title": "Leaderboards and Top-K with Sorted Sets",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-05-object-storage-presigned-urls",
+    "date": "2026-10-05",
+    "title": "Object Storage and Presigned URLs",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-05-autoscaling-strategies",
+    "date": "2026-10-05",
+    "title": "Autoscaling: Reactive, Scheduled, and Predictive",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
