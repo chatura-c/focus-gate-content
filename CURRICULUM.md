@@ -94,6 +94,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 81 | 2026-10-04 | Leaderboards and Top-K with Sorted Sets | `2026-10-04-leaderboards-sorted-sets` |
 | 82 | 2026-10-05 | Object Storage and Presigned URLs | `2026-10-05-object-storage-presigned-urls` |
 | 83 | 2026-10-05 | Autoscaling: Reactive, Scheduled, and Predictive | `2026-10-05-autoscaling-strategies` |
+| 84 | 2026-10-06 | Distributed Job Scheduling and Delayed Tasks | `2026-10-06-distributed-job-scheduling` |
+| 85 | 2026-10-06 | TLS Termination and Mutual TLS (mTLS) | `2026-10-06-tls-termination-mtls` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

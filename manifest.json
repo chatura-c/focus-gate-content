@@ -600,5 +600,19 @@
     "title": "Autoscaling: Reactive, Scheduled, and Predictive",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-06-distributed-job-scheduling",
+    "date": "2026-10-06",
+    "title": "Distributed Job Scheduling and Delayed Tasks",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-06-tls-termination-mtls",
+    "date": "2026-10-06",
+    "title": "TLS Termination and Mutual TLS (mTLS)",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

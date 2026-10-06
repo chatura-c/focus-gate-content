@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-06-distributed-job-scheduling",
+  "date": "2026-10-06",
+  "title": "Distributed Job Scheduling and Delayed Tasks",
+  "category": "system-design",
+  "lesson": "Many systems need work to run later or on a schedule: send a reminder in 24 hours, retry a payment at midnight, rebuild a report every hour. On a single machine a cron entry is enough, but once the service runs on several instances, naive cron causes trouble. If every instance runs the same schedule, the job fires N times; if only one instance is designated, the job silently stops when that machine dies.\n\nThe usual fix is to make scheduling a shared, durable concern. Job definitions and their next run time live in a database or a queue, and a scheduler component repeatedly asks which jobs are due. To keep multiple schedulers from firing the same job, they coordinate through a lock or lease (for example a row claimed with SELECT ... FOR UPDATE SKIP LOCKED, or a leader elected for the scheduling role). Because leases can expire while a worker is still running, a job can occasionally run twice, so the job itself should be idempotent.\n\nDelayed tasks are a related case. Rather than sleeping in memory, which loses everything on a restart, the system stores the task with a due timestamp. Some brokers support delayed delivery natively, while others use a sorted structure keyed by due time that workers poll. At very large scale, systems use bucketed or hierarchical timing wheels so that finding the next due task is cheap instead of scanning everything.\n\nOperationally, decide up front what happens on failure and on downtime. A scheduler that was down for an hour must choose between catching up on every missed run, running once, or skipping to the next slot. Also record each run's status, apply retries with backoff, and alert on jobs that did not run when expected, since a missing run produces no error by itself.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does running the same cron schedule on every instance of a horizontally scaled service cause problems?",
+      "options": [
+        "Cron cannot run on more than one machine",
+        "The job fires once per instance, producing duplicate executions",
+        "The jobs run too slowly",
+        "It forces all instances to share memory"
+      ],
+      "answer": 1,
+      "explanation": "Each instance independently triggers the schedule, so a job intended to run once runs N times unless something coordinates them."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If a scheduler uses leases to ensure only one worker runs a job, the job no longer needs to be idempotent.",
+      "answer": false,
+      "explanation": "Leases can expire while a worker is still running, so a job may execute twice and must still tolerate duplicates."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Storing a delayed task with a due timestamp in durable storage, instead of sleeping in memory, means the task survives a process ____.",
+      "answer": "restart",
+      "acceptable": ["crash", "restarts", "failure"],
+      "explanation": "In-memory sleeps are lost when the process dies, whereas a persisted due time lets any scheduler pick the task up later."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of a durable scheduler picking up a due job, earliest first.",
+      "items": [
+        "The worker executes the job and records success or failure",
+        "The scheduler queries for jobs whose due time has passed",
+        "The scheduler claims the job via a lock or lease",
+        "The job is stored with its next run time"
+      ],
+      "answer": [3, 1, 2, 0],
+      "explanation": "A job is persisted with a due time, found when due, claimed so only one worker takes it, and then executed with the outcome recorded."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "A scheduler was down for an hour and missed hourly runs. Which decision should be made explicitly in advance?",
+      "options": [
+        "Whether to catch up on every missed run, run once, or skip to the next slot",
+        "Whether to use a bigger database",
+        "Whether jobs should have names",
+        "Whether to disable retries"
+      ],
+      "answer": 0,
+      "explanation": "Missed-run (misfire) policy differs per job, since some are safe to skip while others must be backfilled."
+    }
+  ]
+}

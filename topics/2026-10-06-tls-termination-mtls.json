@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-06-tls-termination-mtls",
+  "date": "2026-10-06",
+  "title": "TLS Termination and Mutual TLS (mTLS)",
+  "category": "system-design",
+  "lesson": "TLS encrypts traffic between a client and a server and lets the client verify the server's identity through a certificate signed by a trusted certificate authority. TLS termination is the practice of ending that encrypted session at an edge component such as a load balancer or reverse proxy, which decrypts the traffic and forwards it to backends. This centralizes certificate management and offloads the CPU cost of the handshake and encryption from application servers, and it lets the proxy inspect HTTP for routing, caching, and rate limiting.\n\nThe tradeoff is that traffic behind the terminator travels in plaintext unless you protect it. In a trusted private network that may be acceptable, but many organizations require encryption inside the network too. Re-encryption (also called TLS bridging) terminates at the edge and opens a new TLS connection to the backend, while TLS passthrough forwards the encrypted bytes untouched so only the backend holds the keys, at the cost of the proxy being unable to read HTTP-level details.\n\nIn ordinary TLS only the server proves its identity. Mutual TLS requires the client to present a certificate as well, so each side authenticates the other during the handshake. This is common for service-to-service traffic, where each workload gets its own certificate and the server accepts only clients whose certificates chain to a trusted CA. It gives strong, cryptographic workload identity without passing shared secrets around, and it underlies how many service meshes secure internal calls.\n\nThe hard part of mTLS is operational: issuing, distributing, and rotating certificates at scale. Short-lived certificates reduce the damage of a leaked key but require automated renewal, so services need an automated CA or mesh control plane. Expired certificates are a classic cause of outages, so monitor expiry dates and test rotation before it is urgent.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main benefit of terminating TLS at a load balancer?",
+      "options": [
+        "Traffic behind it becomes automatically encrypted",
+        "Certificates are managed centrally and backends avoid handshake overhead",
+        "Clients no longer need to verify certificates",
+        "It removes the need for any authentication"
+      ],
+      "answer": 1,
+      "explanation": "Central termination keeps certificates in one place and spares application servers the encryption work, while also letting the proxy see HTTP."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With TLS passthrough, the load balancer can read the HTTP path and headers to make routing decisions.",
+      "answer": false,
+      "explanation": "Passthrough forwards encrypted bytes untouched, so the proxy cannot see HTTP-level details."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In ____ TLS, both the client and the server present certificates and verify each other.",
+      "answer": "mutual",
+      "acceptable": ["mtls", "mutual tls"],
+      "explanation": "Mutual TLS adds client certificate authentication on top of the normal server authentication."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of onboarding a service to mTLS with short-lived certificates, earliest first.",
+      "items": [
+        "The service presents its certificate in handshakes and peers verify it",
+        "The service requests a certificate from the internal CA",
+        "The service renews the certificate automatically before it expires",
+        "The service proves its identity to the CA"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "A workload proves its identity, gets a certificate, uses it in handshakes, and renews it automatically before expiry."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why are short-lived certificates paired with automated renewal in mTLS deployments?",
+      "options": [
+        "They make handshakes faster",
+        "They limit exposure from a leaked key without manual rotation toil",
+        "They remove the need for a CA",
+        "They allow plaintext traffic"
+      ],
+      "answer": 1,
+      "explanation": "A short lifetime shrinks the window a stolen key is useful, and automation keeps that rotation from becoming an operational burden."
+    }
+  ]
+}
