@@ -96,6 +96,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 83 | 2026-10-05 | Autoscaling: Reactive, Scheduled, and Predictive | `2026-10-05-autoscaling-strategies` |
 | 84 | 2026-10-06 | Distributed Job Scheduling and Delayed Tasks | `2026-10-06-distributed-job-scheduling` |
 | 85 | 2026-10-06 | TLS Termination and Mutual TLS (mTLS) | `2026-10-06-tls-termination-mtls` |
+| 86 | 2026-10-07 | DNS-Based Routing, TTLs, and GeoDNS | `2026-10-07-dns-geodns-routing` |
+| 87 | 2026-10-07 | Envelope Encryption and Key Management (KMS) | `2026-10-07-envelope-encryption-key-management` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

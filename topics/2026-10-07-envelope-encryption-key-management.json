@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-07-envelope-encryption-key-management",
+  "date": "2026-10-07",
+  "title": "Envelope Encryption and Key Management (KMS)",
+  "category": "system-design",
+  "lesson": "Encrypting data at rest raises a question: where do the keys live? Storing a key next to the data it protects defeats the purpose. A key management service (KMS) or hardware security module (HSM) holds master keys in hardened storage, performs cryptographic operations on request, and logs every use, so applications never see the master key itself.\n\nSending every byte to the KMS for encryption would be slow and would make it a bottleneck, so systems use envelope encryption. For each object or record, the application generates a data encryption key (DEK) locally, encrypts the data with it using a fast symmetric cipher, then asks the KMS to encrypt (wrap) the DEK with a key encryption key (KEK). The wrapped DEK is stored alongside the ciphertext. To read, the application sends the wrapped DEK to the KMS, receives the plaintext DEK, and decrypts locally.\n\nThis design makes rotation and revocation cheap. Rotating the KEK only requires re-wrapping the small DEKs, not re-encrypting terabytes of data. Per-object or per-tenant DEKs limit the blast radius of a single leaked key, and disabling a tenant's KEK effectively makes its data unreadable (crypto-shredding), a useful way to honor deletion requirements across backups.\n\nThe tradeoffs are availability and latency: if the KMS is unreachable, nothing can be decrypted, so services cache unwrapped DEKs in memory for a short time and design for KMS rate limits. Access to the KMS should be governed by tight IAM policies and audited, since whoever can call decrypt on the KEK can read the data.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main reason for using envelope encryption instead of sending all data to the KMS?",
+      "options": [
+        "Symmetric ciphers cannot be used in a KMS",
+        "Bulk encryption happens locally with a DEK, so the KMS only handles small key operations",
+        "It avoids needing a master key",
+        "It makes data unreadable to the application"
+      ],
+      "answer": 1,
+      "explanation": "Only the small DEK goes to the KMS, avoiding a throughput and latency bottleneck for large data."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Rotating the key encryption key requires re-encrypting all the underlying data.",
+      "answer": false,
+      "explanation": "Only the data encryption keys need to be re-wrapped with the new KEK; the data itself stays encrypted under its DEKs."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In envelope encryption, the key that encrypts the data itself is called the data ____ key.",
+      "answer": "encryption",
+      "acceptable": ["encryption key", "dek"],
+      "explanation": "The DEK encrypts the data, and is itself encrypted (wrapped) by the KEK."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps to encrypt and store an object using envelope encryption, earliest first.",
+      "items": [
+        "Store the ciphertext together with the wrapped DEK",
+        "Ask the KMS to wrap the DEK with the KEK",
+        "Encrypt the data locally with the DEK",
+        "Generate a fresh DEK"
+      ],
+      "answer": [3, 2, 1, 0],
+      "explanation": "A DEK is generated, used to encrypt the data, wrapped by the KMS, and both results are stored together."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What does crypto-shredding accomplish?",
+      "options": [
+        "Deletes the ciphertext from every backup immediately",
+        "Makes data unrecoverable by destroying or disabling the key that protects it",
+        "Speeds up decryption",
+        "Replaces the DEK with the KEK"
+      ],
+      "answer": 1,
+      "explanation": "Without the key, ciphertext, including copies in backups, can no longer be decrypted."
+    }
+  ]
+}

@@ -614,5 +614,19 @@
     "title": "TLS Termination and Mutual TLS (mTLS)",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-07-dns-geodns-routing",
+    "date": "2026-10-07",
+    "title": "DNS-Based Routing, TTLs, and GeoDNS",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-07-envelope-encryption-key-management",
+    "date": "2026-10-07",
+    "title": "Envelope Encryption and Key Management (KMS)",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
