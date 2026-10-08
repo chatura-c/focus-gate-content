@@ -628,5 +628,19 @@
     "title": "Envelope Encryption and Key Management (KMS)",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-08-jwt-sessions-token-revocation",
+    "date": "2026-10-08",
+    "title": "Sessions vs JWTs and Token Revocation",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-08-batch-vs-stream-processing",
+    "date": "2026-10-08",
+    "title": "Batch vs Stream Processing: Lambda and Kappa Architectures",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

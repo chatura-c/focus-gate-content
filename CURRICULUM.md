@@ -98,6 +98,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 85 | 2026-10-06 | TLS Termination and Mutual TLS (mTLS) | `2026-10-06-tls-termination-mtls` |
 | 86 | 2026-10-07 | DNS-Based Routing, TTLs, and GeoDNS | `2026-10-07-dns-geodns-routing` |
 | 87 | 2026-10-07 | Envelope Encryption and Key Management (KMS) | `2026-10-07-envelope-encryption-key-management` |
+| 88 | 2026-10-08 | Sessions vs JWTs and Token Revocation | `2026-10-08-jwt-sessions-token-revocation` |
+| 89 | 2026-10-08 | Batch vs Stream Processing: Lambda and Kappa Architectures | `2026-10-08-batch-vs-stream-processing` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

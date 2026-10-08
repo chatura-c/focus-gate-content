@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-08-batch-vs-stream-processing",
+  "date": "2026-10-08",
+  "title": "Batch vs Stream Processing: Lambda and Kappa Architectures",
+  "category": "system-design",
+  "lesson": "Batch processing runs a computation over a large, bounded dataset on a schedule, such as a nightly job that recomputes revenue per customer. It is throughput-oriented, simple to reason about, and easy to rerun, but results are only as fresh as the last run. Stream processing handles an unbounded sequence of events continuously as they arrive, giving results in seconds or less at the cost of harder problems: late and out-of-order events, state management, and exactly-once effects.\n\nStream processors group events into windows (tumbling, sliding, or session windows) and decide when a window is complete using event time and watermarks, a moving estimate of how far event time has progressed. Events arriving after the watermark are late; the system can drop them, emit corrections, or route them aside. Using event time rather than processing time keeps results correct when events are delayed or replayed.\n\nThe Lambda architecture runs both paths: a batch layer produces accurate, complete views from all data, and a speed layer produces fast approximate views for recent data, with queries merging the two. Its drawback is maintaining the same logic in two codebases. The Kappa architecture simplifies this by using only a stream processor over a durable, replayable log; to reprocess history after a bug or logic change, you replay the log through the new version of the job.\n\nA practical rule: choose batch when freshness of hours is acceptable and correctness over full history matters most, choose streaming when latency matters, and prefer a replayable log as the source of truth so either approach can recompute results.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main drawback of the Lambda architecture?",
+      "options": [
+        "It cannot produce real-time results",
+        "The same business logic must be maintained in both batch and streaming codebases",
+        "It requires no durable storage",
+        "It only supports tumbling windows"
+      ],
+      "answer": 1,
+      "explanation": "Having separate batch and speed layers means duplicating and keeping consistent the processing logic."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In stream processing, using event time instead of processing time helps produce correct results when events arrive late or are replayed.",
+      "answer": true,
+      "explanation": "Event time reflects when things actually happened, so delays and replays do not shift events into the wrong windows."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In stream processing, a moving estimate of how far event time has progressed, used to decide when a window can close, is called a ____.",
+      "answer": "watermark",
+      "acceptable": ["watermarks"],
+      "explanation": "Watermarks tell the processor that events older than a given time are expected to have arrived, so windows can be finalized."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How does the Kappa architecture reprocess historical data after a logic change?",
+      "options": [
+        "It runs a separate batch layer",
+        "It replays the durable log through the new version of the stream job",
+        "It discards history",
+        "It queries the speed layer only"
+      ],
+      "answer": 1,
+      "explanation": "Kappa relies on a replayable log so one streaming codebase serves both live and reprocessing needs."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these by typical result freshness, from freshest to stalest.",
+      "items": [
+        "Nightly batch job",
+        "Streaming job with 5-second windows",
+        "Hourly micro-batch",
+        "Weekly report"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "Continuous streaming is freshest, followed by hourly, nightly, and weekly runs."
+    }
+  ]
+}
