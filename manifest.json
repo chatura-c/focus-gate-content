@@ -642,5 +642,19 @@
     "title": "Batch vs Stream Processing: Lambda and Kappa Architectures",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-09-observability-red-use",
+    "date": "2026-10-09",
+    "title": "Observability: Metrics, Logs, and the RED/USE Methods",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-09-graceful-shutdown-connection-draining",
+    "date": "2026-10-09",
+    "title": "Graceful Shutdown and Connection Draining",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

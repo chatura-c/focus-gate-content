@@ -100,6 +100,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 87 | 2026-10-07 | Envelope Encryption and Key Management (KMS) | `2026-10-07-envelope-encryption-key-management` |
 | 88 | 2026-10-08 | Sessions vs JWTs and Token Revocation | `2026-10-08-jwt-sessions-token-revocation` |
 | 89 | 2026-10-08 | Batch vs Stream Processing: Lambda and Kappa Architectures | `2026-10-08-batch-vs-stream-processing` |
+| 90 | 2026-10-09 | Observability: Metrics, Logs, and the RED/USE Methods | `2026-10-09-observability-red-use` |
+| 91 | 2026-10-09 | Graceful Shutdown and Connection Draining | `2026-10-09-graceful-shutdown-connection-draining` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

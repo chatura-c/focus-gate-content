@@ -1,0 +1,48 @@
+{
+  "id": "2026-10-09-graceful-shutdown-connection-draining",
+  "date": "2026-10-09",
+  "title": "Graceful Shutdown and Connection Draining",
+  "category": "system-design",
+  "lesson": "Servers are constantly being stopped: deploys, autoscaling, node maintenance, and crashes. If an instance is simply killed, in-flight requests fail and clients see errors even though nothing is actually wrong. Graceful shutdown means an instance stops taking new work, finishes what it already accepted, and only then exits.\n\nThe usual sequence is: first, the instance is marked as not ready so the load balancer or service registry stops sending it new requests. Second, it keeps serving in-flight requests and open connections until they complete, which is called connection draining, bounded by a timeout. Third, it closes resources such as database pools, flushes buffers, and exits. In Kubernetes this maps to a SIGTERM signal, a termination grace period, and a SIGKILL if the process has not exited when the period ends.\n\nA common race is that deregistration is not instantaneous: load balancers and proxies may keep routing to the instance for a few seconds after it begins shutting down. A short delay between failing the readiness check and closing the listener lets routing converge, so requests that are still arriving are not refused. Long-lived connections such as WebSockets or streaming RPCs need special handling, such as sending a close or GOAWAY message so clients reconnect to a healthy instance.\n\nGraceful shutdown also matters for background workers: a queue consumer should stop pulling new messages and finish or release its current one. Combined with idempotent handlers, this keeps rolling deployments invisible to users.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "ordering",
+      "prompt": "Order the steps of a graceful shutdown, earliest first.",
+      "items": ["Close database pools and exit", "Fail the readiness check so no new requests are routed here", "Wait for in-flight requests to finish, up to a timeout", "Receive the termination signal (SIGTERM)"],
+      "answer": [3, 1, 2, 0],
+      "explanation": "The instance gets the signal, stops receiving new traffic, drains existing work, and then releases resources and exits."
+    },
+    {
+      "id": "q2",
+      "type": "mcq",
+      "prompt": "Why is a short delay often added between failing readiness and closing the listener?",
+      "options": ["To let routing layers stop sending traffic that is already in flight toward the instance", "To let the garbage collector run", "To increase the number of open connections", "To avoid sending SIGKILL"],
+      "answer": 0,
+      "explanation": "Deregistration propagates with a lag, so briefly continuing to accept connections prevents refused requests."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "Connection draining requires waiting indefinitely for every in-flight request to complete.",
+      "answer": false,
+      "explanation": "Draining is bounded by a timeout so a stuck request cannot block the shutdown forever."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "In Kubernetes, if a container has not exited when the termination grace period ends, it is sent ____.",
+      "answer": "SIGKILL",
+      "acceptable": ["kill -9", "sigkill signal"],
+      "explanation": "After the grace period expires, the kubelet forcibly kills the process with SIGKILL."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "How should a long-lived WebSocket server handle shutdown?",
+      "options": ["Drop all sockets silently", "Send a close message so clients reconnect to a healthy instance", "Keep the sockets open forever", "Ignore the termination signal"],
+      "answer": 1,
+      "explanation": "Telling clients to reconnect elsewhere lets the instance exit without leaving them with dead connections."
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "2026-10-09-observability-red-use",
+  "date": "2026-10-09",
+  "title": "Observability: Metrics, Logs, and the RED/USE Methods",
+  "category": "system-design",
+  "lesson": "Observability is the ability to understand what a system is doing from the outside, using the signals it emits. The classic signals are metrics (numeric time series, cheap to store and aggregate), logs (discrete event records with rich detail but higher volume and cost), and traces (the path of one request across services). Metrics tell you that something is wrong, while logs and traces help you find out why.\n\nTwo checklists keep metric dashboards focused. The RED method applies to request-driven services: Rate (requests per second), Errors (failed requests per second or as a fraction), and Duration (latency distribution). The USE method applies to resources such as CPUs, disks, and connection pools: Utilization (how busy it is), Saturation (how much extra work is queued), and Errors. RED describes the experience of your callers; USE helps locate the bottleneck behind it.\n\nLatency should be tracked as percentiles from histograms, not averages, because averages hide the slow tail that real users hit. Percentiles also cannot be averaged across hosts; instead you aggregate the histogram buckets and compute the percentile afterwards. Be careful with metric labels: every unique combination of label values creates a new time series, so labels like user ID or request ID (high cardinality) can blow up storage and query cost. Put those details in logs or traces instead.\n\nFor alerting, page humans on symptoms users feel (high error rate, slow responses) rather than on every possible cause (high CPU on one node). Cause-based metrics remain useful on dashboards for diagnosis, but alerts that fire without user impact lead to alert fatigue and ignored pages.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which set of signals does the RED method track for a service?",
+      "options": ["Rate, Errors, Duration", "Reliability, Efficiency, Durability", "Requests, Evictions, Downtime", "Replicas, Errors, Disk usage"],
+      "answer": 0,
+      "explanation": "RED stands for request Rate, Errors, and Duration, which describe how callers experience a service."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "It is safe to compute a fleet-wide p99 latency by averaging each host's p99.",
+      "answer": false,
+      "explanation": "Percentiles do not average meaningfully; you should merge histogram buckets across hosts and then compute the percentile."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Adding a metric label such as user ID that takes millions of distinct values causes a problem known as high ____.",
+      "answer": "cardinality",
+      "acceptable": ["label cardinality"],
+      "explanation": "Each unique label combination creates a separate time series, so high-cardinality labels inflate storage and query cost."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Under the USE method, which measurement indicates work is waiting because a resource is overloaded?",
+      "options": ["Utilization", "Saturation", "Throughput", "Uptime"],
+      "answer": 1,
+      "explanation": "Saturation measures queued or deferred work beyond what the resource can handle right now."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Which alert is the best candidate for paging an on-call engineer?",
+      "options": ["CPU is at 85% on one of forty nodes", "The checkout error rate has exceeded its SLO threshold for ten minutes", "A disk is 60% full", "Garbage collection ran twice in a minute"],
+      "answer": 1,
+      "explanation": "Paging should be tied to user-visible symptoms; the other options are causes that may have no user impact."
+    }
+  ]
+}
