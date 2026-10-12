@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-12-oauth2-pkce",
+  "date": "2026-10-12",
+  "title": "OAuth 2.0 Authorization Code Flow with PKCE",
+  "category": "system-design",
+  "lesson": "OAuth 2.0 lets a user grant an application limited access to their data at another service without sharing their password. In the authorization code flow, the app redirects the user to the authorization server, the user logs in and consents there, and the server redirects back to the app with a short-lived authorization code. The app then exchanges that code at the token endpoint for an access token (and often a refresh token). The tokens never travel through the browser's address bar, which is why this flow replaced the older implicit flow.\n\nA confidential client, such as a server-side web app, can authenticate itself at the token endpoint with a client secret. Public clients, such as mobile apps and single-page apps, cannot keep a secret, so a malicious app or script that intercepts the redirect could steal the code and redeem it. PKCE (Proof Key for Code Exchange) closes this gap. Before starting, the client generates a random code_verifier and sends only its hash, the code_challenge (BASE64URL of SHA-256 of the verifier, method S256), in the authorization request.\n\nWhen the client later redeems the code, it sends the original code_verifier. The authorization server hashes it and compares it with the stored challenge; if they do not match, the exchange is rejected. An attacker who intercepted only the code does not know the verifier, so the code is useless to them. PKCE is now recommended for all clients, including confidential ones.\n\nTwo other details matter. The state parameter is a random value the client checks on return to prevent cross-site request forgery against the redirect. And access tokens should be short-lived and scoped to the minimum permissions needed, with refresh tokens used to obtain new ones and revoked if compromised.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem does PKCE primarily solve?",
+      "options": [
+        "Slow token validation",
+        "An intercepted authorization code being redeemed by an attacker",
+        "Storing user passwords securely",
+        "Expiring refresh tokens"
+      ],
+      "answer": 1,
+      "explanation": "Without the code_verifier, a stolen authorization code cannot be exchanged for tokens."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In PKCE, the client sends the raw code_verifier in the initial authorization request.",
+      "answer": false,
+      "explanation": "Only the hashed code_challenge is sent up front; the verifier is revealed later at the token endpoint."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The random value a client checks on the redirect back to defend against CSRF is called the ____ parameter.",
+      "answer": "state",
+      "explanation": "The client stores the state value and rejects redirects that do not return it unchanged."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of the authorization code flow with PKCE.",
+      "items": [
+        "Client posts the code and code_verifier to the token endpoint",
+        "User logs in and consents; server redirects back with a code",
+        "Client generates a code_verifier and derives the code_challenge",
+        "Client redirects the user to the authorization server with the challenge",
+        "Server verifies the verifier and issues tokens"
+      ],
+      "answer": [2, 3, 1, 0, 4],
+      "explanation": "The challenge is created first and sent out; the verifier is only revealed when redeeming the code, after which the server checks it."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why can a mobile app not rely on a client secret alone?",
+      "options": [
+        "Mobile networks block secrets",
+        "The secret can be extracted from the distributed app binary",
+        "Secrets expire after one minute",
+        "Authorization servers reject secrets from phones"
+      ],
+      "answer": 1,
+      "explanation": "Public clients ship to user devices, so any embedded secret can be extracted and is not truly secret."
+    }
+  ]
+}

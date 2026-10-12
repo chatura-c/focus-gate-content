@@ -102,6 +102,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 89 | 2026-10-08 | Batch vs Stream Processing: Lambda and Kappa Architectures | `2026-10-08-batch-vs-stream-processing` |
 | 90 | 2026-10-09 | Observability: Metrics, Logs, and the RED/USE Methods | `2026-10-09-observability-red-use` |
 | 91 | 2026-10-09 | Graceful Shutdown and Connection Draining | `2026-10-09-graceful-shutdown-connection-draining` |
+| 92 | 2026-10-12 | Back-of-the-Envelope Capacity Estimation | `2026-10-12-capacity-estimation` |
+| 93 | 2026-10-12 | OAuth 2.0 Authorization Code Flow with PKCE | `2026-10-12-oauth2-pkce` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

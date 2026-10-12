@@ -656,5 +656,19 @@
     "title": "Graceful Shutdown and Connection Draining",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-12-capacity-estimation",
+    "date": "2026-10-12",
+    "title": "Back-of-the-Envelope Capacity Estimation",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-12-oauth2-pkce",
+    "date": "2026-10-12",
+    "title": "OAuth 2.0 Authorization Code Flow with PKCE",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

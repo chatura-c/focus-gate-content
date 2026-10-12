@@ -1,0 +1,58 @@
+{
+  "id": "2026-10-12-capacity-estimation",
+  "date": "2026-10-12",
+  "title": "Back-of-the-Envelope Capacity Estimation",
+  "category": "system-design",
+  "lesson": "Capacity estimation turns a vague product requirement into rough numbers for traffic, storage, and bandwidth, so you can tell whether one database will do or whether you need sharding, caching, or a queue. The goal is the right order of magnitude, not precision. A handy anchor: a day has 86,400 seconds, which you can round to about 10^5, so 100 million requests per day is roughly 1,000 requests per second on average.\n\nAverage load is not what you provision for. Traffic is bursty and follows daily cycles, so multiply the average by a peak factor (commonly 2x to 5x, depending on the product) to get peak QPS. Then split it into reads and writes, because they scale differently: reads can be absorbed by caches and replicas, while writes ultimately need a primary or partitioned storage that can sustain the rate.\n\nStorage is estimated as: bytes per record x records per day x retention period x replication factor. For example, 1 KB per record at 100 million records per day is about 100 GB per day, around 36 TB per year, and about 110 TB per year with three replicas. Remember to add overhead for indexes, and to consider whether old data can move to cheaper tiers or be deleted. Bandwidth follows from QPS x average payload size, and it matters at the network edge and between regions.\n\nFinally, sanity-check the result against what real hardware can do. If the numbers fit comfortably on a single well-provisioned node, adding distributed complexity is premature; if peak writes or total data are many times larger than one node can handle, that is the signal to partition. State your assumptions out loud, since the estimate is only as good as its inputs.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Roughly how many requests per second is 100 million requests per day, on average?",
+      "options": ["About 100", "About 1,000", "About 100,000", "About 10 million"],
+      "answer": 1,
+      "explanation": "100 million divided by roughly 10^5 seconds per day is about 1,000 requests per second."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "You should size a system for its average QPS, since peaks are rare and can be ignored.",
+      "answer": false,
+      "explanation": "Traffic is bursty and cyclical, so capacity must cover peak load, typically a multiple of the average."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Raw storage needed is bytes per record x records per day x retention days x the ____ factor.",
+      "answer": "replication",
+      "acceptable": ["replica", "replication factor"],
+      "explanation": "Each copy of the data consumes space, so the replication factor multiplies the raw total."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Put these estimation steps in a sensible order.",
+      "items": [
+        "Estimate storage from record size, retention, and replication",
+        "Clarify requirements and assumptions such as daily active users",
+        "Apply a peak factor to get peak QPS",
+        "Compute average QPS from daily volume"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "Start from assumptions, derive average then peak load, and then size storage from the resulting volumes."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Your estimate shows peak writes and total data both fit easily on one well-provisioned database node. What is the best conclusion?",
+      "options": [
+        "Shard immediately to be future-proof",
+        "A single node with replicas for availability is likely enough for now",
+        "Replace the database with a message queue",
+        "Add a CDN in front of the database"
+      ],
+      "answer": 1,
+      "explanation": "Distributed complexity is only justified when the numbers exceed what a single node can handle."
+    }
+  ]
+}
