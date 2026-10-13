@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-13-deadlocks-detection-prevention",
+  "date": "2026-10-13",
+  "title": "Deadlocks: Detection, Prevention, and Lock Ordering",
+  "category": "system-design",
+  "lesson": "A deadlock happens when two or more transactions each hold a lock the other needs and none can proceed. Classic example: transaction A updates row 1 then wants row 2, while transaction B has already updated row 2 and wants row 1. Both wait forever unless something intervenes. Deadlocks need four conditions at once: mutual exclusion, hold-and-wait, no preemption, and a circular wait. Breaking any one of them removes the possibility.\n\nMost relational databases do not prevent deadlocks; they detect them. The engine maintains a wait-for graph (transaction A waits for B, B waits for A) and periodically, or on each blocked lock request, looks for cycles. When it finds one, it picks a victim, often the transaction that has done the least work, rolls it back, and returns a deadlock error to that client. Some systems instead rely on a lock-wait timeout, which is simpler but slower to react and can abort transactions that were merely waiting behind a slow holder.\n\nThe most effective application-level prevention is a consistent lock ordering: if every code path acquires locks in the same global order (for example, always the lower account ID first), a circular wait cannot form. Other mitigations include keeping transactions short, touching rows in a deterministic order, avoiding user interaction while holding locks, and acquiring all needed locks up front with a single statement such as SELECT ... FOR UPDATE over the full set.\n\nBecause the database may abort any transaction at any time to break a cycle, clients must treat a deadlock error as retriable: re-run the whole transaction, ideally with a small randomized backoff. The retried transaction must be safe to repeat, which ties back to idempotency. In distributed settings spanning several nodes, per-node detectors cannot see the global graph, so systems typically fall back on timeouts or wound-wait and wait-die schemes that use transaction timestamps to decide who may wait.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which of these is the most effective application-level way to prevent deadlocks between transactions that lock multiple rows?",
+      "options": [
+        "Increasing the lock-wait timeout",
+        "Acquiring locks in the same global order in every code path",
+        "Running every transaction at a lower isolation level",
+        "Holding locks for longer so work finishes in one go"
+      ],
+      "answer": 1,
+      "explanation": "A consistent global lock order makes a circular wait impossible, which removes one of the four necessary conditions for deadlock."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "When a database detects a deadlock, it typically aborts one of the involved transactions and expects the client to retry it.",
+      "answer": true,
+      "explanation": "The engine breaks the cycle by rolling back a victim transaction, so applications must handle the deadlock error and re-run the transaction."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Databases detect deadlocks by searching for a cycle in the ____ graph.",
+      "answer": "wait-for",
+      "acceptable": ["wait for", "waits-for", "waits for", "wait-for graph"],
+      "explanation": "The wait-for graph has an edge from each transaction to the one whose lock it is waiting on, and a cycle means deadlock."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the events in a two-transaction deadlock that the database resolves, earliest first.",
+      "items": [
+        "The database rolls back one transaction as the victim",
+        "Each transaction requests the lock held by the other",
+        "Transaction A and B each acquire one lock",
+        "The surviving transaction acquires its lock and commits",
+        "The detector finds a cycle in the wait-for graph"
+      ],
+      "answer": [2, 1, 4, 0, 3],
+      "explanation": "Locks are taken, each side then blocks on the other, the cycle is detected, a victim is rolled back, and the survivor can then proceed."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Which is NOT one of the four conditions required for a deadlock?",
+      "options": [
+        "Mutual exclusion",
+        "Circular wait",
+        "Eventual consistency",
+        "Hold and wait"
+      ],
+      "answer": 2,
+      "explanation": "The four Coffman conditions are mutual exclusion, hold-and-wait, no preemption, and circular wait; eventual consistency is unrelated."
+    }
+  ]
+}

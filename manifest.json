@@ -670,5 +670,19 @@
     "title": "OAuth 2.0 Authorization Code Flow with PKCE",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-13-deadlocks-detection-prevention",
+    "date": "2026-10-13",
+    "title": "Deadlocks: Detection, Prevention, and Lock Ordering",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-13-durable-execution-workflow-engines",
+    "date": "2026-10-13",
+    "title": "Durable Execution and Workflow Engines",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

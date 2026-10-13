@@ -104,6 +104,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 91 | 2026-10-09 | Graceful Shutdown and Connection Draining | `2026-10-09-graceful-shutdown-connection-draining` |
 | 92 | 2026-10-12 | Back-of-the-Envelope Capacity Estimation | `2026-10-12-capacity-estimation` |
 | 93 | 2026-10-12 | OAuth 2.0 Authorization Code Flow with PKCE | `2026-10-12-oauth2-pkce` |
+| 94 | 2026-10-13 | Deadlocks: Detection, Prevention, and Lock Ordering | `2026-10-13-deadlocks-detection-prevention` |
+| 95 | 2026-10-13 | Durable Execution and Workflow Engines | `2026-10-13-durable-execution-workflow-engines` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

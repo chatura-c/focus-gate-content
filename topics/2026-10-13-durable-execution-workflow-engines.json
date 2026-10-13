@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-13-durable-execution-workflow-engines",
+  "date": "2026-10-13",
+  "title": "Durable Execution and Workflow Engines",
+  "category": "system-design",
+  "lesson": "Many business processes run for minutes, days, or months and span several services: onboard a customer, charge a card, wait for approval, send a reminder after 3 days. Hand-rolling this with queues, cron jobs, and status columns gets messy quickly, because every step must survive process crashes, deploys, and retries. Durable execution engines such as Temporal, Cadence, or AWS Step Functions make the workflow itself fault-tolerant, so code can be written as straightforward sequential logic.\n\nThe core mechanism is an append-only event history per workflow instance. Each time the workflow schedules an activity, receives its result, starts a timer, or receives a signal, that event is persisted. If the worker process dies, another worker loads the history and replays the workflow code from the start; recorded results are fed back instead of re-executing the side effects, so the code deterministically arrives at the same state and continues from where it stopped. A sleep of 30 days is just a durable timer entry, not a thread held in memory.\n\nThis model imposes a split. Workflow code must be deterministic, since it is replayed: no direct random numbers, wall-clock reads, or network calls. All non-deterministic or side-effecting work lives in activities, which are executed outside the replay, given timeouts and retry policies, and should be idempotent because they have at-least-once semantics. A crash after an activity succeeds but before its result is recorded causes it to run again.\n\nCompared with sagas coordinated by hand, a workflow engine centralizes state, retries, timeouts, and compensation logic in one place and gives visibility into where every instance is. The tradeoffs are an extra piece of infrastructure to operate, constraints on how workflow code is written, and the need to version workflow definitions carefully so that in-flight instances replay correctly after a deploy.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "How does a durable execution engine resume a workflow after the worker process crashes?",
+      "options": [
+        "It restores a memory snapshot of the process from disk",
+        "It replays the workflow code against its persisted event history",
+        "It restarts the workflow from the beginning and re-runs every side effect",
+        "It asks the user to re-submit the request"
+      ],
+      "answer": 1,
+      "explanation": "The engine reloads the event history and replays deterministic workflow code, using recorded results instead of re-running completed activities."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Workflow code under a replay-based engine may freely read the wall clock and call random number generators directly.",
+      "answer": false,
+      "explanation": "Replay requires deterministic code, so non-deterministic inputs must come through engine-provided APIs or be performed in activities."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Because activities may be retried after a crash, they should be designed to be ____.",
+      "answer": "idempotent",
+      "acceptable": ["idempotent operations", "safe to retry"],
+      "explanation": "Activities have at-least-once semantics, so repeating one must not cause duplicate side effects."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What does a workflow's call to sleep for 30 days typically become in a durable execution engine?",
+      "options": [
+        "A thread blocked in worker memory for 30 days",
+        "A persisted durable timer in the event history",
+        "A cron job written by the developer",
+        "A polling loop against the database every second"
+      ],
+      "answer": 1,
+      "explanation": "The timer is stored durably and fires an event later, so no process needs to stay alive while waiting."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these steps of recovering a workflow after a worker crash, earliest first.",
+      "items": [
+        "Workflow code continues past the last recorded event with new work",
+        "Another worker picks up the workflow instance",
+        "The worker running the workflow dies",
+        "Workflow code is replayed using recorded results from history",
+        "The persisted event history is loaded"
+      ],
+      "answer": [2, 1, 4, 3, 0],
+      "explanation": "A new worker takes over, loads history, replays deterministically to rebuild state, and then proceeds with new steps."
+    }
+  ]
+}
