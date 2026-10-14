@@ -106,6 +106,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 93 | 2026-10-12 | OAuth 2.0 Authorization Code Flow with PKCE | `2026-10-12-oauth2-pkce` |
 | 94 | 2026-10-13 | Deadlocks: Detection, Prevention, and Lock Ordering | `2026-10-13-deadlocks-detection-prevention` |
 | 95 | 2026-10-13 | Durable Execution and Workflow Engines | `2026-10-13-durable-execution-workflow-engines` |
+| 96 | 2026-10-14 | Health Checks: Liveness, Readiness, and Startup Probes | `2026-10-14-health-checks-liveness-readiness` |
+| 97 | 2026-10-14 | Cache Invalidation Strategies: TTL, Event-Driven, and Versioned Keys | `2026-10-14-cache-invalidation-strategies` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

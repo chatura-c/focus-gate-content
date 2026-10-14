@@ -684,5 +684,19 @@
     "title": "Durable Execution and Workflow Engines",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-14-health-checks-liveness-readiness",
+    "date": "2026-10-14",
+    "title": "Health Checks: Liveness, Readiness, and Startup Probes",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-14-cache-invalidation-strategies",
+    "date": "2026-10-14",
+    "title": "Cache Invalidation Strategies: TTL, Event-Driven, and Versioned Keys",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
