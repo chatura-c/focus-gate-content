@@ -698,5 +698,19 @@
     "title": "Cache Invalidation Strategies: TTL, Event-Driven, and Versioned Keys",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-15-n-plus-one-queries-batching",
+    "date": "2026-10-15",
+    "title": "The N+1 Query Problem and Batching (DataLoader)",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-15-clock-skew-ntp-wall-clocks",
+    "date": "2026-10-15",
+    "title": "Clock Skew, NTP, and Why Wall Clocks Can't Order Events",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
