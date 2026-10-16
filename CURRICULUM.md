@@ -110,6 +110,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 97 | 2026-10-14 | Cache Invalidation Strategies: TTL, Event-Driven, and Versioned Keys | `2026-10-14-cache-invalidation-strategies` |
 | 98 | 2026-10-15 | The N+1 Query Problem and Batching (DataLoader) | `2026-10-15-n-plus-one-queries-batching` |
 | 99 | 2026-10-15 | Clock Skew, NTP, and Why Wall Clocks Can't Order Events | `2026-10-15-clock-skew-ntp-wall-clocks` |
+| 100 | 2026-10-16 | Authorization Models: RBAC, ABAC, and Relationship-Based Access (Zanzibar) | `2026-10-16-authorization-rbac-abac-rebac` |
+| 101 | 2026-10-16 | Cell-Based Architecture and Limiting Blast Radius | `2026-10-16-cell-based-architecture-blast-radius` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

@@ -712,5 +712,19 @@
     "title": "Clock Skew, NTP, and Why Wall Clocks Can't Order Events",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-16-authorization-rbac-abac-rebac",
+    "date": "2026-10-16",
+    "title": "Authorization Models: RBAC, ABAC, and Relationship-Based Access (Zanzibar)",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-16-cell-based-architecture-blast-radius",
+    "date": "2026-10-16",
+    "title": "Cell-Based Architecture and Limiting Blast Radius",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
