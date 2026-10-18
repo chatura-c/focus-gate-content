@@ -112,6 +112,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 99 | 2026-10-15 | Clock Skew, NTP, and Why Wall Clocks Can't Order Events | `2026-10-15-clock-skew-ntp-wall-clocks` |
 | 100 | 2026-10-16 | Authorization Models: RBAC, ABAC, and Relationship-Based Access (Zanzibar) | `2026-10-16-authorization-rbac-abac-rebac` |
 | 101 | 2026-10-16 | Cell-Based Architecture and Limiting Blast Radius | `2026-10-16-cell-based-architecture-blast-radius` |
+| 102 | 2026-10-18 | Typeahead Autocomplete: Tries and Precomputed Top-K | `2026-10-18-typeahead-autocomplete-tries` |
+| 103 | 2026-10-18 | Deleting Data: Soft Deletes, Tombstones, and Erasure | `2026-10-18-soft-delete-tombstones-erasure` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

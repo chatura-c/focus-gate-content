@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-18-typeahead-autocomplete-tries",
+  "date": "2026-10-18",
+  "title": "Typeahead Autocomplete: Tries and Precomputed Top-K",
+  "category": "system-design",
+  "lesson": "Typeahead (autocomplete) suggests completions as the user types, so it must answer in tens of milliseconds for every keystroke. The classic data structure is a trie (prefix tree): each node represents a prefix, and the path from the root spells a string. Looking up a prefix is O(length of prefix), independent of how many queries are stored, which is far better than scanning a list or running a LIKE 'prefix%' query per keystroke at scale.\n\nA plain trie still has a problem: after reaching the prefix node, you would have to traverse its whole subtree to find the best completions. Production systems avoid this by precomputing and storing the top-K suggestions (for example the 5-10 most popular completions) at every node. A lookup is then a walk down the prefix followed by reading a small cached list. The cost is extra memory and the need to rebuild or update those lists when popularity changes.\n\nRanking data comes from query logs, aggregated offline (batch or streaming) into counts, often weighted toward recent activity so trending queries surface. Because popularity shifts slowly relative to keystroke latency, the trie is typically rebuilt periodically and swapped in atomically rather than updated on every search. Rebuilding off the request path keeps reads lock-free and simple.\n\nAt scale the trie is sharded, commonly by leading characters or prefix hash, and heavily cached: short prefixes like 'a' or 'th' are extremely hot and can be cached at the CDN or browser. Clients also help by debouncing keystrokes, cancelling stale in-flight requests, and caching previous responses, so the backend sees far fewer requests than keystrokes.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do typeahead systems store top-K suggestions at each trie node?",
+      "options": [
+        "To avoid traversing the whole subtree under a prefix at query time",
+        "To make the trie smaller in memory",
+        "To allow case-insensitive matching",
+        "To avoid needing query logs"
+      ],
+      "answer": 0,
+      "explanation": "Precomputed top-K lists turn a lookup into a prefix walk plus reading a short list instead of a subtree traversal."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Looking up a prefix in a trie takes time proportional to the number of stored queries.",
+      "answer": false,
+      "explanation": "Lookup time is proportional to the prefix length, not the number of stored strings."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Clients reduce backend load for typeahead by waiting until the user pauses typing before sending a request; this technique is called ____.",
+      "answer": "debouncing",
+      "acceptable": ["debounce", "debounced"],
+      "explanation": "Debouncing suppresses requests for intermediate keystrokes so only the settled input is sent."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of building and serving a typeahead index, earliest first.",
+      "items": [
+        "Serve lookups by walking the prefix and returning the cached top-K",
+        "Aggregate query logs into popularity counts",
+        "Atomically swap the new trie into production",
+        "Build a trie with top-K lists at each node"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "Counts are aggregated first, used to build the trie, swapped in atomically, and then served."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why is the trie usually rebuilt periodically instead of updated on every search?",
+      "options": [
+        "Tries cannot be modified",
+        "Popularity changes slowly, and rebuilding off the request path keeps reads simple and lock-free",
+        "Search logs are unavailable in real time",
+        "Updating would reduce accuracy of prefix lookups"
+      ],
+      "answer": 1,
+      "explanation": "Slow-moving popularity makes batch rebuild plus atomic swap cheaper and simpler than constant concurrent updates."
+    }
+  ]
+}

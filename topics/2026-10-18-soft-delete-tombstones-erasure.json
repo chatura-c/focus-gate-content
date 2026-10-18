@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-18-soft-delete-tombstones-erasure",
+  "date": "2026-10-18",
+  "title": "Deleting Data: Soft Deletes, Tombstones, and Erasure",
+  "category": "system-design",
+  "lesson": "Deleting data sounds trivial but is surprisingly hard in real systems. A hard delete physically removes the row; a soft delete sets a flag such as deleted_at and filters it out of queries. Soft deletes make undo, auditing, and recovery easy, but every query must remember the filter, unique constraints can collide with deleted rows, and the data still exists, which matters for privacy rules.\n\nDistributed and log-structured stores add another wrinkle: a delete cannot simply remove data because replicas and immutable files may still hold older copies. Instead the store writes a tombstone, a marker saying the key was deleted as of some time. Reads treat the tombstone as newer than the old value, and compaction eventually removes both once it is safe. If a tombstone is purged before every replica has seen it, a stale replica can resurrect the deleted data during repair, which is why systems like Cassandra keep tombstones for a grace period longer than the repair interval.\n\nPrivacy requirements such as GDPR's right to erasure need real removal, not just a flag. That means finding every copy: primary database, replicas, search indexes, caches, analytics warehouses, event logs, and backups. Common techniques include deleting asynchronously via an event that each downstream system consumes, keeping a deletion ledger to prove completion, and crypto-shredding, where data is encrypted with a per-user key and destroying the key makes all copies unreadable.\n\nA practical design combines these: soft delete first for a short recovery window, then a scheduled hard purge, with propagation to derived stores. Retention policies and TTLs automate the purge so deletion does not depend on someone remembering to run it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is a tombstone in a distributed or log-structured store?",
+      "options": [
+        "A backup of a deleted table",
+        "A marker recording that a key was deleted, so older copies are treated as superseded",
+        "A lock held during deletion",
+        "A cache entry for missing keys"
+      ],
+      "answer": 1,
+      "explanation": "Tombstones let deletes propagate and shadow older values until compaction removes both."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Purging a tombstone before all replicas have received it can cause deleted data to reappear.",
+      "answer": true,
+      "explanation": "A replica that missed the delete still holds the old value and can spread it back during repair."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Destroying a per-user encryption key to make every copy of that user's data unreadable is called crypto-____.",
+      "answer": "shredding",
+      "acceptable": ["shred"],
+      "explanation": "Crypto-shredding makes data in backups and replicas unrecoverable without locating each copy."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which is a common drawback of soft deletes?",
+      "options": [
+        "They make recovery impossible",
+        "Every query must filter deleted rows and the data still exists for privacy purposes",
+        "They require a distributed transaction",
+        "They cannot be used with SQL databases"
+      ],
+      "answer": 1,
+      "explanation": "Soft-deleted rows linger, so queries need the filter and erasure obligations are not met by a flag alone."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order a practical deletion lifecycle, earliest first.",
+      "items": [
+        "Hard purge the record after a retention window",
+        "Propagate the deletion to caches, indexes, and warehouses",
+        "Mark the record as soft deleted",
+        "Record completion in a deletion ledger"
+      ],
+      "answer": [2, 0, 1, 3],
+      "explanation": "Soft delete first, purge after the recovery window, propagate to derived stores, then record completion."
+    }
+  ]
+}

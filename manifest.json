@@ -726,5 +726,19 @@
     "title": "Cell-Based Architecture and Limiting Blast Radius",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-18-typeahead-autocomplete-tries",
+    "date": "2026-10-18",
+    "title": "Typeahead Autocomplete: Tries and Precomputed Top-K",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-18-soft-delete-tombstones-erasure",
+    "date": "2026-10-18",
+    "title": "Deleting Data: Soft Deletes, Tombstones, and Erasure",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
