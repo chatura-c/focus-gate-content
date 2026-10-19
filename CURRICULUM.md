@@ -114,6 +114,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 101 | 2026-10-16 | Cell-Based Architecture and Limiting Blast Radius | `2026-10-16-cell-based-architecture-blast-radius` |
 | 102 | 2026-10-18 | Typeahead Autocomplete: Tries and Precomputed Top-K | `2026-10-18-typeahead-autocomplete-tries` |
 | 103 | 2026-10-18 | Deleting Data: Soft Deletes, Tombstones, and Erasure | `2026-10-18-soft-delete-tombstones-erasure` |
+| 104 | 2026-10-19 | Designing a URL Shortener: Key Generation and Redirects | `2026-10-19-url-shortener-design` |
+| 105 | 2026-10-19 | Tiered Storage: Hot, Warm, and Cold Data | `2026-10-19-tiered-storage-hot-warm-cold` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

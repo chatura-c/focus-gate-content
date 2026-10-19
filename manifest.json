@@ -740,5 +740,19 @@
     "title": "Deleting Data: Soft Deletes, Tombstones, and Erasure",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-19-url-shortener-design",
+    "date": "2026-10-19",
+    "title": "Designing a URL Shortener: Key Generation and Redirects",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-19-tiered-storage-hot-warm-cold",
+    "date": "2026-10-19",
+    "title": "Tiered Storage: Hot, Warm, and Cold Data",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

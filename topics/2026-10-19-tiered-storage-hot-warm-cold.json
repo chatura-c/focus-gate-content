@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-19-tiered-storage-hot-warm-cold",
+  "date": "2026-10-19",
+  "title": "Tiered Storage: Hot, Warm, and Cold Data",
+  "category": "system-design",
+  "lesson": "Not all data is accessed equally. Recent data is typically read and written often, while older data is rarely touched but must still be retained for compliance, analytics, or recovery. Tiered storage exploits this by placing data on different storage classes according to access pattern: a hot tier on fast, expensive media (memory, NVMe SSD), a warm tier on cheaper disks or standard object storage, and a cold or archive tier on very cheap storage with slow, sometimes delayed, retrieval.\n\nThe tradeoff is cost against access latency and retrieval cost. Archive classes may charge per retrieval, impose minimum storage durations, or take minutes to hours to restore, so putting frequently read data there can cost more than keeping it warm. Moving data too eagerly or on a wrong guess is the main way to lose the savings.\n\nMovement between tiers is driven by policy. Simple lifecycle rules transition objects by age (for example, to warm after 30 days and to archive after 180), which suits time-ordered data like logs and metrics. Access-based or automatic tiering tracks actual usage and moves objects as patterns change, which suits unpredictable workloads at the price of monitoring overhead. Time-series and log systems often combine this with downsampling, keeping full-resolution recent data and only aggregates for old data.\n\nDesign details matter: queries need to know where data lives or go through a layer that hides it, indexes and metadata should stay on a fast tier even when payloads are cold, and a retention policy should finally delete data that no longer has any value or obligation to be kept. Restores from cold storage should be tested, since an untested archive is not a backup.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the core idea behind tiered storage?",
+      "options": [
+        "Replicate every object on all storage classes",
+        "Place data on storage classes matched to how often it is accessed",
+        "Compress all data identically",
+        "Keep all data in memory"
+      ],
+      "answer": 1,
+      "explanation": "Access frequency differs by data age, so cheaper media can hold rarely used data."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Moving frequently read data to an archive tier always reduces total cost.",
+      "answer": false,
+      "explanation": "Archive tiers often charge for retrieval and have minimum durations, so frequent reads can cost more."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "Which workload is best suited to simple age-based lifecycle rules?",
+      "options": [
+        "Randomly accessed user profile data",
+        "Time-ordered logs and metrics whose value decays with age",
+        "Session tokens",
+        "Hot-key counters"
+      ],
+      "answer": 1,
+      "explanation": "For time-ordered data, age predicts access frequency well enough that fixed thresholds work."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "Keeping full-resolution data only for recent periods and aggregates for older periods is called ____.",
+      "answer": "downsampling",
+      "acceptable": ["down-sampling", "rollup", "rollups"],
+      "explanation": "Downsampling reduces old data's size while preserving trends."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order a typical age-based data lifecycle, earliest first.",
+      "items": [
+        "Archive tier",
+        "Delete after retention expires",
+        "Hot tier",
+        "Warm tier"
+      ],
+      "answer": [2, 3, 0, 1],
+      "explanation": "Data ages from hot to warm to archive and is finally deleted when its retention period ends."
+    }
+  ]
+}

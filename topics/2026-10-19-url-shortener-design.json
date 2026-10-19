@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-19-url-shortener-design",
+  "date": "2026-10-19",
+  "title": "Designing a URL Shortener: Key Generation and Redirects",
+  "category": "system-design",
+  "lesson": "A URL shortener maps a short code to a long URL and redirects visitors. The workload is extremely read-heavy: links are created rarely but followed constantly, often 100:1 or more. That shapes everything: the core store is a simple key-value mapping (code -> long URL), reads are served from a cache in front of it, and writes are comparatively cheap.\n\nThe main design question is how to generate unique codes. Hashing the long URL (for example MD5, then truncating) is simple but truncation causes collisions, so you must check for existence and retry. A counter encoded in base62 (a-z, A-Z, 0-9) gives collision-free, compact codes: 7 characters yield 62^7, about 3.5 trillion, values. A single counter is a bottleneck and single point of failure, so systems hand out ranges of IDs to each app server (or use a distributed ID generator), which keeps allocation local and fast. Sequential counters make codes guessable, so if links must be unguessable, use random codes with a uniqueness check or shuffle/encrypt the counter value.\n\nThe redirect itself is an HTTP 301 or 302. A 301 (permanent) lets browsers and intermediaries cache the redirect, reducing load but hiding repeat clicks from your analytics and making later changes or deletions slow to take effect. A 302 (temporary) sends every click through your service, which costs traffic but allows click tracking, expiry, and edits.\n\nTo scale, put a cache (hot links follow a heavy-tailed distribution, so a small cache absorbs most reads) in front of a store that can be sharded by code, since all lookups are by key. Analytics should be recorded asynchronously, for example by publishing click events to a queue, so the redirect path stays fast. Also consider abuse: rate-limit creation, and scan targets for malware or phishing.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a URL shortener's read path usually optimized more than its write path?",
+      "options": [
+        "Links are followed far more often than they are created",
+        "Writes must be strongly consistent but reads need not be",
+        "Redirects require complex joins",
+        "Codes are never cached"
+      ],
+      "answer": 0,
+      "explanation": "The read-to-write ratio is very high, so caching and fast key lookups dominate the design."
+    },
+    {
+      "id": "q2",
+      "type": "mcq",
+      "prompt": "What is the main drawback of truncating a hash of the long URL to make the short code?",
+      "options": [
+        "Hashes cannot be encoded in base62",
+        "Truncation can produce collisions that must be detected and handled",
+        "The codes become too long",
+        "It requires a central counter"
+      ],
+      "answer": 1,
+      "explanation": "A short truncated hash space makes different URLs collide, so you must check existence and retry."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "A 301 redirect is cached by browsers, so it can hide repeat clicks from the shortener's analytics.",
+      "answer": true,
+      "explanation": "Cached permanent redirects mean later clicks may never reach the service."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "To avoid a single counter bottleneck, each app server can be given a pre-allocated ____ of IDs to hand out locally.",
+      "answer": "range",
+      "acceptable": ["block", "batch", "range of ids"],
+      "explanation": "Range allocation keeps ID generation local and only occasionally contacts the central allocator."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of handling a short-link click on a well-built service.",
+      "items": [
+        "Query the database on a cache miss",
+        "Look up the code in the cache",
+        "Return the redirect response",
+        "Publish a click event asynchronously"
+      ],
+      "answer": [1, 0, 2, 3],
+      "explanation": "Check the cache, fall back to the store, redirect, and record analytics off the critical path."
+    }
+  ]
+}
