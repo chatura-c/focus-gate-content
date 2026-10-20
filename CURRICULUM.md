@@ -116,6 +116,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 103 | 2026-10-18 | Deleting Data: Soft Deletes, Tombstones, and Erasure | `2026-10-18-soft-delete-tombstones-erasure` |
 | 104 | 2026-10-19 | Designing a URL Shortener: Key Generation and Redirects | `2026-10-19-url-shortener-design` |
 | 105 | 2026-10-19 | Tiered Storage: Hot, Warm, and Cold Data | `2026-10-19-tiered-storage-hot-warm-cold` |
+| 106 | 2026-10-20 | Designing a Web Crawler: URL Frontier, Politeness, and Deduplication | `2026-10-20-web-crawler-design` |
+| 107 | 2026-10-20 | Designing a Chat System: Delivery, Ordering, and Presence | `2026-10-20-chat-system-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

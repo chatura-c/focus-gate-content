@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-20-web-crawler-design",
+  "date": "2026-10-20",
+  "title": "Designing a Web Crawler: URL Frontier, Politeness, and Deduplication",
+  "category": "system-design",
+  "lesson": "A web crawler starts from seed URLs, fetches pages, extracts links, and repeats. The core data structure is the URL frontier: the queue of URLs waiting to be fetched. A naive FIFO queue breaks down quickly, because it ignores two things a real crawler must handle: priority (some pages are more valuable or change more often) and politeness (hammering one host is rude and gets you blocked).\n\nPoliteness is usually enforced by partitioning the frontier by host. Each host maps to its own queue, and a scheduler ensures only one worker fetches from a given host at a time, with a minimum delay between requests to it. The crawler also fetches and respects each site's robots.txt, caching it per host. Priority is layered on top, for example front queues ranked by page importance or freshness feeding back queues that are keyed per host.\n\nDeduplication happens at two levels. URL-level: normalize URLs (lowercase host, strip fragments, resolve relative paths, drop tracking parameters) and check a seen-set before enqueueing; at billions of URLs this set is often a Bloom filter or a sharded key-value store. Content-level: different URLs frequently serve the same or nearly the same content, so crawlers hash page content (or use similarity hashes such as SimHash for near-duplicates) to avoid indexing it twice.\n\nOther hazards include crawler traps (infinite calendars or session-ID URLs, mitigated with depth limits and URL-length caps), DNS lookup cost (cache resolutions), and recrawl scheduling, where pages that change often are revisited more frequently than static ones. The crawler is horizontally scaled by sharding the frontier by host hash, so each worker owns a set of hosts and politeness stays local to it.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a single global FIFO queue a poor URL frontier for a crawler?",
+      "options": [
+        "It cannot store more than a million URLs",
+        "It ignores per-host politeness and URL priority",
+        "It makes DNS lookups impossible",
+        "It prevents horizontal scaling entirely"
+      ],
+      "answer": 1,
+      "explanation": "A plain FIFO can send many consecutive requests to one host and cannot favor important or fast-changing pages."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Sharding the frontier by a hash of the host makes per-host politeness easier to enforce.",
+      "answer": true,
+      "explanation": "All URLs for a host land on one worker, so rate limits and delays for that host can be enforced locally without coordination."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A space-efficient probabilistic structure often used to check whether a URL was already seen is a ____ filter.",
+      "answer": "Bloom",
+      "acceptable": ["bloom filter"],
+      "explanation": "A Bloom filter answers set membership with no false negatives and a small false-positive rate, using far less memory than storing every URL."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Two different URLs return nearly identical article text. Which technique helps detect this?",
+      "options": [
+        "URL normalization alone",
+        "Content fingerprinting such as SimHash",
+        "Increasing crawl depth",
+        "Caching robots.txt"
+      ],
+      "answer": 1,
+      "explanation": "Normalization only merges URL variants; content or similarity hashing detects duplicate content behind distinct URLs."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of one crawl iteration, earliest first.",
+      "items": [
+        "Add unseen normalized links to the frontier",
+        "Pick a URL from the frontier respecting host delay",
+        "Extract links from the page",
+        "Fetch the page"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "The crawler picks a politely schedulable URL, fetches it, extracts links, then enqueues only those not seen before."
+    }
+  ]
+}

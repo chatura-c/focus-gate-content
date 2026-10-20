@@ -754,5 +754,19 @@
     "title": "Tiered Storage: Hot, Warm, and Cold Data",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-20-web-crawler-design",
+    "date": "2026-10-20",
+    "title": "Designing a Web Crawler: URL Frontier, Politeness, and Deduplication",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-20-chat-system-design",
+    "date": "2026-10-20",
+    "title": "Designing a Chat System: Delivery, Ordering, and Presence",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
