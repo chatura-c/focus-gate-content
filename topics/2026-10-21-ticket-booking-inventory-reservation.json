@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-21-ticket-booking-inventory-reservation",
+  "date": "2026-10-21",
+  "title": "Ticket Booking: Preventing Double-Booking with Reservations",
+  "category": "system-design",
+  "lesson": "In a ticketing or seat-booking system, the hard part is that many users want the same scarce item at once and no seat may be sold twice. Correctness lives in the database that owns inventory, not in the application layer: a check-then-write done in app code races under concurrency, so the claim itself must be atomic.\n\nTwo standard techniques achieve this. Pessimistic locking (SELECT ... FOR UPDATE) locks the seat row while the transaction decides. Optimistic concurrency uses a version column or a conditional update such as UPDATE seats SET status='held' WHERE id=? AND status='available', and treats zero rows affected as a lost race. Conditional updates are cheap and avoid holding locks across slow user actions.\n\nBecause checkout takes minutes, systems use a two-step flow: first a temporary hold (reservation) with an expiry time, then a confirmed booking after payment succeeds. Holds release automatically when they expire, either via a TTL in a store like Redis or a background sweeper that reverts expired rows, so abandoned carts do not block inventory forever. Payment and booking are coordinated carefully, often with idempotency keys so a retried payment does not double charge, and a saga-style compensation releases the seat if payment fails.\n\nFor extreme demand such as a popular on-sale, a virtual waiting room or queue meters how many users reach the booking path, protecting the database. Sharding by event keeps contention local, since a single hot event still funnels its writes to one place.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is checking a seat's availability in application code and then writing it unsafe?",
+      "options": [
+        "Reads are always slower than writes",
+        "Two requests can both see it available before either writes, causing a double sale",
+        "Databases cannot store seat status",
+        "It forces the use of a cache"
+      ],
+      "answer": 1,
+      "explanation": "Check-then-write is not atomic, so concurrent requests can both pass the check; the claim must be atomic in the database."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "A temporary claim on a seat that expires if payment is not completed is called a ____.",
+      "answer": "hold",
+      "acceptable": ["reservation", "temporary hold", "seat hold"],
+      "explanation": "A hold with an expiry reserves the seat during checkout and frees it automatically if the user abandons the purchase."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "With a conditional update like UPDATE ... WHERE status='available', zero affected rows means another request already claimed the seat.",
+      "answer": true,
+      "explanation": "The condition and write happen atomically, so no rows affected indicates the seat was no longer available."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main benefit of a virtual waiting room during a huge on-sale?",
+      "options": [
+        "It makes seats unlimited",
+        "It meters traffic reaching the booking path to protect the database",
+        "It removes the need for holds",
+        "It replaces payment processing"
+      ],
+      "answer": 1,
+      "explanation": "Admitting users gradually keeps contention and load on inventory writes within what the backend can handle."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a successful booking, earliest first.",
+      "items": [
+        "Booking is confirmed and the hold is converted",
+        "User selects a seat and an atomic hold is placed",
+        "Payment is charged with an idempotency key",
+        "The hold's expiry timer starts counting down"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "The seat is held atomically with an expiry, payment is attempted, and only on success is the hold turned into a booking."
+    }
+  ]
+}

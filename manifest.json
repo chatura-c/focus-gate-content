@@ -768,5 +768,19 @@
     "title": "Designing a Chat System: Delivery, Ordering, and Presence",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-21-notification-system-design",
+    "date": "2026-10-21",
+    "title": "Designing a Notification System: Fan-out, Preferences, and Delivery",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-21-ticket-booking-inventory-reservation",
+    "date": "2026-10-21",
+    "title": "Ticket Booking: Preventing Double-Booking with Reservations",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-21-notification-system-design",
+  "date": "2026-10-21",
+  "title": "Designing a Notification System: Fan-out, Preferences, and Delivery",
+  "category": "system-design",
+  "lesson": "A notification system turns events (a new follower, a shipped order) into messages on several channels such as push, email, SMS, and in-app. The core design decouples producers from delivery: services publish an event to a queue or log, a notification service resolves who should be told and how, and per-channel workers deliver through third-party providers (APNs, FCM, an email or SMS gateway). Separate queues per channel and per priority keep a slow email provider from delaying a time-sensitive security code.\n\nBefore sending, the service applies user preferences (opt-outs, channel choices, quiet hours), templating and localization, and rate limits or batching so one noisy event stream does not spam a person. Large fan-outs, such as a broadcast to millions of devices, are split into chunks processed in parallel and are usually lower priority than transactional messages.\n\nReliability follows the same pattern as other at-least-once pipelines: workers retry failed provider calls with exponential backoff and jitter, and messages that keep failing go to a dead letter queue. Because retries can duplicate sends, each notification gets a stable idempotency key, and the service records it so the same event does not produce two messages. Provider feedback, such as invalid device tokens or hard email bounces, should be used to prune bad addresses.\n\nProviders give no strong delivery guarantee, so the system tracks status (queued, sent, delivered, opened) from provider callbacks rather than assuming success. Treat sending as best-effort with visibility, and keep in-app notifications in your own store so users can still see what they missed.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why use separate queues per channel and priority in a notification system?",
+      "options": [
+        "So a slow email provider or bulk broadcast cannot delay urgent messages like security codes",
+        "To guarantee exactly-once delivery to every device",
+        "To avoid needing user preferences",
+        "Because push providers require one queue per user"
+      ],
+      "answer": 0,
+      "explanation": "Isolating queues stops a backlog or slow provider in one lane from head-of-line blocking time-sensitive messages."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Because push and email providers acknowledge requests, a notification system can treat an accepted provider call as proof the user received the message.",
+      "answer": false,
+      "explanation": "Providers accept requests but do not strongly guarantee delivery, so status should be tracked via callbacks and treated as best-effort."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To stop retries from sending the same notification twice, each notification is given a stable ____ key that is recorded when sent.",
+      "answer": "idempotency",
+      "acceptable": ["idempotence", "dedup", "deduplication"],
+      "explanation": "A recorded idempotency key lets the system recognize and skip a retried send of the same event."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A provider reports that a device token is permanently invalid. What should the system do?",
+      "options": [
+        "Retry forever with backoff",
+        "Remove or deactivate that token",
+        "Send through a different user's token",
+        "Lower the priority of all that user's messages"
+      ],
+      "answer": 1,
+      "explanation": "Invalid tokens will never succeed, so pruning them avoids wasted sends and keeps provider reputation healthy."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages a notification passes through, earliest first.",
+      "items": [
+        "Per-channel worker calls the provider",
+        "Event is published by a producer service",
+        "Preferences, templating, and rate limits are applied",
+        "Provider callback updates delivery status"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "An event is published, the service filters and renders it, a worker sends it, and callbacks later update its status."
+    }
+  ]
+}

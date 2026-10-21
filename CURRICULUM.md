@@ -118,6 +118,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 105 | 2026-10-19 | Tiered Storage: Hot, Warm, and Cold Data | `2026-10-19-tiered-storage-hot-warm-cold` |
 | 106 | 2026-10-20 | Designing a Web Crawler: URL Frontier, Politeness, and Deduplication | `2026-10-20-web-crawler-design` |
 | 107 | 2026-10-20 | Designing a Chat System: Delivery, Ordering, and Presence | `2026-10-20-chat-system-design` |
+| 108 | 2026-10-21 | Designing a Notification System: Fan-out, Preferences, and Delivery | `2026-10-21-notification-system-design` |
+| 109 | 2026-10-21 | Ticket Booking: Preventing Double-Booking with Reservations | `2026-10-21-ticket-booking-inventory-reservation` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
