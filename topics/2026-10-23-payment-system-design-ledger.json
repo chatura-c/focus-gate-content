@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-23-payment-system-design-ledger",
+  "date": "2026-10-23",
+  "title": "Payment System Design: Idempotency, Ledgers, and Reconciliation",
+  "category": "system-design",
+  "lesson": "A payment system must never charge twice or lose money, so correctness outranks latency. The client attaches an idempotency key to each payment request; the server stores the key with the result and returns the stored result on a retry. This makes network timeouts safe: the caller can retry without knowing whether the first attempt succeeded, and the same applies on the call to the external payment service provider (PSP).\n\nInternally, money movement is recorded in a double-entry ledger. Every transaction writes balanced entries (a debit in one account and an equal credit in another), and entries are append-only: mistakes are corrected with new compensating entries rather than edits. This gives an audit trail, makes balances derivable by summing entries, and lets you verify that the books always sum to zero. Amounts are stored as integers in the smallest currency unit, never as floating point.\n\nA payment is a state machine (created, authorized, captured, failed, refunded), and each step that crosses a boundary, such as calling a PSP, is asynchronous and can fail ambiguously. Because a timeout does not tell you whether the PSP processed the charge, the system records intent first, then calls out, then updates state, and relies on webhooks and polling to resolve unknown outcomes. A local database transaction cannot span the PSP, so consistency across the boundary comes from this plus the outbox and saga-style compensation.\n\nFinally, reconciliation closes the loop. Periodically, the system compares its ledger against the PSP's settlement files and bank statements, flagging mismatches (missing, duplicated, or differing amounts) for investigation. Assume every external system will eventually disagree with you, and design so that disagreements are detected and repairable.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "A client times out calling the payment API and retries. What prevents a double charge?",
+      "options": [
+        "An idempotency key whose first result is stored and returned on retry",
+        "Reducing the request timeout",
+        "Using floating-point amounts",
+        "Locking the user's account for 24 hours"
+      ],
+      "answer": 0,
+      "explanation": "The stored result for the key lets the server return the original outcome instead of charging again."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a double-entry ledger, a mistaken entry should be corrected by editing or deleting it so balances stay clean.",
+      "answer": false,
+      "explanation": "Ledgers are append-only; corrections are made with new compensating entries to preserve the audit trail."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Periodically comparing your ledger with PSP settlement files and bank statements to find mismatches is called ____.",
+      "answer": "reconciliation",
+      "acceptable": ["reconcile", "reconciling"],
+      "explanation": "Reconciliation detects missing, duplicated, or differing amounts across systems."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why should monetary amounts be stored as integers in minor units (e.g. cents)?",
+      "options": [
+        "Integers compress better on disk",
+        "Floating point can introduce rounding errors",
+        "Databases cannot store decimals",
+        "PSPs reject decimal values"
+      ],
+      "answer": 1,
+      "explanation": "Binary floating point cannot represent many decimal fractions exactly, so rounding errors creep into money."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the safe sequence for charging through an external PSP, earliest first.",
+      "items": [
+        "Call the PSP with the idempotency key",
+        "Record the payment intent durably",
+        "Update state from the response, webhook, or polling",
+        "Reconcile against settlement files later"
+      ],
+      "answer": [1, 0, 2, 3],
+      "explanation": "Record intent first, then call out, then resolve the outcome, and finally reconcile."
+    }
+  ]
+}

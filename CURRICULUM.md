@@ -120,6 +120,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 107 | 2026-10-20 | Designing a Chat System: Delivery, Ordering, and Presence | `2026-10-20-chat-system-design` |
 | 108 | 2026-10-21 | Designing a Notification System: Fan-out, Preferences, and Delivery | `2026-10-21-notification-system-design` |
 | 109 | 2026-10-21 | Ticket Booking: Preventing Double-Booking with Reservations | `2026-10-21-ticket-booking-inventory-reservation` |
+| 110 | 2026-10-23 | Video Streaming: Transcoding, Chunking, and Adaptive Bitrate | `2026-10-23-video-streaming-adaptive-bitrate` |
+| 111 | 2026-10-23 | Payment System Design: Idempotency, Ledgers, and Reconciliation | `2026-10-23-payment-system-design-ledger` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

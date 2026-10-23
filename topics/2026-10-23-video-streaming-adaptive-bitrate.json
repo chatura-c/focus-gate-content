@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-23-video-streaming-adaptive-bitrate",
+  "date": "2026-10-23",
+  "title": "Video Streaming: Transcoding, Chunking, and Adaptive Bitrate",
+  "category": "system-design",
+  "lesson": "A video platform splits into an upload path and a playback path. On upload, the original file lands in object storage and a pipeline transcodes it into a ladder of renditions (for example 240p to 1080p or higher, at different bitrates) and possibly several codecs. Transcoding is CPU-heavy, so the source is cut into short segments that are processed in parallel by a pool of workers fed from a queue, then stitched into a manifest. A failed segment is simply retried instead of redoing the whole video.\n\nFor playback, modern systems use HTTP-based adaptive bitrate (ABR) streaming such as HLS or MPEG-DASH. Each rendition is stored as small chunks, typically a few seconds long, and a manifest lists which chunks and bitrates exist. Because chunks are ordinary static files fetched over HTTP, they can be cached by a CDN like any other object, which is how popular videos are served at scale without hitting origin storage.\n\nThe player drives quality, not the server. It measures recent download throughput and its buffer level, then picks the rendition for the next chunk: step down when the buffer is draining and risks a stall, step up when throughput comfortably exceeds the next bitrate. Short chunks let the player react quickly but add request overhead and reduce compression efficiency, so chunk length is a tradeoff.\n\nPractical concerns include keyframe-aligned chunk boundaries (so the player can switch renditions cleanly), pre-warming or pushing the most popular titles to CDN edges, storing rarely watched renditions in cheaper tiers, and generating renditions lazily for the long tail. Live streaming uses the same chunked approach but adds latency from chunk length and encoding, so low-latency variants shrink chunks further.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a video split into short segments before transcoding?",
+      "options": [
+        "So segments can be transcoded in parallel and failed ones retried individually",
+        "So the video can be played without a manifest",
+        "Because codecs cannot handle files over one minute",
+        "To avoid using object storage"
+      ],
+      "answer": 0,
+      "explanation": "Segmenting turns one long CPU-heavy job into many small parallel, retryable tasks."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In HLS/DASH adaptive bitrate streaming, the server decides which quality each viewer receives based on its own load.",
+      "answer": false,
+      "explanation": "The player measures throughput and buffer level and chooses the rendition for each chunk itself."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "HLS and DASH chunks are plain HTTP files, so popular ones can be served from a ____ rather than the origin.",
+      "answer": "CDN",
+      "acceptable": ["content delivery network", "cdn", "edge cache"],
+      "explanation": "Static chunk files are cacheable, letting edge caches absorb most playback traffic."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A viewer's buffer is draining quickly and throughput has dropped. What should the player do?",
+      "options": [
+        "Request the next chunk at a higher bitrate",
+        "Switch to a lower-bitrate rendition for the next chunk",
+        "Re-download the manifest from the origin only",
+        "Pause until throughput recovers fully"
+      ],
+      "answer": 1,
+      "explanation": "Stepping down trades quality for continuity and avoids a stall."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the upload-to-playback pipeline, earliest first.",
+      "items": [
+        "Player fetches chunks chosen by ABR",
+        "Original file stored in object storage",
+        "Segments transcoded in parallel into a bitrate ladder",
+        "Manifest and chunks published and cached on the CDN"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The source is stored, transcoded into renditions, published via manifest and CDN, then played back adaptively."
+    }
+  ]
+}

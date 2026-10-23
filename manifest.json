@@ -782,5 +782,19 @@
     "title": "Ticket Booking: Preventing Double-Booking with Reservations",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-23-video-streaming-adaptive-bitrate",
+    "date": "2026-10-23",
+    "title": "Video Streaming: Transcoding, Chunking, and Adaptive Bitrate",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-23-payment-system-design-ledger",
+    "date": "2026-10-23",
+    "title": "Payment System Design: Idempotency, Ledgers, and Reconciliation",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
