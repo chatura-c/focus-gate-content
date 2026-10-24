@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-24-file-sync-chunking-dedup",
+  "date": "2026-10-24",
+  "title": "File Sync Service Design: Chunking, Deduplication, and Delta Sync",
+  "category": "system-design",
+  "lesson": "A Dropbox-style sync service must move files between devices cheaply and reliably. Uploading whole files on every edit wastes bandwidth, so the client splits each file into chunks (fixed-size, or content-defined chunking where boundaries come from a rolling hash over the data) and computes a cryptographic hash of each chunk. A file is then just an ordered list of chunk hashes, which is its metadata.\n\nChunk hashes enable deduplication and delta sync. Before uploading, the client asks the server which hashes it already has and sends only the missing chunks. Identical chunks across files, versions, or even users are stored once in a content-addressed blob store. With fixed-size chunks, inserting a byte near the start shifts every later boundary and changes every hash; content-defined chunking keeps boundaries stable around the edit, so only nearby chunks change.\n\nMetadata and blob storage are separate concerns. Large blobs go to object storage, while a transactional metadata database tracks the file tree, versions, and chunk lists. A commit only makes a new version visible after all its chunks are durably stored, so other devices never see a file pointing at missing data. Devices learn about changes through a notification channel (long polling or push) and then pull the metadata diff and fetch only the chunks they lack.\n\nConflicts happen when two devices edit the same version offline. The server accepts the first commit that is based on the current version and rejects the other as stale; the losing client typically keeps both by saving a 'conflicted copy' rather than silently overwriting. Resumable uploads at chunk granularity also mean a dropped connection only costs the in-flight chunk.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do sync services often use content-defined chunking instead of fixed-size chunks?",
+      "options": [
+        "It makes chunks smaller on average",
+        "An insertion near the start changes only nearby chunk boundaries, not all later ones",
+        "It removes the need for hashing",
+        "It encrypts the chunks"
+      ],
+      "answer": 1,
+      "explanation": "Boundaries derived from content stay stable after an insertion, so most chunk hashes are unchanged and need no re-upload."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With content-addressed chunk storage, a chunk already stored by the server does not need to be uploaded again.",
+      "answer": true,
+      "explanation": "The client checks hashes first and uploads only chunks the server lacks, which is how dedup saves bandwidth."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A file's metadata is essentially an ordered list of chunk ____.",
+      "answer": "hashes",
+      "acceptable": ["hash", "checksums", "digests"],
+      "explanation": "Each chunk is identified by its hash, so the ordered hash list defines the file contents."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Two devices edit the same file version offline. What is the safest server behavior for the second commit?",
+      "options": [
+        "Silently overwrite the first commit",
+        "Reject it as based on a stale version and let the client keep a conflicted copy",
+        "Delete both versions",
+        "Merge the bytes automatically"
+      ],
+      "answer": 1,
+      "explanation": "Detecting the stale base version and preserving both edits avoids silent data loss."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of uploading a modified file, earliest first.",
+      "items": [
+        "Commit the new version's metadata",
+        "Split the file into chunks and hash them",
+        "Upload only the chunks the server lacks",
+        "Ask the server which chunk hashes it already has"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "Chunk and hash, query for missing chunks, upload them, and only then commit metadata so the version never references missing data."
+    }
+  ]
+}

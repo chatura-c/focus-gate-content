@@ -122,6 +122,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 109 | 2026-10-21 | Ticket Booking: Preventing Double-Booking with Reservations | `2026-10-21-ticket-booking-inventory-reservation` |
 | 110 | 2026-10-23 | Video Streaming: Transcoding, Chunking, and Adaptive Bitrate | `2026-10-23-video-streaming-adaptive-bitrate` |
 | 111 | 2026-10-23 | Payment System Design: Idempotency, Ledgers, and Reconciliation | `2026-10-23-payment-system-design-ledger` |
+| 112 | 2026-10-24 | File Sync Service Design: Chunking, Deduplication, and Delta Sync | `2026-10-24-file-sync-chunking-dedup` |
+| 113 | 2026-10-24 | Collaborative Editing: Operational Transformation vs CRDTs | `2026-10-24-collaborative-editing-ot-crdt` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

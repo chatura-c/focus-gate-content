@@ -1,0 +1,57 @@
+{
+  "id": "2026-10-24-collaborative-editing-ot-crdt",
+  "date": "2026-10-24",
+  "title": "Collaborative Editing: Operational Transformation vs CRDTs",
+  "category": "system-design",
+  "lesson": "In a collaborative editor such as Google Docs, several users edit the same document at once, and every replica must converge to the same text without users losing intent. Naively applying remote operations breaks this: if one user inserts at position 5 while another deletes at position 3, applying the operations in different orders on different replicas gives different results.\n\nOperational Transformation (OT) solves this by transforming each incoming operation against operations that were applied concurrently, adjusting positions so the original intent is preserved. In the common deployment a central server assigns a total order to operations and transforms clients' operations against it, which keeps the transformation functions manageable. The tradeoff is that correct transform functions are notoriously hard to design and prove, and the approach leans on that central server.\n\nCRDT-based editors take a different approach. Each character gets a unique, immutable identifier with an ordering relation (for example, a position between two neighbors' identifiers), and operations such as 'insert after id X' are commutative, so replicas converge regardless of delivery order as long as every operation is eventually delivered. This works peer-to-peer and offline, but identifiers and tombstones for deleted characters add metadata overhead that must be managed with compaction.\n\nBoth need more than convergence for a good product. Clients apply their own edits locally immediately for responsiveness, send operations over a persistent connection such as a WebSocket, and keep presence data like cursors and selections separate from the durable document state. Periodic snapshots plus an operation log let new clients load quickly instead of replaying history from the beginning.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What problem do both OT and CRDTs solve in collaborative editing?",
+      "options": [
+        "Making replicas converge despite concurrent edits applied in different orders",
+        "Compressing documents",
+        "Authenticating users",
+        "Spell checking"
+      ],
+      "answer": 0,
+      "explanation": "Both exist to ensure all replicas end up with the same document even when edits are concurrent."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In OT, an incoming operation is adjusted (transformed) against operations that were applied concurrently before it is applied.",
+      "answer": true,
+      "explanation": "Transformation shifts positions so the operation's original intent still holds after the concurrent changes."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Text CRDTs give each character a unique ____ so that operations commute regardless of delivery order.",
+      "answer": "identifier",
+      "acceptable": ["id", "ID", "position identifier"],
+      "explanation": "Stable unique identifiers let operations refer to a place in the text independent of shifting numeric indexes."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is a main cost of text CRDTs compared with server-ordered OT?",
+      "options": [
+        "They cannot work offline",
+        "Per-character identifier and tombstone metadata overhead",
+        "They require a central lock",
+        "They cannot converge"
+      ],
+      "answer": 1,
+      "explanation": "CRDTs trade a central orderer for extra metadata that needs compaction."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "A client should wait for the server to acknowledge each keystroke before showing it locally.",
+      "answer": false,
+      "explanation": "Editors apply local edits immediately for responsiveness and reconcile with remote operations afterward."
+    }
+  ]
+}

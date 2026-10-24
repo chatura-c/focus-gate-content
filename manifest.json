@@ -796,5 +796,19 @@
     "title": "Payment System Design: Idempotency, Ledgers, and Reconciliation",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-24-file-sync-chunking-dedup",
+    "date": "2026-10-24",
+    "title": "File Sync Service Design: Chunking, Deduplication, and Delta Sync",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-24-collaborative-editing-ot-crdt",
+    "date": "2026-10-24",
+    "title": "Collaborative Editing: Operational Transformation vs CRDTs",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
