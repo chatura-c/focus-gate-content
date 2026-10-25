@@ -124,6 +124,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 111 | 2026-10-23 | Payment System Design: Idempotency, Ledgers, and Reconciliation | `2026-10-23-payment-system-design-ledger` |
 | 112 | 2026-10-24 | File Sync Service Design: Chunking, Deduplication, and Delta Sync | `2026-10-24-file-sync-chunking-dedup` |
 | 113 | 2026-10-24 | Collaborative Editing: Operational Transformation vs CRDTs | `2026-10-24-collaborative-editing-ot-crdt` |
+| 114 | 2026-10-25 | Designing a Distributed Cache: Partitioning, Replication, and Failure Handling | `2026-10-25-distributed-cache-design` |
+| 115 | 2026-10-25 | Designing Ride Hailing: Location Updates, Matching, and Dispatch | `2026-10-25-ride-hailing-dispatch-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-25-ride-hailing-dispatch-design",
+  "date": "2026-10-25",
+  "title": "Designing Ride Hailing: Location Updates, Matching, and Dispatch",
+  "category": "system-design",
+  "lesson": "A ride-hailing service continuously ingests driver locations and must match each rider request to a nearby available driver within seconds. Drivers' apps send a location update every few seconds. These writes are high-volume, but only the latest position matters for matching, so they are written to an in-memory geospatial index (for example a geohash or grid-cell index) rather than a durable relational table. A slower stream can archive the history for analytics and billing.\n\nTo find candidates, the dispatcher computes the rider's cell, queries that cell and its neighbours for available drivers, and ranks them, ideally by estimated time of arrival over the road network rather than straight-line distance. Straight-line distance can pick a driver just across a river who needs twenty minutes to reach the rider.\n\nThe match itself must be exclusive. If two riders are offered the same driver at once, one will be disappointed, so the dispatcher moves the driver into an 'offered' state atomically, sends the offer, and waits for acceptance with a short timeout. On decline or timeout the driver is released and the next candidate is tried. This is a small state machine per trip (requested, offered, accepted, en route, completed) and is typically persisted so a crashed dispatcher can resume.\n\nScaling comes from partitioning by geography: each city or region is handled by its own shard, so a busy area does not slow others. Hot spots such as stadiums after an event are handled by splitting dense cells and by degrading gracefully, for example by batching requests to match globally rather than first-come-first-served.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why are driver location updates usually written to an in-memory geospatial index rather than a durable relational table for matching?",
+      "options": [
+        "Only the latest position matters and the write volume is very high",
+        "Relational databases cannot store coordinates",
+        "Durability is forbidden for location data",
+        "Drivers never move far enough to need history"
+      ],
+      "answer": 0,
+      "explanation": "Matching needs just the current position, so a fast in-memory index fits, while history can be archived separately."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Ranking candidate drivers by straight-line distance is always as good as ranking by estimated road-network arrival time.",
+      "answer": false,
+      "explanation": "Rivers, one-way streets, and traffic can make the nearest driver by distance the slowest to arrive."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To prevent offering one driver to two riders at once, the dispatcher atomically moves the driver into an ____ state before sending the request.",
+      "answer": "offered",
+      "acceptable": ["reserved", "held"],
+      "explanation": "Marking the driver as offered makes the match exclusive, and the driver is released on decline or timeout."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How is a ride-hailing dispatch system typically scaled across a large country?",
+      "options": [
+        "One global shard handling all requests",
+        "Partitioning by geographic region such as city",
+        "Randomly assigning riders to servers",
+        "Matching only drivers registered in the same year"
+      ],
+      "answer": 1,
+      "explanation": "Matches are local, so sharding by geography keeps work in one shard and isolates busy areas."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages of a trip request, earliest first.",
+      "items": [
+        "Driver accepts the offer",
+        "Rider requests a trip",
+        "Dispatcher queries nearby cells and ranks drivers",
+        "Dispatcher offers the trip to the top driver"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "A request triggers a nearby search and ranking, then an offer, and the trip proceeds once the driver accepts."
+    }
+  ]
+}

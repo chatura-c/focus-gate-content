@@ -810,5 +810,19 @@
     "title": "Collaborative Editing: Operational Transformation vs CRDTs",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-25-distributed-cache-design",
+    "date": "2026-10-25",
+    "title": "Designing a Distributed Cache: Partitioning, Replication, and Failure Handling",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-25-ride-hailing-dispatch-design",
+    "date": "2026-10-25",
+    "title": "Designing Ride Hailing: Location Updates, Matching, and Dispatch",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-25-distributed-cache-design",
+  "date": "2026-10-25",
+  "title": "Designing a Distributed Cache: Partitioning, Replication, and Failure Handling",
+  "category": "system-design",
+  "lesson": "A distributed cache such as a Memcached or Redis fleet holds hot data in memory across many nodes so that a single machine's RAM and CPU are no longer the limit. The first design question is how keys map to nodes. Naive modulo hashing remaps most keys when a node is added or removed, which would wipe out the cache's hit rate at exactly the wrong moment. Consistent hashing (or fixed hash slots, as Redis Cluster uses) moves only a small fraction of keys when membership changes.\n\nWhere the routing logic lives is the second decision. In a client-side design, each application library knows the node list and hashes keys itself, which is fast but means every client must learn about topology changes. In a proxy-based design, clients talk to a stateless proxy tier that routes requests, which centralises topology knowledge at the cost of an extra hop. Redis Cluster takes a middle path: nodes own slots and redirect clients that ask the wrong node.\n\nCaches trade durability for speed, so failure handling matters. Replicating each shard to a replica lets a failover keep the data warm, but replication is usually asynchronous, so a promoted replica can miss the latest writes; for a cache that is acceptable because the source of truth is the database. Without replicas, losing a node causes a burst of misses that hits the database, so teams often combine replicas, request coalescing, and TTL jitter to avoid overload.\n\nFinally, treat the cache as disposable. Set a memory limit with an eviction policy such as LRU, keep values small, watch for hot keys that overload a single shard, and never make correctness depend on a key being present.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is consistent hashing (or fixed hash slots) preferred over key % N for distributing keys across cache nodes?",
+      "options": [
+        "It makes every lookup faster than a modulo",
+        "Adding or removing a node remaps only a small fraction of keys",
+        "It guarantees that every key is stored on every node",
+        "It removes the need for an eviction policy"
+      ],
+      "answer": 1,
+      "explanation": "With key % N changing N reassigns most keys and collapses the hit rate, while consistent hashing or slots moves only a small share."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With asynchronous replication, a replica promoted after a cache primary fails may be missing some of the primary's most recent writes.",
+      "answer": true,
+      "explanation": "Asynchronous replication acknowledges writes before replicas apply them, which is usually acceptable for a cache because the database remains the source of truth."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In a proxy-based cache design, clients send requests to a stateless ____ tier that routes each key to the right cache node.",
+      "answer": "proxy",
+      "acceptable": ["proxy tier", "routing proxy"],
+      "explanation": "The proxy centralises topology knowledge so clients do not each need to track node membership."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A cache node dies and no replica exists. What is the most direct risk to the system?",
+      "options": [
+        "Stored data is permanently lost from the system of record",
+        "A burst of misses sends heavy load to the database",
+        "All other cache nodes must restart",
+        "Keys on other nodes become unreadable"
+      ],
+      "answer": 1,
+      "explanation": "The lost node's keys all miss at once, so the database absorbs the sudden read load unless it is protected by coalescing or jittered TTLs."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a client-side cache lookup using consistent hashing on a cache miss, earliest first.",
+      "items": [
+        "Write the fetched value into the cache with a TTL",
+        "Hash the key to find the owning node",
+        "Read the value from the database",
+        "Query the owning cache node and get a miss"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "The client locates the owner, misses, falls back to the database, then populates the cache for later requests."
+    }
+  ]
+}
