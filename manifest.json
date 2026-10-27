@@ -824,5 +824,19 @@
     "title": "Designing Ride Hailing: Location Updates, Matching, and Dispatch",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-27-key-value-store-design",
+    "date": "2026-10-27",
+    "title": "Designing a Key-Value Store: Partitioning, Replication, and Conflict Handling",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-27-metrics-monitoring-system-design",
+    "date": "2026-10-27",
+    "title": "Designing a Metrics Monitoring System: Ingestion, Storage, and Alerting",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

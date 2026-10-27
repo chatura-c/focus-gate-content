@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-27-metrics-monitoring-system-design",
+  "date": "2026-10-27",
+  "title": "Designing a Metrics Monitoring System: Ingestion, Storage, and Alerting",
+  "category": "system-design",
+  "lesson": "A metrics monitoring system collects numeric measurements from thousands of services, stores them cheaply, and evaluates alert rules against them. Data arrives either by pull, where a collector scrapes each target's metrics endpoint on an interval (the Prometheus model), or by push, where agents send data to an ingestion tier (better for short-lived jobs and firewalled hosts). Pull gives you a free health signal, since a failed scrape means the target is down, while push scales ingestion more naturally behind a load balancer.\n\nIngested points flow into a message queue such as Kafka to absorb bursts and decouple producers from storage, then into a time-series database. Each series is identified by a metric name plus a set of labels, and points are stored compressed as timestamp and value deltas. The biggest scaling hazard is label cardinality: putting a user ID or request ID in a label creates millions of distinct series and exhausts memory and indexes.\n\nRaw data is expensive to keep forever, so systems downsample: recent data is kept at full resolution, while older data is rolled up into coarser aggregates such as five-minute averages, maxima, or histograms, and eventually expired by retention policy. Queries for dashboards read from the tier that matches the requested time range.\n\nAlerting runs as a separate evaluator that periodically executes rules against recent data. To avoid noise, rules require a condition to hold for a duration before firing, and an alert manager deduplicates, groups, and routes notifications. The monitoring system must itself be highly available and ideally monitored by an independent watchdog, because it is the thing that tells you everything else is broken."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which label choice is most likely to cause a cardinality explosion in a metrics system?",
+      "options": [
+        "HTTP method (GET, POST, PUT)",
+        "Deployment region",
+        "User ID of the caller",
+        "Service name"
+      ],
+      "answer": 2,
+      "explanation": "An unbounded value like user ID creates a new time series per user, exhausting memory and index capacity."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a pull-based design, a failed scrape of a target is itself a useful signal that the target may be down.",
+      "answer": true,
+      "explanation": "Because the collector initiates the request, being unable to reach the target is directly observable without any extra heartbeat."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Rolling old high-resolution data up into coarser aggregates to save storage is called ____.",
+      "answer": "downsampling",
+      "acceptable": ["down-sampling", "downsample", "rollup", "roll-up"],
+      "explanation": "Downsampling keeps long-term trends at a fraction of the storage cost of raw points."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why do alert rules usually require a condition to hold for a duration (such as 5 minutes) before firing?",
+      "options": [
+        "To reduce noise from brief transient spikes",
+        "To make the database queries cheaper",
+        "To guarantee alerts are delivered exactly once",
+        "To avoid needing an alert manager"
+      ],
+      "answer": 0,
+      "explanation": "A for-duration filters out momentary blips so on-call engineers are paged only for sustained problems."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages a metric data point passes through in a typical monitoring pipeline, earliest first.",
+      "items": [
+        "Stored in the time-series database",
+        "Buffered in a message queue",
+        "Evaluated by an alert rule",
+        "Scraped or pushed from a service"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "Points are collected, buffered to absorb bursts, persisted, and then queried by the alert evaluator."
+    }
+  ]
+}

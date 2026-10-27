@@ -1,0 +1,64 @@
+{
+  "id": "2026-10-27-key-value-store-design",
+  "date": "2026-10-27",
+  "title": "Designing a Key-Value Store: Partitioning, Replication, and Conflict Handling",
+  "category": "system-design",
+  "lesson": "A distributed key-value store exposes a tiny API, get(key) and put(key, value), but must scale past one machine while staying available when nodes fail. The design in the Dynamo family starts with partitioning: keys are hashed onto a ring (often with virtual nodes) so each node owns several ranges, and adding or removing a node moves only a small share of the data.\n\nFor durability and availability, each key is replicated to N consecutive nodes on the ring, called its preference list. Clients or a coordinator write to and read from those replicas using quorum parameters: a write waits for W acknowledgements and a read queries R replicas. When R + W > N, every read quorum overlaps the latest write quorum, which gives strong-ish consistency in the common case; smaller values trade consistency for latency and availability.\n\nBecause such a store favours availability, replicas can accept concurrent writes and diverge. Systems detect this with version metadata such as vector clocks and then either return all conflicting versions for the application to merge, or pick a winner with last-write-wins, which is simple but can silently drop writes. Temporary failures are masked by sloppy quorums and hinted handoff, and permanent divergence is repaired in the background with read repair and anti-entropy using Merkle trees.\n\nOn each node, the write path is typically an append to a commit log for durability, then an insert into an in-memory memtable that is flushed to immutable sorted files (an LSM tree) and compacted over time. Membership and failure detection are usually handled by gossip so there is no single coordinator to fail."
+  ,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "A store has N=3 replicas per key. Which quorum settings guarantee that every read overlaps the most recent successful write?",
+      "options": [
+        "W=1, R=1",
+        "W=2, R=2",
+        "W=1, R=2",
+        "W=3, R=0"
+      ],
+      "answer": 1,
+      "explanation": "R + W > N (2 + 2 > 3) forces any read quorum to share at least one replica with the latest write quorum."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Resolving conflicting replica versions with last-write-wins can silently discard a concurrent write.",
+      "answer": true,
+      "explanation": "LWW keeps only the version with the highest timestamp, so a concurrent write that lost the comparison is dropped without the application knowing."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Background repair that compares replicas efficiently using hash trees is called ____ repair.",
+      "answer": "anti-entropy",
+      "acceptable": ["anti entropy", "antientropy", "merkle tree"],
+      "explanation": "Anti-entropy compares Merkle tree hashes between replicas so only differing key ranges need to be synchronised."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why does a node's write path usually append to a commit log before updating the memtable?",
+      "options": [
+        "Appends make reads faster than memtable lookups",
+        "The log lets the memtable be rebuilt after a crash",
+        "The log removes the need for replication",
+        "The log keeps keys sorted on disk"
+      ],
+      "answer": 1,
+      "explanation": "The memtable lives in memory, so a sequential on-disk log provides durability and allows recovery by replay after a crash."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a single-node write in an LSM-based key-value store, earliest first.",
+      "items": [
+        "Compact flushed files in the background",
+        "Insert the entry into the in-memory memtable",
+        "Flush the full memtable to an immutable sorted file",
+        "Append the write to the commit log"
+      ],
+      "answer": [3, 1, 2, 0],
+      "explanation": "The write is logged for durability, buffered in the memtable, flushed once full, and later merged by compaction."
+    }
+  ]
+}
