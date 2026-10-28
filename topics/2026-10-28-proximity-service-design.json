@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-28-proximity-service-design",
+  "date": "2026-10-28",
+  "title": "Designing a Proximity Service: Nearby Search at Scale",
+  "category": "system-design",
+  "lesson": "A proximity service answers 'what businesses are within 2 km of me?' It is read-heavy: searches vastly outnumber business additions or edits, and business locations change rarely. That shape suggests splitting the system into a location-based read service and a separate business-management service, with the business data in a primary database replicated to read replicas, and the search path served from a geospatial index.\n\nThe core problem is that a plain index on latitude and longitude does poorly for radius queries: each index narrows only one dimension, so the database still intersects two huge ranges. Geospatial indexes map two dimensions onto something searchable. Geohash encodes a location as a string whose shared prefix means spatial closeness, so a query becomes a prefix lookup on a normal index. Quadtrees recursively split a region into four cells until each has few enough businesses, which adapts to density: dense cities get small cells and deserts get large ones.\n\nBoth approaches have an edge problem. Two points can be very close but sit in different cells, with no shared prefix, so a query must search the cell containing the user plus its eight neighbours. A query then picks a precision (cell size) matching the requested radius, fetches candidates from those cells, computes exact distances, filters to the radius, and ranks the results. If too few results come back, the search can widen to a coarser cell.\n\nTo scale, the geospatial index is small enough (a few GB for hundreds of millions of businesses) to be held in memory and replicated on many read servers rather than sharded for capacity; sharding is for throughput and is often done by region or by geohash prefix. Caching hot cells and the business details by id helps further. Updates can be applied nightly or incrementally, because a new business appearing minutes later is rarely a problem.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a plain composite index on (latitude, longitude) a poor fit for radius searches?",
+      "options": [
+        "It cannot store floating-point numbers",
+        "It narrows effectively on only one dimension, leaving a large candidate range to filter on the other",
+        "It requires every query to scan the whole table in sorted order",
+        "It can only return one result per query"
+      ],
+      "answer": 1,
+      "explanation": "A B-tree on two columns is ordered primarily by the first, so the second dimension cannot prune the range effectively, which is what geohash and quadtrees solve."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Two locations that are physically very close can have geohashes with no common prefix.",
+      "answer": true,
+      "explanation": "Points on opposite sides of a cell boundary fall into different cells, which is why searches must also check the neighbouring cells."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A spatial index that recursively splits a region into four children until each cell holds few enough businesses is called a ____.",
+      "answer": "quadtree",
+      "acceptable": ["quad tree", "quad-tree"],
+      "explanation": "A quadtree subdivides dense areas more finely, adapting cell size to business density."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of serving a 'nearby businesses' query.",
+      "items": [
+        "Compute exact distances and filter to the radius",
+        "Pick a cell precision matching the radius and find the user's cell plus neighbours",
+        "Rank and return the results",
+        "Fetch candidate business ids from those cells"
+      ],
+      "answer": [1, 3, 0, 2],
+      "explanation": "The search selects cells first, collects candidates from them, filters by true distance, then ranks."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why is the geospatial index for a proximity service usually replicated rather than primarily sharded for capacity?",
+      "options": [
+        "Geospatial data cannot be partitioned at all",
+        "The index is small enough to fit in memory on one server, so replication gives read throughput and availability",
+        "Replication makes writes strongly consistent",
+        "Sharding is forbidden by geohash prefixes"
+      ],
+      "answer": 1,
+      "explanation": "Even hundreds of millions of businesses produce an index of only a few GB, so the main need is read scaling, not storage capacity."
+    }
+  ]
+}

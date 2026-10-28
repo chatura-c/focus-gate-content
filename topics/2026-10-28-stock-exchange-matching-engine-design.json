@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-28-stock-exchange-matching-engine-design",
+  "date": "2026-10-28",
+  "title": "Designing a Stock Exchange: Order Book and Matching Engine",
+  "category": "system-design",
+  "lesson": "A stock exchange accepts buy and sell orders and matches them. Its defining requirements are very low latency, strict fairness, and complete determinism and auditability: given the same stream of orders, it must always produce the same trades. This pushes the design away from the usual horizontally scaled, loosely coordinated service.\n\nThe heart of the system is the order book for each symbol: a set of resting buy orders (bids) and sell orders (asks) sorted by price, with orders at the same price queued by arrival time. This is price-time priority: the best price matches first, and among equal prices the earliest order wins. A new order that crosses the spread executes immediately against the best opposite orders; any unfilled remainder of a limit order rests in the book. Typical implementations use sorted price levels, each holding a FIFO queue, plus a hash map from order id to its position for fast cancellation.\n\nTo make matching deterministic and fast, a sequencer assigns every incoming order a global, monotonically increasing sequence number and writes it to a durable log. The matching engine for a symbol is then a single-threaded state machine that consumes the sequenced events in order, with no locks and with the book held in memory. Because the engine is a pure function of the input log, a hot standby can replay the same log and take over after a failure, and the full history can be replayed for audits. Scaling is done by partitioning symbols across engines rather than by parallelising one book.\n\nAround this core sit gateways that authenticate clients and run risk checks before orders reach the sequencer, and market-data publishers that broadcast book updates and trades to subscribers, usually fed from the engine's output events. Trade results are persisted for clearing and settlement, which happen after matching and are handled by separate systems.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Under price-time priority, which resting buy order is matched first against an incoming sell?",
+      "options": [
+        "The largest order",
+        "The oldest order at any price",
+        "The highest-priced bid, and among equal prices the earliest",
+        "A randomly chosen bid"
+      ],
+      "answer": 2,
+      "explanation": "Price-time priority ranks by best price first, then by arrival time within a price level."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A matching engine for a single symbol is typically made fast by running many threads that match orders concurrently against the same book.",
+      "answer": false,
+      "explanation": "Engines usually use one thread per book consuming a sequenced stream, which avoids locking and keeps results deterministic."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The component that assigns each incoming order a global, monotonically increasing number and logs it durably is the ____.",
+      "answer": "sequencer",
+      "acceptable": ["order sequencer"],
+      "explanation": "The sequencer fixes a single total order of events, which makes replay and failover deterministic."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the path of a new order through the system.",
+      "items": [
+        "Matching engine matches it against the book",
+        "Sequencer assigns a sequence number and logs it",
+        "Gateway authenticates and applies risk checks",
+        "Market data and trade results are published"
+      ],
+      "answer": [2, 1, 0, 3],
+      "explanation": "Orders are validated at the gateway, sequenced, matched, then results are published downstream."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why can a hot standby engine take over safely after the primary fails?",
+      "options": [
+        "It guesses the book state from market data",
+        "It replays the same durable sequenced log, so the deterministic engine reaches an identical state",
+        "It reads the state from a shared cache",
+        "It asks clients to resubmit their orders"
+      ],
+      "answer": 1,
+      "explanation": "Because matching is a deterministic function of the sequenced input log, replaying the log reproduces the exact book."
+    }
+  ]
+}

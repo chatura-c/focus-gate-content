@@ -128,6 +128,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 115 | 2026-10-25 | Designing Ride Hailing: Location Updates, Matching, and Dispatch | `2026-10-25-ride-hailing-dispatch-design` |
 | 116 | 2026-10-27 | Designing a Key-Value Store: Partitioning, Replication, and Conflict Handling | `2026-10-27-key-value-store-design` |
 | 117 | 2026-10-27 | Designing a Metrics Monitoring System: Ingestion, Storage, and Alerting | `2026-10-27-metrics-monitoring-system-design` |
+| 118 | 2026-10-28 | Designing a Proximity Service: Nearby Search at Scale | `2026-10-28-proximity-service-design` |
+| 119 | 2026-10-28 | Designing a Stock Exchange: Order Book and Matching Engine | `2026-10-28-stock-exchange-matching-engine-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

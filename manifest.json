@@ -838,5 +838,19 @@
     "title": "Designing a Metrics Monitoring System: Ingestion, Storage, and Alerting",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-28-proximity-service-design",
+    "date": "2026-10-28",
+    "title": "Designing a Proximity Service: Nearby Search at Scale",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-10-28-stock-exchange-matching-engine-design",
+    "date": "2026-10-28",
+    "title": "Designing a Stock Exchange: Order Book and Matching Engine",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
