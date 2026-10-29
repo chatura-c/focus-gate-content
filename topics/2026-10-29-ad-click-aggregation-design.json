@@ -1,0 +1,76 @@
+{
+  "id": "2026-10-29-ad-click-aggregation-design",
+  "date": "2026-10-29",
+  "title": "Designing Ad Click Aggregation: Exactly-Once Counting at Scale",
+  "category": "system-design",
+  "lesson": "Ad click aggregation answers questions like 'how many clicks did ad X get in the last minute?' for billing and reporting. Raw click events arrive at very high volume, so the pipeline is: clients and ad servers emit events to a partitioned log such as Kafka, a stream processor aggregates them into time windows keyed by ad id, and the results are written to an OLAP or time-series store that serves dashboards. Raw events are also archived to object storage so aggregates can be recomputed.\n\nTime handling is the first subtlety. Events should be assigned to windows by event time (when the click happened), not processing time (when the server saw it), otherwise delays and retries put clicks in the wrong minute. Because events arrive late and out of order, the processor uses watermarks: an estimate of how far event time has progressed. A window is emitted once the watermark passes its end, and a small allowance for lateness trades result latency against accuracy. Stragglers beyond the allowance are handled by a later correction batch.\n\nCorrectness matters because clicks are billed. Duplicates come from client retries and at-least-once delivery, so each event carries a unique id and the pipeline either deduplicates on it or writes aggregates idempotently. Exactly-once results are achieved by combining at-least-once delivery with idempotent or transactional writes, committing consumer offsets atomically with the output state. Hot ads can skew a partition; splitting a hot key across sub-keys and merging partial counts later spreads the load.\n\nMany systems run a Lambda-style or reconciliation design: a fast streaming path gives near-real-time numbers, and a periodic batch job recomputes from the raw archive to produce the authoritative figures used for billing. Fraud and bot filtering is applied as a separate stage before aggregation.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why should click aggregation windows be based on event time rather than processing time?",
+      "options": [
+        "Processing time is not available on servers",
+        "Delays and retries would otherwise place clicks in the wrong window",
+        "Event time is always monotonically increasing",
+        "It removes the need for deduplication"
+      ],
+      "answer": 1,
+      "explanation": "Event time reflects when the click occurred, so late or retried delivery does not distort which window it counts toward."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "A stream processor's estimate of how far event time has progressed, used to decide when a window can be emitted, is called a ____.",
+      "answer": "watermark",
+      "acceptable": ["watermarks"],
+      "explanation": "Once the watermark passes a window's end, the window is considered complete apart from any allowed lateness."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "Giving each click event a unique id helps make aggregation results correct despite at-least-once delivery.",
+      "answer": true,
+      "explanation": "The id lets the pipeline deduplicate or write idempotently so retried events are not counted twice."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the stages of a click aggregation pipeline.",
+      "items": [
+        "Write windowed counts to an OLAP store for queries",
+        "Emit click events to a partitioned log",
+        "Filter fraud and deduplicate events",
+        "Aggregate by ad id into event-time windows"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "Events are ingested to the log, cleaned, aggregated into windows, then stored for serving."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What is the purpose of a periodic batch recomputation from the raw event archive?",
+      "options": [
+        "To replace the need for a streaming path entirely",
+        "To produce authoritative, corrected figures that account for late events and bugs",
+        "To reduce the number of partitions",
+        "To avoid storing raw events"
+      ],
+      "answer": 1,
+      "explanation": "The batch path recomputes from raw data, fixing late arrivals and processing errors, which matters for billing accuracy."
+    },
+    {
+      "id": "q6",
+      "type": "mcq",
+      "prompt": "How can a single extremely popular ad that overloads one partition be handled?",
+      "options": [
+        "Drop events for that ad",
+        "Split its key into sub-keys, aggregate partials, then merge them",
+        "Use processing time instead",
+        "Increase the window size to one day"
+      ],
+      "answer": 1,
+      "explanation": "Salting the hot key spreads load across workers, and partial counts are merged afterwards."
+    }
+  ]
+}

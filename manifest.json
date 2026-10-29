@@ -852,5 +852,19 @@
     "title": "Designing a Stock Exchange: Order Book and Matching Engine",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-10-29-ad-click-aggregation-design",
+    "date": "2026-10-29",
+    "title": "Designing Ad Click Aggregation: Exactly-Once Counting at Scale",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-10-29-s3-like-object-storage-design",
+    "date": "2026-10-29",
+    "title": "Designing S3-like Object Storage: Metadata, Data Placement, and Erasure Coding",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
