@@ -1,0 +1,63 @@
+{
+  "id": "2026-10-30-nearby-friends-design",
+  "date": "2026-10-30",
+  "title": "Designing Nearby Friends: Location Sharing with Pub/Sub",
+  "category": "system-design",
+  "lesson": "A nearby friends feature shows which of your friends are within some distance and updates as they move. It differs from a proximity service for businesses: the points being searched are moving users, and only friends should be visible, so the query is not a geospatial search over a huge index but a fan-out of location updates to a small social graph.\n\nA common design has each active user's client send periodic location updates over a persistent WebSocket connection. The server stores the latest location in a fast key-value store such as Redis with a TTL, so users who stop updating drop off naturally, and publishes the update to a per-user channel in a pub/sub system. Each user's WebSocket handler subscribes to the channels of their friends who have the feature enabled, so when a friend moves, the update is delivered, and the receiving side computes the distance and shows the friend only if it is within the radius.\n\nScale comes from sharding the pub/sub channels, for example with consistent hashing across a cluster of Redis pub/sub servers by user id, and from keeping the work proportional to active users rather than total users. Fan-out cost grows with friend count, so systems cap the number of friends tracked or send updates less often when users move slowly. Location history, if kept, goes to a separate write-optimized store, because the real-time path only needs the latest position.\n\nSince pub/sub is fire-and-forget, a missed message is acceptable: the next location update arrives seconds later and supersedes it. This is why durability is not required for the live channel, and why a lightweight in-memory pub/sub is a good fit. Privacy controls such as opt-in sharing and the ability to hide are essential, and should be checked on the subscribe path.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a lost location update on the live pub/sub channel generally acceptable?",
+      "options": [
+        "Location data is never important",
+        "A newer update arrives within seconds and supersedes it",
+        "Pub/sub guarantees exactly-once delivery",
+        "Clients cache all positions forever"
+      ],
+      "answer": 1,
+      "explanation": "Only the latest position matters for the live view, so occasional losses are quickly healed by the next update."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "Storing the latest location in Redis with a ____ lets inactive users disappear automatically.",
+      "answer": "TTL",
+      "acceptable": ["time to live", "time-to-live", "expiry"],
+      "explanation": "A TTL expires stale entries when a user stops sending updates."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "In this design, the cost of delivering one user's movement grows with the number of their friends who are subscribed.",
+      "answer": true,
+      "explanation": "Each update fans out to every subscribed friend, which is why systems cap tracked friends or reduce update frequency."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the flow of one location update.",
+      "items": [
+        "Friends' WebSocket handlers receive the update and check distance",
+        "Client sends location over its WebSocket",
+        "Server saves the latest location with a TTL",
+        "Server publishes the update to the user's pub/sub channel"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The update is received, stored, published, and finally filtered by distance on the receiving side."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "How can the pub/sub layer be scaled to many users?",
+      "options": [
+        "Use a single channel for all users",
+        "Shard channels across servers, for example by consistent hashing on user id",
+        "Store every update in a relational table first",
+        "Disable WebSockets"
+      ],
+      "answer": 1,
+      "explanation": "Sharding channels by user id spreads subscription and publish load across a cluster."
+    }
+  ]
+}

@@ -866,5 +866,19 @@
     "title": "Designing S3-like Object Storage: Metadata, Data Placement, and Erasure Coding",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-10-30-digital-wallet-design",
+    "date": "2026-10-30",
+    "title": "Designing a Digital Wallet: Atomic Transfers and Reproducible Balances",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-10-30-nearby-friends-design",
+    "date": "2026-10-30",
+    "title": "Designing Nearby Friends: Location Sharing with Pub/Sub",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

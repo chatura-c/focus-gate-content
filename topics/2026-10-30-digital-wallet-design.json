@@ -1,0 +1,70 @@
+{
+  "id": "2026-10-30-digital-wallet-design",
+  "date": "2026-10-30",
+  "title": "Designing a Digital Wallet: Atomic Transfers and Reproducible Balances",
+  "category": "system-design",
+  "lesson": "A digital wallet lets users hold balances and transfer money between accounts. The core requirement is correctness: money must never be created or destroyed, and a transfer must either fully happen or not happen at all. If both accounts live in the same database shard, a single ACID transaction that debits one row and credits the other is the simplest and best answer.\n\nAt scale the accounts are partitioned across shards, so a transfer spans two databases. Two-phase commit gives atomicity but blocks if the coordinator fails, so many systems use a saga instead: debit the source, then credit the destination, and run a compensating action (refund the source) if the credit fails. Every step must be idempotent, keyed by a unique transfer id, because retries after timeouts are unavoidable. Without idempotency a retried debit would charge the user twice.\n\nA stronger design is event sourcing. Instead of only storing the current balance, store an append-only log of immutable events (for example 'debited 20 from A for transfer T1'). The balance is derived by replaying the events, optionally from a periodic snapshot. This gives a complete audit trail, lets you rebuild state after a bug, and makes any balance reproducible at any point in time, which auditors and dispute handling need.\n\nTo keep ordering and consistency, all events for a given account are routed to the same partition so they are applied sequentially, and writes use optimistic checks (such as a version number) to reject concurrent updates that would overdraw an account. Read models, such as balance views for the app, are built asynchronously from the event stream (CQRS), so reads scale independently of the strictly ordered write path.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why must each step of a cross-shard wallet transfer be idempotent?",
+      "options": [
+        "Because retries after timeouts are unavoidable and must not apply the same debit twice",
+        "Because idempotent operations are faster",
+        "Because shards cannot store more than one row per account",
+        "Because it removes the need for any unique transfer id"
+      ],
+      "answer": 0,
+      "explanation": "Network timeouts force retries, and a unique transfer id makes repeated requests have the same effect as one."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If both accounts are on the same database shard, a single ACID transaction is usually the simplest way to make a transfer atomic.",
+      "answer": true,
+      "explanation": "A local transaction can debit and credit both rows atomically without needing a saga or two-phase commit."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A saga undoes an already-completed step, such as refunding the source account, using a ____ action.",
+      "answer": "compensating",
+      "acceptable": ["compensation", "compensating transaction"],
+      "explanation": "Sagas replace distributed rollback with compensating actions that semantically reverse earlier steps."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main benefit of event sourcing for a wallet ledger?",
+      "options": [
+        "Balances never need to be computed",
+        "Any past balance can be reproduced and audited from the immutable event log",
+        "It removes the need for ordering of events",
+        "It guarantees no concurrent updates can occur"
+      ],
+      "answer": 1,
+      "explanation": "The append-only log is the source of truth, so state can be rebuilt or inspected at any point in time."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a saga-based cross-shard transfer when the credit step fails.",
+      "items": [
+        "Refund the source account as a compensating action",
+        "Debit the source account",
+        "Attempt to credit the destination account",
+        "The credit fails"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "The debit happens first, the credit is attempted and fails, then the debit is compensated by a refund."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Routing all events for one account to the same partition helps apply them in order.",
+      "answer": true,
+      "explanation": "A single partition per account gives sequential processing for that account without cross-partition coordination."
+    }
+  ]
+}

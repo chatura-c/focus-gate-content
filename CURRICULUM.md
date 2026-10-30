@@ -132,6 +132,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 119 | 2026-10-28 | Designing a Stock Exchange: Order Book and Matching Engine | `2026-10-28-stock-exchange-matching-engine-design` |
 | 120 | 2026-10-29 | Designing Ad Click Aggregation: Exactly-Once Counting at Scale | `2026-10-29-ad-click-aggregation-design` |
 | 121 | 2026-10-29 | Designing S3-like Object Storage: Metadata, Data Placement, and Erasure Coding | `2026-10-29-s3-like-object-storage-design` |
+| 122 | 2026-10-30 | Designing a Digital Wallet: Atomic Transfers and Reproducible Balances | `2026-10-30-digital-wallet-design` |
+| 123 | 2026-10-30 | Designing Nearby Friends: Location Sharing with Pub/Sub | `2026-10-30-nearby-friends-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
