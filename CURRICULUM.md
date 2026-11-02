@@ -134,6 +134,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 121 | 2026-10-29 | Designing S3-like Object Storage: Metadata, Data Placement, and Erasure Coding | `2026-10-29-s3-like-object-storage-design` |
 | 122 | 2026-10-30 | Designing a Digital Wallet: Atomic Transfers and Reproducible Balances | `2026-10-30-digital-wallet-design` |
 | 123 | 2026-10-30 | Designing Nearby Friends: Location Sharing with Pub/Sub | `2026-10-30-nearby-friends-design` |
+| 124 | 2026-11-02 | Designing an Email Service: SMTP, Storage, and Search | `2026-11-02-email-service-design` |
+| 125 | 2026-11-02 | Designing a Maps Service: Tile Serving and Routing | `2026-11-02-maps-tile-serving-routing-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

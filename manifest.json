@@ -880,5 +880,19 @@
     "title": "Designing Nearby Friends: Location Sharing with Pub/Sub",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-02-email-service-design",
+    "date": "2026-11-02",
+    "title": "Designing an Email Service: SMTP, Storage, and Search",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-02-maps-tile-serving-routing-design",
+    "date": "2026-11-02",
+    "title": "Designing a Maps Service: Tile Serving and Routing",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

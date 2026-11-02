@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-02-maps-tile-serving-routing-design",
+  "date": "2026-11-02",
+  "title": "Designing a Maps Service: Tile Serving and Routing",
+  "category": "system-design",
+  "lesson": "A maps service combines three largely independent problems: drawing the map, finding a route, and estimating arrival time. Drawing the map is a content delivery problem. The world is pre-rendered or pre-encoded into tiles organized by zoom level, where each zoom level splits the world into a grid and each tile is addressed by zoom, x, and y. Clients request only the tiles covering their viewport, and because tiles are static for a given map version they are cached aggressively on a CDN. Vector tiles ship geometry and let the client style and rotate it, which saves bandwidth compared with raster images.\n\nRouting runs on a road graph where intersections are nodes and road segments are edges weighted by distance or travel time. Plain Dijkstra or A* over a continent-sized graph is too slow for interactive use, so the graph is partitioned into regions or preprocessed. Hierarchical techniques such as contraction hierarchies add shortcut edges across the graph so queries can mostly traverse major roads. Another common approach is to divide the graph into cells, precompute paths between cell boundaries, and search in detail only near the origin and destination.\n\nTravel time depends on live conditions. Traffic data is collected from anonymized location probes of users' devices, aggregated per road segment over short windows, and used to update edge weights. ETA is computed from these weights, and the service may reroute if conditions change on the way. Because live weights change constantly while the graph structure rarely does, structure-based preprocessing is kept separate from fast-changing weight data where possible.\n\nLocation updates from navigating clients are batched and sent periodically instead of on every GPS fix, which reduces write load and battery drain. Map data itself is updated through a pipeline that ingests new road data, rebuilds the affected tiles and graph partitions, and publishes a new versioned set, so clients and caches never mix tiles from different versions.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why are map tiles a good fit for CDN caching?",
+      "options": [
+        "They change on every request",
+        "They are static for a given map version and addressed by zoom, x, y",
+        "They are always tiny text files",
+        "They contain user-specific data"
+      ],
+      "answer": 1,
+      "explanation": "Tiles are identical for all users at a given version, so they cache extremely well."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Running plain Dijkstra over a continent-sized road graph is usually fast enough for interactive routing without preprocessing.",
+      "answer": false,
+      "explanation": "Large graphs make plain search too slow, which is why techniques like contraction hierarchies precompute shortcuts."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "In a road graph, intersections are nodes and road segments are ____.",
+      "answer": "edges",
+      "acceptable": ["edge", "links"],
+      "explanation": "Segments connect intersections and carry weights such as distance or travel time."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of keeping ETAs current with live traffic, earliest first.",
+      "items": [
+        "Update edge weights for the affected road segments",
+        "Aggregate probes per road segment over a short window",
+        "Devices send anonymized location probes",
+        "Compute ETA from the updated weights"
+      ],
+      "answer": [2, 1, 0, 3],
+      "explanation": "Probes are collected, aggregated per segment, applied to edge weights, and then used for ETA computation."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why version the tile set and graph when map data is updated?",
+      "options": [
+        "To make tiles larger",
+        "To avoid clients and caches mixing tiles from different map versions",
+        "To disable CDN caching",
+        "To remove the need for routing"
+      ],
+      "answer": 1,
+      "explanation": "Versioned publishing keeps the rendered map consistent and lets caches remain valid for a given version."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-02-email-service-design",
+  "date": "2026-11-02",
+  "title": "Designing an Email Service: SMTP, Storage, and Search",
+  "category": "system-design",
+  "lesson": "An email service has two halves: moving messages between servers and storing them for users. Servers exchange mail over SMTP. The sender's mail server looks up the recipient domain's MX records in DNS, connects to that server, and hands the message over. If the receiving server is down, the sender queues the message and retries with backoff for days before bouncing it, so delivery is store-and-forward rather than synchronous. Users read mail over IMAP or a web API, which is a separate path from SMTP.\n\nInbound mail passes through a pipeline before it reaches a mailbox: connection-level checks, SPF, DKIM, and DMARC validation to verify the sender's domain, spam and virus filtering, and finally a write to the user's mailbox. Each stage is typically a separate stateless service reading from a queue, which lets spam scoring scale independently and lets the system absorb bursts without dropping mail. Outbound mail uses its own queue and workers, with per-domain rate limits and IP reputation management so large volumes do not get the sender blocked.\n\nStorage is dominated by metadata and attachments with very different shapes. Message bodies and attachments are immutable blobs, well suited to object storage or a distributed file store, while metadata such as folders, read flags, labels, and thread membership is small, mutable, and queried by user. Metadata is therefore partitioned by user id so that one user's mailbox lives on one shard, and listing a folder is a range query on that shard. Large attachments are often stored once and deduplicated by content hash.\n\nSearch over a mailbox needs an inverted index, built per user or per shard of users rather than as one global index, since queries only ever target one account and isolation is a privacy requirement. Indexing happens asynchronously after delivery, so new mail may take a moment to become searchable. Threading groups messages using headers such as In-Reply-To and References, and real-time updates to open clients are pushed through a persistent connection rather than polling.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "How does a sending SMTP server find where to deliver mail for example.com?",
+      "options": [
+        "It broadcasts to all known mail servers",
+        "It looks up the domain's MX records in DNS",
+        "It asks the recipient's IMAP server",
+        "It uses the domain's A record only, always"
+      ],
+      "answer": 1,
+      "explanation": "MX records in DNS name the mail servers that accept mail for a domain."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If the recipient's mail server is temporarily unreachable, SMTP delivery is expected to fail immediately and permanently.",
+      "answer": false,
+      "explanation": "SMTP is store-and-forward: the sender queues the message and retries with backoff for an extended period before generating a bounce."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Email metadata is usually partitioned by ____ so one mailbox lives on a single shard.",
+      "answer": "user id",
+      "acceptable": ["user", "user_id", "userid", "account", "account id"],
+      "explanation": "Partitioning by user keeps folder listings and flag updates within one shard."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the stages of handling an inbound message, earliest first.",
+      "items": [
+        "Write the message to the user's mailbox",
+        "Receive the message over SMTP",
+        "Run spam and virus filtering",
+        "Verify SPF, DKIM, and DMARC"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "Mail is received, sender authenticity is checked, content is filtered, and only then is it stored in the mailbox."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why is mailbox search typically indexed per user (or per shard of users) rather than in one global index?",
+      "options": [
+        "Queries only target one account, and isolation protects privacy",
+        "Global indexes cannot store text",
+        "SMTP requires per-user indexes",
+        "Per-user indexes are always faster to build than any alternative"
+      ],
+      "answer": 0,
+      "explanation": "Searches are scoped to one account, so partitioned indexes scale naturally and keep users' data isolated."
+    }
+  ]
+}
