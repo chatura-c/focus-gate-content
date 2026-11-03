@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-03-hotel-reservation-system-design",
+  "date": "2026-11-03",
+  "title": "Designing a Hotel Reservation System: Date-Range Inventory and Overbooking",
+  "category": "system-design",
+  "lesson": "A hotel reservation system looks like ticket booking, but its inventory is shaped differently. Guests book a room type (for example, a king room) for a range of nights, not a specific seat for one event. The natural model is a per-day inventory table keyed by hotel, room type, and date, holding the total rooms and the number reserved. A booking for three nights must succeed on all three rows or none, so the reservation is a transaction that checks and updates every date in the range.\n\nConcurrency is the central problem: two guests may try to take the last room for the same night. In a relational database this can be handled with a conditional update such as incrementing reserved only where reserved is less than total, optimistic locking with a version column, or row-level locks (SELECT ... FOR UPDATE) on the date rows. Optimistic approaches work well when conflicts are rare, while locks are simpler when contention on popular dates is high. A unique constraint on a client-supplied reservation or idempotency key prevents a retried request from booking twice, which matters because payment and network calls can time out.\n\nThe booking flow is usually two-step. The system first creates a pending reservation that holds inventory for a short time, then confirms it after payment succeeds. A background job expires pending holds so abandoned checkouts release rooms. Payment is handled by a separate service, so the flow is effectively a saga: if payment fails, the hold is released as a compensating action.\n\nScaling follows access patterns. Reads dominate, since many users search and browse for each booking, so search and hotel details are served from caches and read replicas, and slightly stale availability is acceptable on browse pages as long as the final booking step checks authoritative inventory. Data can be sharded by hotel id, since a booking touches one hotel only. Many hotels deliberately accept more reservations than rooms, typically a few percent, because of cancellations and no-shows, so overbooking is a configurable limit above physical capacity rather than a bug, and the system needs a policy for the rare case when everyone shows up.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the best-fitting inventory model for a hotel booking system?",
+      "options": [
+        "One row per guest",
+        "A per-day count of total and reserved rooms for each room type",
+        "A single global counter of rooms",
+        "One row per booking attempt, with no inventory table"
+      ],
+      "answer": 1,
+      "explanation": "Guests book a room type over date ranges, so per-date counts per room type let the system check each night."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A three-night booking should be applied atomically across all three nights' inventory rows.",
+      "answer": true,
+      "explanation": "Partial success would leave a guest with only some nights reserved, so the update must be all-or-nothing."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A unique ____ key on the reservation request lets a retried call avoid creating a duplicate booking.",
+      "answer": "idempotency",
+      "acceptable": ["idempotent", "reservation"],
+      "explanation": "The unique key makes retries safe by letting the system detect and return the original booking."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of a typical booking flow, earliest first.",
+      "items": [
+        "Confirm the reservation",
+        "Charge the payment",
+        "Create a pending reservation holding inventory",
+        "Search for available rooms"
+      ],
+      "answer": [3, 2, 1, 0],
+      "explanation": "The guest searches, a hold is placed, payment is taken, and the reservation is then confirmed."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why might a hotel system intentionally allow reservations slightly above physical room count?",
+      "options": [
+        "To avoid needing a database",
+        "Because cancellations and no-shows leave rooms empty otherwise",
+        "Because inventory counts cannot be accurate",
+        "To reduce search latency"
+      ],
+      "answer": 1,
+      "explanation": "Controlled overbooking offsets expected cancellations and no-shows, bounded by a configured limit."
+    }
+  ]
+}

@@ -894,5 +894,19 @@
     "title": "Designing a Maps Service: Tile Serving and Routing",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-03-distributed-message-queue-design",
+    "date": "2026-11-03",
+    "title": "Designing a Distributed Message Queue: Storage, Delivery, and Consumer Offsets",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-03-hotel-reservation-system-design",
+    "date": "2026-11-03",
+    "title": "Designing a Hotel Reservation System: Date-Range Inventory and Overbooking",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

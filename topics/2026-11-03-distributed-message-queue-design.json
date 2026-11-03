@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-03-distributed-message-queue-design",
+  "date": "2026-11-03",
+  "title": "Designing a Distributed Message Queue: Storage, Delivery, and Consumer Offsets",
+  "category": "system-design",
+  "lesson": "A distributed message queue decouples producers from consumers: producers append messages to a named topic, and consumers read them later at their own pace. The core design question is how to make this both fast and durable. The dominant answer is an append-only log per partition. Writes are sequential disk appends, which are far faster than random writes, and reads are sequential scans from an offset. A topic is split into partitions so throughput scales horizontally, and ordering is guaranteed only within a single partition. Producers choose the partition, typically by hashing a message key so related messages (for example, all events for one order) land together and stay ordered.\n\nDurability comes from replication. Each partition has a leader that accepts writes and followers that copy the log. The producer chooses an acknowledgment level: acknowledging after the leader's local write is fastest but can lose data if the leader dies before followers catch up, while waiting for all in-sync replicas is slower but survives a leader failure. A broker only counts replicas that are keeping up as in-sync, and a message is considered committed once all in-sync replicas have it. A metadata or coordination service tracks which broker leads each partition and triggers a new leader election from the in-sync set when a broker fails.\n\nConsumers track their progress with an offset, the position of the next message to read in each partition. Because the log is retained (by time or size) rather than deleted on read, a consumer can rewind to reprocess history, and many independent consumer groups can read the same topic. Within a group, each partition is assigned to exactly one consumer, so adding consumers up to the partition count increases parallelism, and a rebalance reassigns partitions when members join or leave. Committing the offset after processing gives at-least-once delivery, since a crash between processing and commit causes redelivery; committing before processing risks at-most-once. Exactly-once effects require idempotent consumers or transactional writes.\n\nOperational concerns shape the rest of the design. Batching and compression on the producer improve throughput at the cost of a little latency. A slow consumer simply falls behind (consumer lag), which is a key metric to monitor, and it does not slow producers as long as retention outlasts the lag. Messages that repeatedly fail processing are moved to a dead letter queue so one poison message does not block a partition. Choosing the partition count up front matters, because increasing it later changes the key-to-partition mapping and breaks per-key ordering for existing data.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why are append-only logs a good storage structure for a message queue partition?",
+      "options": [
+        "Writes and reads are sequential, which disks handle very efficiently",
+        "They allow arbitrary in-place updates of old messages",
+        "They guarantee ordering across all partitions of a topic",
+        "They remove the need for replication"
+      ],
+      "answer": 0,
+      "explanation": "Sequential appends and sequential scans from an offset avoid slow random disk I/O."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A topic with multiple partitions guarantees message ordering across the whole topic.",
+      "answer": false,
+      "explanation": "Ordering is guaranteed only within a single partition, which is why related messages share a key."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A consumer's position in a partition, used to resume reading after a restart, is called its ____.",
+      "answer": "offset",
+      "acceptable": ["consumer offset", "committed offset"],
+      "explanation": "The offset marks the next message to read, and committing it persists progress."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A consumer commits its offset only after finishing processing, then crashes right after processing but before committing. What happens on restart?",
+      "options": [
+        "The message is lost permanently",
+        "The message is redelivered, giving at-least-once semantics",
+        "The message is delivered exactly once automatically",
+        "The partition is deleted"
+      ],
+      "answer": 1,
+      "explanation": "The uncommitted offset means the consumer re-reads the message, so consumers should be idempotent."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a write with full replication acknowledgment, earliest first.",
+      "items": [
+        "Producer receives the acknowledgment",
+        "In-sync followers copy the message",
+        "Producer sends the message to the partition leader",
+        "Leader appends the message to its log"
+      ],
+      "answer": [2, 3, 1, 0],
+      "explanation": "The leader appends first, followers replicate, and only then is the producer acknowledged."
+    }
+  ]
+}
