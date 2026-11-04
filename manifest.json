@@ -908,5 +908,19 @@
     "title": "Designing a Hotel Reservation System: Date-Range Inventory and Overbooking",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-04-unique-id-generator-snowflake",
+    "date": "2026-11-04",
+    "title": "Designing a Unique ID Generator: Snowflake-Style IDs",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-04-news-feed-design",
+    "date": "2026-11-04",
+    "title": "Designing a News Feed: Fanout on Write vs Read",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

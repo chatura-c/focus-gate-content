@@ -138,6 +138,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 125 | 2026-11-02 | Designing a Maps Service: Tile Serving and Routing | `2026-11-02-maps-tile-serving-routing-design` |
 | 126 | 2026-11-03 | Designing a Distributed Message Queue: Storage, Delivery, and Consumer Offsets | `2026-11-03-distributed-message-queue-design` |
 | 127 | 2026-11-03 | Designing a Hotel Reservation System: Date-Range Inventory and Overbooking | `2026-11-03-hotel-reservation-system-design` |
+| 128 | 2026-11-04 | Designing a Unique ID Generator: Snowflake-Style IDs | `2026-11-04-unique-id-generator-snowflake` |
+| 129 | 2026-11-04 | Designing a News Feed: Fanout on Write vs Read | `2026-11-04-news-feed-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

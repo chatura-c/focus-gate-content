@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-04-news-feed-design",
+  "date": "2026-11-04",
+  "title": "Designing a News Feed: Fanout on Write vs Read",
+  "category": "system-design",
+  "lesson": "A news feed shows a user recent posts from the accounts they follow. Two steps matter: publishing a post and building the feed. The central design choice is when to do the work of assembling each user's feed, and the two classic options are fanout on write and fanout on read.\n\nIn fanout on write (push), when a user posts, the system looks up their followers and inserts the post ID into each follower's precomputed feed list, usually held in a cache such as Redis. Reading a feed is then a fast lookup. The cost is write amplification: a user with millions of followers triggers millions of inserts per post, which is slow and wasteful, especially for followers who rarely log in.\n\nIn fanout on read (pull), nothing is precomputed. When a user opens the app, the system fetches recent posts from everyone they follow and merges them. Writes are cheap and the data is always fresh, but reads are slow and expensive because they touch many accounts.\n\nMost large systems use a hybrid. Regular users are handled with push, while celebrity accounts with huge follower counts are excluded from fanout and their posts are pulled and merged into the feed at read time. Feeds typically store only post IDs, and the content, author details, and counters are hydrated from separate caches and stores when the page is rendered. Fanout is performed asynchronously through a message queue and worker fleet so that posting returns quickly, and feeds are paginated with cursors rather than offsets so new posts do not shift pages. Ranking can then be layered on top of the candidate list.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main downside of fanout on write?",
+      "options": [
+        "Slow feed reads",
+        "Write amplification for users with many followers",
+        "Stale author profiles",
+        "It needs no cache"
+      ],
+      "answer": 1,
+      "explanation": "One post from a high-follower account causes a write per follower."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Fanout on read makes feed reads cheap but publishing expensive.",
+      "answer": false,
+      "explanation": "It is the reverse: publishing is cheap, but reads must gather and merge posts from many followed accounts."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Many systems use a ____ approach: push for normal users and pull for celebrity accounts.",
+      "answer": "hybrid",
+      "acceptable": ["mixed", "combined"],
+      "explanation": "Hybrid avoids huge fanouts for celebrities while keeping reads fast for most users."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of fanout on write, earliest first.",
+      "items": [
+        "Workers insert the post ID into followers' feed caches",
+        "User publishes a post",
+        "Post is saved and a fanout task is queued",
+        "Follower opens the app and reads the cached feed"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "The post is stored, fanout runs asynchronously, and later reads hit the precomputed feed."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why paginate feeds with cursors instead of offsets?",
+      "options": [
+        "Cursors use less memory on clients",
+        "New posts do not shift page boundaries and cause duplicates or gaps",
+        "Offsets are not supported by caches",
+        "Cursors remove the need for ranking"
+      ],
+      "answer": 1,
+      "explanation": "A cursor anchors to a specific item, so inserts at the top do not change what comes next."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "id": "2026-11-04-unique-id-generator-snowflake",
+  "date": "2026-11-04",
+  "title": "Designing a Unique ID Generator: Snowflake-Style IDs",
+  "category": "system-design",
+  "lesson": "Distributed systems often need unique IDs generated without a central bottleneck. A single database auto-increment column gives ordered IDs but becomes a single point of failure and a throughput limit once many services or shards insert in parallel. Random UUIDs (128-bit) need no coordination and collide with negligible probability, but they are large and unordered, which hurts index locality in B-tree indexes because new rows land at random positions.\n\nSnowflake-style IDs fit in 64 bits and combine three parts: a timestamp in milliseconds since a custom epoch in the high bits, a machine (or datacenter plus worker) ID in the middle, and a per-millisecond sequence number in the low bits. A common split is 41 bits of timestamp (about 69 years), 10 bits of machine ID (1024 generators), and 12 bits of sequence (4096 IDs per millisecond per generator). Because the timestamp occupies the high bits, IDs are roughly time-ordered, so sorting by ID approximates sorting by creation time and inserts stay mostly append-like in an index.\n\nEach generator works independently once it has a unique machine ID, assigned at startup via a coordination service such as ZooKeeper or etcd, or via configuration. Within one millisecond the generator increments the sequence; if the sequence overflows, it waits for the next millisecond. The main hazard is clock behavior: if the system clock moves backward, for example after an NTP adjustment, the generator could reissue an ID it already produced. Typical defenses are to refuse to generate (or wait) until the clock catches up beyond the last used timestamp.\n\nThe trade-offs are worth knowing. IDs are only roughly ordered across machines, since clocks are not perfectly synchronized, so they do not give a strict global ordering. Machine IDs must never be shared by two live generators. The design also leaks creation time, which may matter for public IDs. Still, it offers high throughput, compact size, and no per-ID network call.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is a main drawback of random UUIDs as primary keys in a B-tree indexed table?",
+      "options": [
+        "They collide frequently",
+        "They are unordered, so inserts land at random index positions",
+        "They require a central server",
+        "They cannot be stored in a database"
+      ],
+      "answer": 1,
+      "explanation": "Random keys scatter inserts across the index, hurting locality, while time-prefixed IDs append mostly at the end."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "In a Snowflake-style ID, the high bits hold a ____ so that IDs are roughly sortable by creation time.",
+      "answer": "timestamp",
+      "acceptable": ["time stamp", "time"],
+      "explanation": "Putting the timestamp in the most significant bits makes numeric order approximate time order."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "If a Snowflake generator's clock moves backward, it can safely keep issuing IDs using the new, earlier time.",
+      "answer": false,
+      "explanation": "Doing so could reproduce a timestamp and sequence already used, creating duplicate IDs."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "With 12 sequence bits, how many IDs can one generator produce per millisecond?",
+      "options": ["12", "1024", "4096", "65536"],
+      "answer": 2,
+      "explanation": "12 bits give 2^12 = 4096 distinct sequence values per millisecond."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the Snowflake ID fields from most significant to least significant bits.",
+      "items": ["Sequence number", "Timestamp", "Machine ID"],
+      "answer": [1, 2, 0],
+      "explanation": "Timestamp comes first for ordering, then machine ID, then the per-millisecond sequence."
+    }
+  ]
+}
