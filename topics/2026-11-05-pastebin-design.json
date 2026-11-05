@@ -1,0 +1,62 @@
+{
+  "id": "2026-11-05-pastebin-design",
+  "date": "2026-11-05",
+  "title": "Designing a Pastebin: Blob Storage, Expiry, and Key Generation",
+  "category": "system-design",
+  "lesson": "A pastebin lets users store a chunk of text and share it via a short link. The workload is read-heavy and the content is immutable once written, which simplifies almost everything. The core design splits metadata (paste key, owner, created time, expiry time, visibility, size) from the content itself. Metadata is small and fits a key-value or relational store; the text body can be large, so it belongs in object storage with only a pointer kept in the metadata row. Small pastes may be inlined in the database to save a round trip, but the blob split keeps the database lean as volume grows.\n\nKeys must be short, unique, and hard to guess if pastes are unlisted. One approach is to generate a random base62 string and check for collision on insert, retrying on conflict. Another is a pre-generated key service: a separate component produces unused keys in advance and hands them out in batches to app servers, which removes collision checks from the write path. Sequential IDs encoded in base62 are compact but enumerable, so anyone can walk through every paste; unguessable random keys are preferable for unlisted content.\n\nBecause pastes are immutable, they cache extremely well. Put a CDN in front of the read path and a cache such as Redis for hot metadata, and a cache hit never needs invalidation except on delete or expiry. Reads vastly outnumber writes, so scaling reads is mostly a caching and replication problem, while writes scale by partitioning metadata on the paste key.\n\nExpiry is the interesting operational piece. Checking the expiry time on every read gives correctness immediately, so an expired paste is never served even if it is still on disk. Actual deletion can then happen lazily on read and through a background sweeper that scans for expired entries in batches, or via storage-level TTLs or lifecycle rules. Separating logical expiry (checked at read time) from physical cleanup (done asynchronously) avoids expensive synchronous deletes and keeps the read path simple.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is the paste body usually stored in object storage rather than in the metadata database?",
+      "options": [
+        "Object storage is faster for small key lookups",
+        "Bodies can be large, and keeping them out keeps the metadata store small and lean",
+        "Databases cannot store text",
+        "It makes expiry unnecessary"
+      ],
+      "answer": 1,
+      "explanation": "Large blobs bloat the database; metadata holds just a pointer to the body in cheaper, scalable object storage."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Encoding a sequential counter in base62 is a good choice for unlisted pastes because the keys are short and hard to guess.",
+      "answer": false,
+      "explanation": "Sequential keys are compact but enumerable, so an attacker can iterate through every paste."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "What is the main benefit of a pre-generated key service?",
+      "options": [
+        "It makes keys sequential",
+        "It removes collision checks from the write path by handing out unused keys in batches",
+        "It eliminates the need for a database",
+        "It encrypts paste content"
+      ],
+      "answer": 1,
+      "explanation": "Keys are generated ahead of time as unique, so app servers can assign one without checking for collisions."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "Because pastes are ____, cached copies rarely need invalidation except on delete or expiry.",
+      "answer": "immutable",
+      "acceptable": ["immutable once written", "read-only"],
+      "explanation": "Content that never changes can be cached aggressively since stale copies are not a concern."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order how an expired paste is typically handled, from first to last.",
+      "items": [
+        "Background sweeper physically deletes the data",
+        "Read request checks expiry time and refuses to serve",
+        "Paste is created with an expiry timestamp"
+      ],
+      "answer": [2, 1, 0],
+      "explanation": "Expiry is recorded at creation, enforced logically on reads, and physically cleaned up asynchronously later."
+    }
+  ]
+}

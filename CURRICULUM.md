@@ -140,6 +140,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 127 | 2026-11-03 | Designing a Hotel Reservation System: Date-Range Inventory and Overbooking | `2026-11-03-hotel-reservation-system-design` |
 | 128 | 2026-11-04 | Designing a Unique ID Generator: Snowflake-Style IDs | `2026-11-04-unique-id-generator-snowflake` |
 | 129 | 2026-11-04 | Designing a News Feed: Fanout on Write vs Read | `2026-11-04-news-feed-design` |
+| 130 | 2026-11-05 | Designing a Pastebin: Blob Storage, Expiry, and Key Generation | `2026-11-05-pastebin-design` |
+| 131 | 2026-11-05 | Designing Live Comments: Fan-out to Millions of Viewers | `2026-11-05-live-comments-fanout-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

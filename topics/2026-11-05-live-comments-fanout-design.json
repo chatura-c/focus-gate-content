@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-05-live-comments-fanout-design",
+  "date": "2026-11-05",
+  "title": "Designing Live Comments: Fan-out to Millions of Viewers",
+  "category": "system-design",
+  "lesson": "Live comments on a streaming or sports event pose a fan-out problem: a single popular stream may have millions of concurrent viewers, and each new comment should reach all of them within a second or two. Unlike chat between friends, the audience is huge and mostly passive, and there is no need to deliver every message to every viewer. That relaxation shapes the whole design.\n\nClients hold a long-lived connection to an edge server, typically a WebSocket or Server-Sent Events stream, since the traffic is mostly server to client. A comment write goes to a comment service that validates it, applies moderation and rate limits, and appends it to a durable log or stream partitioned by stream ID. A fan-out layer subscribes to that stream and pushes messages out to the edge servers that have viewers of that stream, usually through pub/sub with one topic per stream. Each edge server keeps a map from stream ID to its connected clients and writes to them locally, so the cross-datacenter traffic is one copy per edge server rather than one per viewer.\n\nAt very high rates, sending every comment is neither possible nor useful: no viewer can read thousands of messages per second. So the system samples or batches. The edge server can send comments in small batches every few hundred milliseconds, drop a fraction when the rate exceeds a threshold, and prioritize highlighted or pinned comments. Because the stream is ephemeral, losing some comments is acceptable, which lets the delivery path favor low latency over strict reliability.\n\nNew joiners need context, so a cache of the most recent comments per stream, such as a capped list in memory, is served on connect before live updates begin. Hot streams create hot partitions, so the log partition for a viral stream can be split or the fan-out tier can be scaled by adding edge servers. Moderation runs asynchronously where possible, with a fast path for blocking obviously abusive content before it is broadcast.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which transport suits live comments, where traffic flows mostly from server to many clients?",
+      "options": [
+        "Polling once per minute",
+        "WebSocket or Server-Sent Events over a long-lived connection",
+        "Email",
+        "A new TCP connection per comment"
+      ],
+      "answer": 1,
+      "explanation": "Long-lived push connections give low latency without the overhead of repeated polling."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "To reduce cross-datacenter traffic, the fan-out layer sends one copy of each comment per ____ server, which then writes to its local viewers.",
+      "answer": "edge",
+      "acceptable": ["edge server", "edge node"],
+      "explanation": "Edge servers hold the viewer connections, so the backbone carries one copy per edge, not per viewer."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "For a viral live stream, it is acceptable to sample or drop some comments under very high rates.",
+      "answer": true,
+      "explanation": "Viewers cannot read thousands of messages per second and the content is ephemeral, so lossy delivery favors latency."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "How do users who join mid-stream see recent context?",
+      "options": [
+        "They replay the whole stream log",
+        "The server serves a cached capped list of the latest comments before live updates",
+        "They see nothing until the next comment",
+        "They query the moderation system"
+      ],
+      "answer": 1,
+      "explanation": "A small in-memory recent-comments list per stream gives instant context cheaply."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the path of a live comment from first to last.",
+      "items": [
+        "Edge server pushes to connected viewers",
+        "Comment service validates and rate limits",
+        "Comment is appended to the per-stream log",
+        "Fan-out layer publishes to edge servers"
+      ],
+      "answer": [1, 2, 3, 0],
+      "explanation": "Validate, persist to the log, fan out to edges, then push to viewers over their connections."
+    }
+  ]
+}

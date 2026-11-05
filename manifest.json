@@ -922,5 +922,19 @@
     "title": "Designing a News Feed: Fanout on Write vs Read",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-05-pastebin-design",
+    "date": "2026-11-05",
+    "title": "Designing a Pastebin: Blob Storage, Expiry, and Key Generation",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-05-live-comments-fanout-design",
+    "date": "2026-11-05",
+    "title": "Designing Live Comments: Fan-out to Millions of Viewers",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
