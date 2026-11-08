@@ -936,5 +936,19 @@
     "title": "Designing Live Comments: Fan-out to Millions of Viewers",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-08-photo-sharing-service-design",
+    "date": "2026-11-08",
+    "title": "Designing a Photo Sharing Service: Upload Pipeline, Thumbnails, and Delivery",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-08-ci-cd-pipeline-design",
+    "date": "2026-11-08",
+    "title": "Designing a CI/CD Build System: Job Queues, Isolation, and Caching",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

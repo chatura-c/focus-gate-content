@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-08-photo-sharing-service-design",
+  "date": "2026-11-08",
+  "title": "Designing a Photo Sharing Service: Upload Pipeline, Thumbnails, and Delivery",
+  "category": "system-design",
+  "lesson": "A photo sharing service is a read-heavy system where the bytes (images) and the metadata (owner, caption, timestamps, likes, tags) have very different shapes. Metadata is small and relational-ish, so it lives in a database partitioned by user or photo ID. The image bytes live in object storage, with only a key stored in the metadata row. Keeping them apart lets each tier scale and be priced independently, and keeps the database from holding large blobs.\n\nUploads should not stream through the application servers more than necessary. A common pattern is for the client to request a presigned URL and upload the original directly to object storage, then notify the service, which records the metadata. This keeps heavy bandwidth off the API tier. Once the original lands, an asynchronous pipeline driven by a queue or storage event generates derived renditions: several thumbnail and display sizes, possibly different formats, and strips or normalizes metadata. Doing this asynchronously keeps upload latency low, and the queue lets workers scale and retry independently. The photo can be shown as 'processing' until the renditions are ready.\n\nDelivery is dominated by a CDN. Because each rendition is immutable and addressed by a unique key, it can be cached with long lifetimes at the edge, and nearly all traffic never reaches the origin. If an image changes, publish it under a new key rather than purging caches. Serving a size appropriate to the device, instead of the full original, is the biggest bandwidth saving.\n\nThe feed and profile views are built from metadata: a user's photos are fetched by an index on (user ID, created time), usually paginated with a cursor. Cold, old originals can be moved to cheaper storage tiers over time. Durability matters more than latency for originals, so object storage with replication or erasure coding is used, and the original is retained so new renditions can be regenerated later.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do clients typically upload the original image directly to object storage via a presigned URL?",
+      "options": [
+        "It makes the image smaller",
+        "It keeps heavy upload bandwidth off the application servers",
+        "It removes the need for metadata",
+        "It guarantees images are public"
+      ],
+      "answer": 1,
+      "explanation": "Direct upload avoids proxying large bytes through the API tier, which can then focus on metadata and authorization."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Thumbnail generation is best done synchronously inside the upload request so the user never sees a 'processing' state.",
+      "answer": false,
+      "explanation": "Asynchronous processing keeps upload latency low and lets workers scale and retry independently via a queue."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When an image changes, it is better to publish it under a new key than to ____ the CDN cache.",
+      "answer": "purge",
+      "acceptable": ["invalidate"],
+      "explanation": "Immutable, uniquely keyed objects can be cached for a long time without invalidation."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why keep the original image after generating thumbnails?",
+      "options": [
+        "Thumbnails cannot be served without it",
+        "So new renditions or formats can be regenerated later",
+        "Originals are cheaper than thumbnails to serve",
+        "It is required by the CDN"
+      ],
+      "answer": 1,
+      "explanation": "Retaining the original allows regenerating renditions when sizes or formats change."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a photo upload, first to last.",
+      "items": [
+        "Workers generate thumbnail renditions",
+        "Client uploads the original to object storage",
+        "Client requests a presigned upload URL",
+        "Photo is marked ready and served via CDN"
+      ],
+      "answer": [2, 1, 0, 3],
+      "explanation": "The client gets a URL, uploads directly, async workers create renditions, then the photo is served from the CDN."
+    }
+  ]
+}

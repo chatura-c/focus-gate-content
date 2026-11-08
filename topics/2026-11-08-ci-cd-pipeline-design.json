@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-08-ci-cd-pipeline-design",
+  "date": "2026-11-08",
+  "title": "Designing a CI/CD Build System: Job Queues, Isolation, and Caching",
+  "category": "system-design",
+  "lesson": "A CI system turns a commit event into a set of jobs run on workers, then reports results back. The core pieces are a webhook receiver that records the trigger, a pipeline definition (usually a stage graph, expressed as a DAG of jobs), a scheduler that decides which jobs are runnable, a queue of pending jobs, a fleet of workers (runners), and storage for logs and artifacts. The scheduler only enqueues a job once its dependencies have succeeded, so independent jobs run in parallel and the pipeline's duration is bounded by its longest dependency chain.\n\nWorkers pull jobs from the queue rather than having the scheduler push to them. Pull-based assignment lets the fleet autoscale on queue depth, tolerates workers joining or dying, and naturally balances load. Because a worker can crash mid-job, a job is leased with a heartbeat: if the lease expires, the job is re-queued. That makes execution at-least-once, so jobs and their side effects should be idempotent or safely repeatable, and results must be keyed by job attempt.\n\nIsolation is the main security concern, since the system runs arbitrary code from commits. Each job should run in a fresh container or microVM with no leftover state, limited network, scoped and short-lived credentials, and resource limits. Secrets are injected at runtime and masked in logs, and untrusted code, such as builds from forks, should not receive them.\n\nBuilds are slow mostly because of repeated work, so caching matters. Dependency caches are keyed by a hash of the lockfile; build outputs can be cached by a content hash of inputs. A cache key that includes all inputs is safe to reuse, while a stale key causes wrong builds. Logs are streamed from workers to storage and to the UI while the job runs, and artifacts are stored in object storage with a retention policy.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do CI runners usually pull jobs from a queue instead of the scheduler pushing jobs to them?",
+      "options": [
+        "Pulling is required by webhooks",
+        "The fleet can autoscale on queue depth and tolerate workers joining or dying",
+        "It makes jobs run faster individually",
+        "It avoids needing a queue"
+      ],
+      "answer": 1,
+      "explanation": "Pull-based assignment balances load naturally and decouples scheduling from the state of individual workers."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If a worker crashes mid-job and its lease expires, re-queuing the job means CI execution is at-least-once, so jobs should tolerate being repeated.",
+      "answer": true,
+      "explanation": "Lease expiry causes a retry, which may duplicate side effects, so jobs should be idempotent or attempt-aware."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A dependency cache is commonly keyed by a ____ of the lockfile so it is reused only when dependencies are unchanged.",
+      "answer": "hash",
+      "acceptable": ["checksum", "digest"],
+      "explanation": "A content hash changes whenever the dependency set changes, preventing stale cache reuse."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which practice best limits the risk of running untrusted commit code?",
+      "options": [
+        "Reusing one long-lived VM for all jobs",
+        "Running each job in a fresh isolated container or microVM with scoped, short-lived credentials",
+        "Giving every job the production credentials",
+        "Disabling logs"
+      ],
+      "answer": 1,
+      "explanation": "Fresh, resource-limited sandboxes with minimal credentials contain damage from malicious or buggy code."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the flow of a CI run, first to last.",
+      "items": [
+        "Worker runs the job and streams logs",
+        "Webhook records the commit trigger",
+        "Scheduler enqueues jobs whose dependencies are met",
+        "Results and artifacts are stored and status reported"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "A trigger is recorded, runnable jobs are queued, a worker executes them, and results are reported."
+    }
+  ]
+}
