@@ -1,0 +1,62 @@
+{
+  "id": "2026-11-10-food-delivery-design",
+  "date": "2026-11-10",
+  "title": "Designing a Food Delivery Service: Order State Machine, Courier Matching, and ETAs",
+  "category": "system-design",
+  "lesson": "A food delivery service coordinates three parties with different clocks: a customer who wants an accurate promise, a restaurant that prepares food at an unpredictable pace, and a courier who moves through the physical world. The backbone is an order state machine (placed, accepted by restaurant, preparing, ready, picked up, delivered, plus cancelled/failed branches). Each transition is an event written durably with an idempotency key, because restaurant tablets, courier apps, and payment callbacks all retry and arrive out of order. Rejecting illegal transitions (for example, 'delivered' before 'picked up') and using versioned or compare-and-set updates keeps duplicate or late events from corrupting an order.\n\nPayment follows the order lifecycle rather than a single charge. A common approach is to authorize the card when the order is placed, then capture the final amount once the order is delivered or adjusted for missing items. If the restaurant rejects the order or no courier is found, the authorization is voided. Because the steps span several services (orders, payments, restaurant, dispatch), they are coordinated as a saga with compensating actions instead of a distributed transaction.\n\nCourier matching is a geospatial assignment problem. Couriers send periodic location updates that are indexed in a geospatial structure (geohash or similar cells), so the dispatcher can find candidates near the restaurant. Simple systems offer the order to the nearest courier; better ones also consider when the food will be ready, so a courier does not arrive and wait, and may batch multiple orders along a route. Offers are time-limited: if a courier declines or does not respond before a timeout, the order is offered to the next candidate, and a lease on the offer prevents two couriers from accepting the same order.\n\nThe ETA shown to the customer is the sum of several estimates: restaurant preparation time, courier travel time to the restaurant, and travel time to the customer. Preparation time is usually the noisiest part and is learned from historical data per restaurant and time of day, adjusted by current kitchen load. Because the estimate changes as the order progresses, the system pushes updates to the client over a persistent connection or push notifications rather than making the app poll, and it should recalculate the ETA on each state change and significant courier movement.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why should order state transitions be applied with idempotency keys and validity checks?",
+      "options": [
+        "It makes the database smaller",
+        "Restaurant, courier, and payment events are retried and can arrive out of order or twice",
+        "It removes the need for a database",
+        "It lets couriers skip pickup"
+      ],
+      "answer": 1,
+      "explanation": "Duplicate and out-of-order events are normal, so transitions must be idempotent and illegal ones rejected."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Charging the customer's card fully at the moment the order is placed is the only workable approach, since authorization holds cannot be voided.",
+      "answer": false,
+      "explanation": "Authorizing first and capturing later (or voiding if the order fails) is the common pattern."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Because payments, orders, and dispatch are separate services, a failed step is undone with a ____ action rather than a distributed transaction rollback.",
+      "answer": "compensating",
+      "acceptable": ["compensation", "compensating transaction"],
+      "explanation": "Sagas use compensating actions, such as voiding an authorization, to undo earlier steps."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the main benefit of considering food ready time when dispatching a courier?",
+      "options": [
+        "Couriers avoid arriving early and waiting idle",
+        "The restaurant can skip preparing food",
+        "It removes the need for geospatial indexing",
+        "It guarantees the order is never cancelled"
+      ],
+      "answer": 0,
+      "explanation": "Matching to the ready time reduces courier idle time and keeps food from sitting too long."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the components of the customer ETA calculation as they are experienced along the order's journey.",
+      "items": [
+        "Travel time from restaurant to customer",
+        "Restaurant preparation time",
+        "Courier travel time to the restaurant"
+      ],
+      "answer": [1, 2, 0],
+      "explanation": "Food is prepared, the courier reaches the restaurant (overlapping in practice), then delivers to the customer."
+    }
+  ]
+}

@@ -950,5 +950,19 @@
     "title": "Designing a CI/CD Build System: Job Queues, Isolation, and Caching",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-10-food-delivery-design",
+    "date": "2026-11-10",
+    "title": "Designing a Food Delivery Service: Order State Machine, Courier Matching, and ETAs",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-10-log-aggregation-pipeline-design",
+    "date": "2026-11-10",
+    "title": "Designing a Log Aggregation Pipeline: Collection, Buffering, and Indexing",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

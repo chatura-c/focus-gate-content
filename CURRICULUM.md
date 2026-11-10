@@ -144,6 +144,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 131 | 2026-11-05 | Designing Live Comments: Fan-out to Millions of Viewers | `2026-11-05-live-comments-fanout-design` |
 | 132 | 2026-11-08 | Designing a Photo Sharing Service: Upload Pipeline, Thumbnails, and Delivery | `2026-11-08-photo-sharing-service-design` |
 | 133 | 2026-11-08 | Designing a CI/CD Build System: Job Queues, Isolation, and Caching | `2026-11-08-ci-cd-pipeline-design` |
+| 134 | 2026-11-10 | Designing a Food Delivery Service: Order State Machine, Courier Matching, and ETAs | `2026-11-10-food-delivery-design` |
+| 135 | 2026-11-10 | Designing a Log Aggregation Pipeline: Collection, Buffering, and Indexing | `2026-11-10-log-aggregation-pipeline-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

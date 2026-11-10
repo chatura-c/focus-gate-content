@@ -1,0 +1,64 @@
+{
+  "id": "2026-11-10-log-aggregation-pipeline-design",
+  "date": "2026-11-10",
+  "title": "Designing a Log Aggregation Pipeline: Collection, Buffering, and Indexing",
+  "category": "system-design",
+  "lesson": "A log aggregation pipeline gathers log lines from thousands of hosts and containers into one searchable place. The usual flow is: a lightweight agent on each node (or a sidecar/daemonset) tails log files or stdout, optionally parses and tags lines with metadata like service, host, and environment, and ships them to a durable buffer. A distributed log such as Kafka sits in the middle, which decouples producers from the storage layer: if the indexer is slow or down, logs accumulate in the buffer instead of being lost or slowing down the application.\n\nDownstream consumers read from the buffer, do heavier processing such as parsing into structured fields, redacting secrets and personal data, and enriching, then write to storage. Search-oriented stores use inverted indexes so queries like 'service=checkout AND level=error' over the last hour are fast, while cheaper object storage holds compressed archives for long retention. Indexing everything is expensive, so many systems index only selected fields and labels and scan the raw text for the rest, trading query speed for lower storage and write cost.\n\nLogs are typically time-series data: writes are append-only and queries are almost always bounded by a time range. Data is therefore partitioned by time (for example daily indexes or segments), which makes retention simple: dropping an expired partition is far cheaper than deleting individual records. Tiered storage moves recent data to fast disks and older data to cheap storage, since most queries target the last few hours.\n\nOperationally, the hard problems are volume spikes and cost. During an incident, log volume often jumps exactly when the system is under stress, so the pipeline needs backpressure handling, bounded buffers, and the ability to sample or drop low-value lines (such as debug logs) rather than falling over. Agents should have disk-backed buffers for short outages and accept that delivery is typically at-least-once, so duplicates are possible; including a unique id or tolerating duplicates makes this safe. Structured logging (JSON with consistent fields) makes everything downstream cheaper and more reliable than regexing free text.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why place a durable buffer such as Kafka between log agents and the indexing layer?",
+      "options": [
+        "It decompresses logs",
+        "It decouples producers from storage so a slow or down indexer does not lose logs or block applications",
+        "It removes the need for agents",
+        "It makes logs structured automatically"
+      ],
+      "answer": 1,
+      "explanation": "The buffer absorbs bursts and outages so ingestion and indexing can run at different speeds."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Partitioning log storage by time makes retention cheaper, because an expired partition can be dropped wholesale.",
+      "answer": true,
+      "explanation": "Dropping a whole time partition avoids expensive per-record deletes."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Search over logs is fast on indexed fields because stores build an ____ index mapping terms to the documents containing them.",
+      "answer": "inverted",
+      "acceptable": ["inverted index"],
+      "explanation": "An inverted index maps terms to matching documents, enabling quick filtered lookups."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "During an incident log volume spikes. Which is the most sensible protection for the pipeline?",
+      "options": [
+        "Block the application until logs are written",
+        "Use bounded buffers, backpressure, and sample or drop low-value lines like debug logs",
+        "Increase retention",
+        "Disable the agents"
+      ],
+      "answer": 1,
+      "explanation": "Shedding low-value data protects the pipeline and the application when volume surges."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages a log line passes through.",
+      "items": [
+        "Indexed and stored for search",
+        "Buffered in a durable log",
+        "Written by the application",
+        "Collected by a node agent",
+        "Parsed, redacted, and enriched"
+      ],
+      "answer": [2, 3, 1, 4, 0],
+      "explanation": "Lines are emitted, collected, buffered, processed, then indexed."
+    }
+  ]
+}
