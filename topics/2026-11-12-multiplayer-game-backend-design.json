@@ -1,0 +1,72 @@
+{
+  "id": "2026-11-12-multiplayer-game-backend-design",
+  "date": "2026-11-12",
+  "title": "Designing a Multiplayer Game Backend: Authoritative Servers, Tick Rate, and Lag Compensation",
+  "category": "system-design",
+  "lesson": "Real-time multiplayer games need low latency and a single agreed version of the world. The standard approach is an authoritative server: clients send inputs (move, shoot), the server simulates the game and is the source of truth, and clients render the state it sends back. Trusting clients to report outcomes such as 'I hit that player' or 'I am at this position' invites cheating, so the server validates every input against the rules of the game.\n\nThe server advances the world in fixed steps called ticks, for example 20 to 128 per second. Each tick it applies queued player inputs, runs the simulation, and sends state snapshots to clients. A higher tick rate gives more responsive and accurate play but costs more CPU and bandwidth. To save bandwidth, servers send deltas (only what changed since the last acknowledged snapshot) and use interest management, sending each player only the entities near them. Games commonly use UDP rather than TCP for state updates, because a retransmitted old position is worthless once a newer one exists, and TCP's head-of-line blocking would delay fresh data behind lost packets. Critical events like purchases still need reliable delivery, which games build on top of UDP selectively or send over a separate reliable channel.\n\nNetwork latency makes the world feel laggy, so clients hide it. Client-side prediction applies the player's own input immediately and later reconciles with the server: if the server's authoritative state differs, the client rewinds and replays unacknowledged inputs. Other players are shown using interpolation between recent snapshots, slightly in the past, which looks smooth. For hit detection, lag compensation lets the server rewind other entities to where they were on the shooter's screen at the time of firing, so shots that looked accurate to the shooter register.\n\nAt the infrastructure level, a matchmaking service groups players by skill, region, and latency, then allocates a game server instance from a fleet for that match. Each match is typically pinned to one server process, so match state is in memory and scaling means adding more server instances rather than sharding a single match. Fleets are placed in many regions to keep round-trip time low, and persistent data such as inventory and rankings lives in a regular database outside the hot simulation loop.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do multiplayer games use an authoritative server?",
+      "options": [
+        "To reduce server CPU usage",
+        "So the server is the single source of truth and can validate inputs, limiting cheating",
+        "To avoid needing matchmaking",
+        "So clients never need to render anything"
+      ],
+      "answer": 1,
+      "explanation": "If clients decided outcomes, a modified client could simply claim favorable results."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Games typically prefer UDP for frequent state updates because a lost old position is not worth retransmitting once newer data exists.",
+      "answer": true,
+      "explanation": "TCP's ordered, reliable delivery would stall fresh updates behind retransmissions."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A client applies its own input immediately and later corrects against the server's state; this technique is called client-side ____.",
+      "answer": "prediction",
+      "acceptable": [
+        "Prediction"
+      ],
+      "explanation": "Prediction hides round-trip latency for the local player, with reconciliation fixing mismatches."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What does server-side lag compensation do?",
+      "options": [
+        "Slows all players to match the highest-latency one",
+        "Rewinds other entities to where the shooter saw them when firing, to evaluate the hit",
+        "Disables hit detection for high-ping players",
+        "Increases the tick rate automatically"
+      ],
+      "answer": 1,
+      "explanation": "Rewinding to the shooter's view makes hits that looked accurate register fairly."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order a typical multiplayer session setup and play flow.",
+      "items": [
+        "Server simulates ticks and sends snapshots",
+        "Matchmaker groups players by skill, region, and latency",
+        "Player connects and queues for a match",
+        "A game server instance is allocated for the match",
+        "Results are saved to the persistent database"
+      ],
+      "answer": [
+        2,
+        1,
+        3,
+        0,
+        4
+      ],
+      "explanation": "Players queue, are matched, get a server, play tick by tick, then results persist."
+    }
+  ]
+}

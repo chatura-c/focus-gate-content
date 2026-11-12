@@ -146,6 +146,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 133 | 2026-11-08 | Designing a CI/CD Build System: Job Queues, Isolation, and Caching | `2026-11-08-ci-cd-pipeline-design` |
 | 134 | 2026-11-10 | Designing a Food Delivery Service: Order State Machine, Courier Matching, and ETAs | `2026-11-10-food-delivery-design` |
 | 135 | 2026-11-10 | Designing a Log Aggregation Pipeline: Collection, Buffering, and Indexing | `2026-11-10-log-aggregation-pipeline-design` |
+| 136 | 2026-11-12 | Designing a Recommendation System: Candidate Generation, Ranking, and Feedback Loops | `2026-11-12-recommendation-system-design` |
+| 137 | 2026-11-12 | Designing a Multiplayer Game Backend: Authoritative Servers, Tick Rate, and Lag Compensation | `2026-11-12-multiplayer-game-backend-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

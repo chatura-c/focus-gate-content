@@ -964,5 +964,19 @@
     "title": "Designing a Log Aggregation Pipeline: Collection, Buffering, and Indexing",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-12-recommendation-system-design",
+    "date": "2026-11-12",
+    "title": "Designing a Recommendation System: Candidate Generation, Ranking, and Feedback Loops",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-12-multiplayer-game-backend-design",
+    "date": "2026-11-12",
+    "title": "Designing a Multiplayer Game Backend: Authoritative Servers, Tick Rate, and Lag Compensation",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

@@ -1,0 +1,72 @@
+{
+  "id": "2026-11-12-recommendation-system-design",
+  "date": "2026-11-12",
+  "title": "Designing a Recommendation System: Candidate Generation, Ranking, and Feedback Loops",
+  "category": "system-design",
+  "lesson": "A recommendation system picks a handful of items for each user out of millions, within a latency budget of roughly a hundred milliseconds. Scoring every item with a heavy model per request is impossible, so production systems use a funnel. Candidate generation (retrieval) cheaply narrows millions of items to hundreds or a few thousand, using several sources in parallel: collaborative filtering, nearest-neighbor search over learned user and item embeddings, popular or trending items, and items related to what the user recently viewed. A ranking stage then scores those candidates with a richer, slower model that uses many features, and a final re-ranking step applies business rules such as diversity, freshness, removing already-seen items, and policy filters.\n\nEmbedding-based retrieval represents users and items as vectors in the same space, so 'items this user would like' becomes a nearest-neighbor query. Exact search over millions of vectors is too slow, so systems use approximate nearest-neighbor indexes (for example graph-based or quantized indexes) that trade a little recall for large speedups. Item embeddings and many candidate lists are computed offline in batch and served from a fast key-value store, while a small amount of real-time context, such as the last few clicks in the current session, is blended in at request time.\n\nThe pipeline is split into offline and online parts. Offline jobs train models, compute embeddings, and aggregate features over large histories. Online serving fetches precomputed features from a feature store, calls the ranker, and returns results. A classic pitfall is training-serving skew: if a feature is computed one way in training and another way in serving, the model quietly degrades, which is why teams share feature definitions between the two paths. New users and new items have no history, the cold-start problem, so systems fall back to popularity, content-based signals like item metadata, or deliberate exploration.\n\nRecommendations also create feedback loops: the model only gets feedback on items it chose to show, so it can reinforce its own biases and narrow what users see. Mitigations include injecting some exploration (for example bandit-style randomization), logging what was shown and not just what was clicked, and evaluating with online A/B tests rather than offline metrics alone, since offline accuracy often fails to predict real engagement.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do recommendation systems use a candidate generation stage before the ranking model?",
+      "options": [
+        "Ranking models cannot use user features",
+        "It cheaply narrows millions of items to a few hundred so the expensive ranker only scores a small set within the latency budget",
+        "It guarantees diversity automatically",
+        "It removes the need for offline training"
+      ],
+      "answer": 1,
+      "explanation": "A funnel keeps the heavy model's per-request cost bounded."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Approximate nearest-neighbor indexes give up a little recall in exchange for much faster embedding lookups than exact search.",
+      "answer": true,
+      "explanation": "That recall-for-speed tradeoff is what makes retrieval over millions of vectors feasible online."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When a feature is computed differently in training than at serving time, the model degrades; this mismatch is called training-serving ____.",
+      "answer": "skew",
+      "acceptable": [
+        "Skew"
+      ],
+      "explanation": "Sharing feature definitions between both paths prevents this silent quality loss."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A brand-new item has no interaction history. Which approach best addresses this cold-start problem?",
+      "options": [
+        "Never show it until it has clicks",
+        "Use content-based signals such as metadata and allocate some exploration traffic to it",
+        "Copy another item's embedding at random",
+        "Retrain the whole model on every request"
+      ],
+      "answer": 1,
+      "explanation": "Content features and deliberate exploration let the system gather the feedback it lacks."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages of serving one recommendation request.",
+      "items": [
+        "Re-rank for diversity and filter seen items",
+        "Retrieve candidates from multiple sources",
+        "Fetch user context and features",
+        "Score candidates with the ranking model",
+        "Return the final list"
+      ],
+      "answer": [
+        2,
+        1,
+        3,
+        0,
+        4
+      ],
+      "explanation": "Features are fetched, candidates retrieved, ranked, re-ranked with rules, then returned."
+    }
+  ]
+}
