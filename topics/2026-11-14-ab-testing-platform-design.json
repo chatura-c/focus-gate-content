@@ -1,0 +1,72 @@
+{
+  "id": "2026-11-14-ab-testing-platform-design",
+  "date": "2026-11-14",
+  "title": "Designing an A/B Testing Platform: Assignment, Exposure Logging, and Metrics",
+  "category": "system-design",
+  "lesson": "An A/B testing platform lets teams compare variants of a product by randomly assigning users to groups and measuring the difference in a metric. The core requirement is trustworthy assignment: a given user must always see the same variant, assignment must be statistically independent of user traits, and different experiments should not systematically correlate with each other.\n\nThe standard technique is deterministic hashing. The platform hashes the user ID together with an experiment-specific salt (for example hash(experimentId + userId) mod 10000) and maps the bucket to a variant according to the configured traffic split. No assignment table is needed, any service can compute it locally from a cached experiment config, and the result is stable across requests and devices. Using a different salt per experiment prevents the same users from landing in the treatment group of every test. Experiments that must not overlap are placed in mutually exclusive layers, where each layer partitions traffic separately.\n\nAnalysis depends on logging exposures: an event recorded when a user actually sees the variant, not merely when they were assigned. Analyzing only exposed users avoids diluting the effect with people who never reached the changed feature. Exposure and metric events flow through a streaming pipeline into a warehouse, where jobs join them by user and compute per-variant metrics and statistical significance. Teams also check for sample ratio mismatch: if a 50/50 split produces noticeably uneven group sizes, something is broken in assignment or logging and the results should not be trusted.\n\nAvoid common statistical pitfalls. Peeking at results repeatedly and stopping as soon as they look significant inflates false positives, so fix the sample size or use sequential testing methods designed for continuous monitoring. Testing many metrics or segments raises the chance of a spurious win, so define a primary metric up front. Guardrail metrics such as latency, error rate, and crashes catch variants that improve the target metric while harming the product.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do platforms assign variants by hashing user ID plus an experiment-specific salt?",
+      "options": [
+        "It stores each assignment durably in a database",
+        "It gives stable, stateless assignment and keeps different experiments' groupings independent",
+        "It guarantees every user sees every variant",
+        "It removes the need for exposure logging"
+      ],
+      "answer": 1,
+      "explanation": "Deterministic hashing needs no lookup table, and per-experiment salts decorrelate experiments."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Repeatedly checking results and stopping the moment they look significant is safe and does not affect the false-positive rate.",
+      "answer": false,
+      "explanation": "Peeking inflates false positives unless you use sequential testing methods built for it."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "If a 50/50 experiment shows clearly uneven group sizes, this red flag is called sample ratio ____.",
+      "answer": "mismatch",
+      "acceptable": [
+        "Mismatch"
+      ],
+      "explanation": "A sample ratio mismatch indicates a bug in assignment or logging, invalidating the results."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why log an exposure event instead of analyzing everyone who was assigned?",
+      "options": [
+        "Exposure events are smaller",
+        "Assigned users who never saw the change dilute the measured effect",
+        "Assignment cannot be computed twice",
+        "Exposure logging removes the need for a warehouse"
+      ],
+      "answer": 1,
+      "explanation": "Only users who actually encountered the variant can be affected by it."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the lifecycle of a user in an experiment.",
+      "items": [
+        "Metrics are computed per variant in the warehouse",
+        "Service hashes user ID with the experiment salt to pick a variant",
+        "User sees the variant and an exposure event is logged",
+        "Events stream into the data pipeline",
+        "Experiment config is cached by the service"
+      ],
+      "answer": [
+        4,
+        1,
+        2,
+        3,
+        0
+      ],
+      "explanation": "Config is cached, assignment is computed, exposure is logged, events are ingested, then analyzed."
+    }
+  ]
+}

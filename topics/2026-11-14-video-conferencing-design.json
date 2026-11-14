@@ -1,0 +1,72 @@
+{
+  "id": "2026-11-14-video-conferencing-design",
+  "date": "2026-11-14",
+  "title": "Designing Video Conferencing: WebRTC, SFUs, and Simulcast",
+  "category": "system-design",
+  "lesson": "Video calls need very low latency, so media travels over WebRTC, which sends audio and video as RTP packets, usually over UDP. Late media is useless, so a dropped packet is better skipped (or patched with forward error correction or a quick retransmit request) than waited for. Before media flows, peers use a signaling channel (often a WebSocket) to exchange session descriptions and network candidates. NAT traversal uses STUN to discover a client's public address and TURN to relay media when a direct path is impossible.\n\nFor a two-person call, peers can connect directly. A full mesh breaks down as the group grows: with N participants each client uploads N-1 copies of its video, so upload bandwidth and encoding CPU grow quickly. An MCU (multipoint control unit) decodes every stream and mixes them into one, which is cheap for clients but very expensive on the server and adds latency. Most modern systems use an SFU (selective forwarding unit): each client uploads one stream to the SFU, which forwards it to the other participants without decoding or re-encoding it. Server CPU stays low and latency stays small, while each client downloads multiple streams.\n\nTo serve viewers with different bandwidth, clients use simulcast: they upload the same video at several resolutions or bitrates, and the SFU forwards the best layer each receiver can handle, switching layers as the receiver's bandwidth estimate changes. Scalable video coding (SVC) achieves something similar with layers inside one stream. The SFU also sends only the active speaker or visible tiles in high quality and pauses the rest, which keeps downstream bandwidth bounded in large meetings.\n\nAt the infrastructure level, a room is pinned to one SFU, since its streams must meet in one place, and a signaling service assigns rooms to SFUs near the participants. Very large meetings cascade several SFUs across regions, with each client connecting to the closest one, so long-haul traffic is sent once between SFUs instead of once per viewer. Recording is done by joining as an extra participant or tapping the SFU and writing media to object storage for later processing.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a full mesh topology a poor fit for large video calls?",
+      "options": [
+        "Peers cannot find each other without a server",
+        "Each client must upload N-1 copies of its video, so bandwidth and encoding cost grow with group size",
+        "It forces every stream to be mixed into one",
+        "It requires TCP"
+      ],
+      "answer": 1,
+      "explanation": "Upload cost per client scales linearly with the number of other participants."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "An SFU forwards media streams to participants without decoding and re-encoding them.",
+      "answer": true,
+      "explanation": "That is why SFUs use far less server CPU than MCUs, which decode and mix."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A client uploads the same video at several resolutions so the server can pick one per receiver; this technique is called ____.",
+      "answer": "simulcast",
+      "acceptable": [
+        "Simulcast"
+      ],
+      "explanation": "The SFU forwards the layer that fits each receiver's bandwidth."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "What is the role of a TURN server?",
+      "options": [
+        "Exchanging session descriptions between peers",
+        "Discovering a client's public IP address",
+        "Relaying media when a direct peer path cannot be established",
+        "Mixing audio streams"
+      ],
+      "answer": 2,
+      "explanation": "STUN discovers addresses; TURN is the fallback relay when NAT blocks direct connectivity."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a participant joining an SFU-based call.",
+      "items": [
+        "Client uploads its media stream to the SFU",
+        "Client and server exchange session descriptions over signaling",
+        "Client discovers network candidates using STUN",
+        "SFU forwards the appropriate layers to other participants",
+        "Signaling service assigns the room to a nearby SFU"
+      ],
+      "answer": [
+        4,
+        1,
+        2,
+        0,
+        3
+      ],
+      "explanation": "A room is assigned, signaling sets up the session, connectivity is established, then media flows and is forwarded."
+    }
+  ]
+}

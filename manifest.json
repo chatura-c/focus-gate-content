@@ -978,5 +978,19 @@
     "title": "Designing a Multiplayer Game Backend: Authoritative Servers, Tick Rate, and Lag Compensation",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-14-video-conferencing-design",
+    "date": "2026-11-14",
+    "title": "Designing Video Conferencing: WebRTC, SFUs, and Simulcast",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-14-ab-testing-platform-design",
+    "date": "2026-11-14",
+    "title": "Designing an A/B Testing Platform: Assignment, Exposure Logging, and Metrics",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
