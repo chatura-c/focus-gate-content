@@ -1,0 +1,66 @@
+{
+  "id": "2026-11-16-vector-search-design",
+  "date": "2026-11-16",
+  "title": "Designing Vector Search: Embeddings, ANN Indexes, and Filtering",
+  "category": "system-design",
+  "lesson": "Vector search finds items whose meaning is similar to a query rather than items that share keywords. An embedding model maps text, images, or other content to a fixed-length vector so that similar items land close together under a distance measure such as cosine similarity or inner product. The system embeds documents offline when they are ingested, embeds the query at request time with the same model, and returns the nearest vectors.\n\nExact nearest-neighbor search compares the query against every vector, which costs time linear in the corpus size and is too slow for tens of millions of items. Production systems use approximate nearest neighbor (ANN) indexes that trade a small loss in recall for large speedups. HNSW builds a layered proximity graph that is traversed greedily from coarse layers down to fine ones; it has excellent recall and latency but keeps the graph in memory. IVF indexes cluster the vectors and search only the few clusters nearest the query, and product quantization compresses vectors into short codes to cut memory at some accuracy cost. Index parameters tune the recall versus latency versus memory tradeoff, and recall is measured against exact search on a sample.\n\nReal queries usually combine similarity with metadata filters such as tenant, language, or date. Filtering after the ANN search can leave too few results, while filtering during graph traversal or using pre-partitioned indexes keeps results full at higher complexity. Large corpora are sharded across nodes; a query fans out to every shard, each returns its local top-k, and a coordinator merges them.\n\nVectors are only valid for the model that produced them, so changing the embedding model means re-embedding the whole corpus and building a new index, usually behind a versioned alias so traffic can switch over once it is ready. Many systems combine vector results with keyword search and rerank the merged candidates, because exact terms such as product codes are matched poorly by embeddings.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do production systems use ANN indexes instead of exact nearest-neighbor search?",
+      "options": [
+        "Exact search returns wrong results",
+        "Exact search compares against every vector, which is too slow at large scale; ANN trades slight recall for big speedups",
+        "ANN indexes need no memory",
+        "ANN indexes remove the need for embeddings"
+      ],
+      "answer": 1,
+      "explanation": "Brute-force cost grows linearly with corpus size, so approximate indexes accept a small recall loss for speed."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Embeddings produced by one model can be mixed in the same index with embeddings from a different model.",
+      "answer": false,
+      "explanation": "Vector spaces differ between models, so distances across them are meaningless; switching models requires re-embedding."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The ANN index that searches a layered proximity graph is called ____.",
+      "answer": "HNSW",
+      "acceptable": [
+        "hnsw",
+        "Hierarchical Navigable Small World"
+      ],
+      "explanation": "HNSW greedily navigates from sparse upper layers down to a dense bottom layer."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why combine vector search with keyword search?",
+      "options": [
+        "Embeddings match exact identifiers such as product codes poorly, while keyword search handles them well",
+        "Keyword search is always more accurate",
+        "Vector search cannot return more than one result",
+        "It removes the need for sharding"
+      ],
+      "answer": 0,
+      "explanation": "Hybrid retrieval covers both semantic similarity and exact-term matching."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a sharded vector query.",
+      "items": [
+        "Coordinator merges local top-k lists",
+        "Query is embedded with the same model as the documents",
+        "Each shard searches its ANN index for local top-k",
+        "Query fans out to all shards"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "Embed, fan out, search each shard locally, then merge."
+    }
+  ]
+}

@@ -992,5 +992,19 @@
     "title": "Designing an A/B Testing Platform: Assignment, Exposure Logging, and Metrics",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-16-calendar-service-design",
+    "date": "2026-11-16",
+    "title": "Designing a Calendar Service: Recurring Events, Time Zones, and Free/Busy",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-16-vector-search-design",
+    "date": "2026-11-16",
+    "title": "Designing Vector Search: Embeddings, ANN Indexes, and Filtering",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

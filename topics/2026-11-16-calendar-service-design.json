@@ -1,0 +1,66 @@
+{
+  "id": "2026-11-16-calendar-service-design",
+  "date": "2026-11-16",
+  "title": "Designing a Calendar Service: Recurring Events, Time Zones, and Free/Busy",
+  "category": "system-design",
+  "lesson": "A calendar service stores events, invitations, and reminders, and answers one hard query quickly: what is on my calendar between two dates? The main modeling challenge is recurring events. Materializing every occurrence of a weekly meeting for years wastes storage and makes edits painful, so the common approach is to store one master event with a recurrence rule (similar to the iCalendar RRULE format) and expand occurrences on read for the requested window. Edits to a single occurrence are stored as exceptions linked to the master and the original occurrence time, and deleted occurrences are stored as exclusion dates.\n\nTime zones are the second trap. A meeting at 9:00 every Monday in New York should stay at 9:00 local time after daylight saving changes, which means its UTC time shifts twice a year. So recurring events must be stored as local wall-clock time plus an IANA time zone name (such as America/New_York), not as a fixed UTC offset or a UTC timestamp, and expansion applies the zone's rules for each date. One-off events can be stored as UTC instants, but keeping the original zone is still useful for display.\n\nTo keep range queries fast, index events by calendar and start time, and for recurring events also store the end of the recurrence (or a large sentinel) so the query can find masters whose series overlaps the window. Free/busy lookups for scheduling across many attendees expand each person's events for the window into busy intervals, merge overlapping intervals, and intersect the free gaps. Because this is read-heavy, per-user busy intervals for the near future are often cached and invalidated when an event changes.\n\nInvitations and reminders are asynchronous work. Accepting or declining updates the attendee's own copy and notifies the organizer, while reminders are scheduled into a delay queue or time-bucketed scheduler keyed by trigger time. Sharing across organizations uses standard protocols such as CalDAV or iCalendar email invitations, and concurrent edits are handled with versioning (for example ETags) so one client does not silently overwrite another.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why store a recurring meeting as one master event plus a recurrence rule rather than materializing every occurrence?",
+      "options": [
+        "Rules make time zones irrelevant",
+        "It saves storage and makes editing the whole series simple, with occurrences expanded for the queried window",
+        "It makes free/busy queries unnecessary",
+        "Databases cannot store more than 100 rows per user"
+      ],
+      "answer": 1,
+      "explanation": "Expanding on read avoids huge row counts and lets a series edit change one record."
+    },
+    {
+      "id": "q2",
+      "type": "mcq",
+      "prompt": "A weekly 9:00 meeting in New York must stay at 9:00 local time across daylight saving changes. What should be stored?",
+      "options": [
+        "A fixed UTC offset like -05:00",
+        "A single UTC timestamp for the first occurrence, repeated every 7 days",
+        "Local wall-clock time plus an IANA time zone name",
+        "The server's local time"
+      ],
+      "answer": 2,
+      "explanation": "Only the zone name lets expansion apply the correct offset for each date, including DST shifts."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "Repeating a recurring event every 7×24 hours in UTC keeps it at the same local time year-round in a DST-observing zone.",
+      "answer": false,
+      "explanation": "The UTC offset changes at DST boundaries, so a fixed UTC interval drifts by an hour in local time."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "When one occurrence of a recurring series is edited, it is stored as an ____ linked to the master event.",
+      "answer": "exception",
+      "acceptable": [
+        "Exception",
+        "override"
+      ],
+      "explanation": "Exceptions record the changed occurrence without altering the rest of the series."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of a free/busy lookup across several attendees.",
+      "items": [
+        "Intersect the free gaps across attendees",
+        "Expand each attendee's events for the window into busy intervals",
+        "Merge overlapping busy intervals per attendee",
+        "Receive the requested window and attendee list"
+      ],
+      "answer": [3, 1, 2, 0],
+      "explanation": "Expand events, merge each person's busy time, then intersect the remaining free gaps."
+    }
+  ]
+}

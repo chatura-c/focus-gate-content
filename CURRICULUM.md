@@ -150,6 +150,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 137 | 2026-11-12 | Designing a Multiplayer Game Backend: Authoritative Servers, Tick Rate, and Lag Compensation | `2026-11-12-multiplayer-game-backend-design` |
 | 138 | 2026-11-14 | Designing Video Conferencing: WebRTC, SFUs, and Simulcast | `2026-11-14-video-conferencing-design` |
 | 139 | 2026-11-14 | Designing an A/B Testing Platform: Assignment, Exposure Logging, and Metrics | `2026-11-14-ab-testing-platform-design` |
+| 140 | 2026-11-16 | Designing a Calendar Service: Recurring Events, Time Zones, and Free/Busy | `2026-11-16-calendar-service-design` |
+| 141 | 2026-11-16 | Designing Vector Search: Embeddings, ANN Indexes, and Filtering | `2026-11-16-vector-search-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
