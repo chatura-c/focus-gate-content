@@ -1,0 +1,66 @@
+{
+  "id": "2026-11-17-flash-sale-design",
+  "date": "2026-11-17",
+  "title": "Designing a Flash Sale System: Traffic Spikes, Inventory, and Fairness",
+  "category": "system-design",
+  "lesson": "A flash sale concentrates huge demand on a tiny amount of stock for a short window. Traffic can jump by orders of magnitude within seconds, while the number of items that can actually be sold is small. The key insight is that most requests are doomed to fail, so the design goal is to reject them as cheaply and as early as possible while protecting the few operations that must be correct: decrementing inventory and creating orders.\n\nThe first line of defense is the edge. Static content (product pages, images, the countdown) is served from a CDN, and the sale start time is enforced server-side so clients cannot hit the purchase API early. Rate limiting per user and per IP, bot challenges, and a virtual waiting room that admits users at a controlled rate keep the backend within capacity. Admitted users receive a token, and only token holders can reach the checkout path, which turns an unbounded spike into a bounded, predictable flow.\n\nInventory is the contended resource. Decrementing a single row in a relational database serializes every buyer on one lock, so systems often pre-load stock counts into an in-memory store such as Redis and decrement atomically there (for example with a Lua script or an atomic decrement that rejects when the count would go below zero). Stock can also be split across several keys or shards to spread load. Because the in-memory count is only a fast gate, the durable order is created asynchronously through a message queue, and the database remains the source of truth that is reconciled later.\n\nCorrectness under retries and failures matters as much as speed. Each purchase attempt carries an idempotency key so a retried request does not reserve stock twice. Reserved stock is held for a short time while the buyer pays, and a timeout releases it back to the pool if payment never completes. A per-user purchase limit prevents one buyer from taking everything, and the system must never oversell: it is acceptable to show 'sold out' slightly early, but not to confirm more orders than there is stock.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "What is the main design goal when most requests in a flash sale cannot succeed?",
+      "options": [
+        "Process every request fully so none are lost",
+        "Reject surplus requests as cheaply and early as possible while protecting inventory correctness",
+        "Let every request reach the database and rely on locks",
+        "Disable caching so users see fresh stock"
+      ],
+      "answer": 1,
+      "explanation": "Since most demand will fail anyway, shedding it at the edge protects the small critical path that must stay correct."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "It is acceptable for a flash sale to briefly show 'sold out' while a few reservations might still expire and return stock.",
+      "answer": true,
+      "explanation": "Under-selling momentarily is recoverable, whereas overselling creates orders that cannot be fulfilled."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A flash-sale system admits users at a controlled rate through a virtual ____ room before they reach checkout.",
+      "answer": "waiting",
+      "acceptable": [
+        "Waiting",
+        "queue"
+      ],
+      "explanation": "A waiting room turns an unbounded spike into a bounded flow of admitted buyers."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why is stock often decremented atomically in an in-memory store rather than a single database row?",
+      "options": [
+        "Memory stores never lose data",
+        "A single hot row serializes all buyers on one lock, while an atomic in-memory decrement is far faster",
+        "Databases cannot store integers",
+        "It removes the need for idempotency keys"
+      ],
+      "answer": 1,
+      "explanation": "The in-memory gate absorbs the contention; the database is updated asynchronously and stays the source of truth."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the life of a successful purchase.",
+      "items": [
+        "Order is created durably via the queue",
+        "Atomic stock decrement succeeds",
+        "User is admitted from the waiting room with a token",
+        "Payment completes and reservation is confirmed"
+      ],
+      "answer": [2, 1, 3, 0],
+      "explanation": "Admission, then stock reservation, then payment, then the durable order is finalized asynchronously."
+    }
+  ]
+}

@@ -152,6 +152,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 139 | 2026-11-14 | Designing an A/B Testing Platform: Assignment, Exposure Logging, and Metrics | `2026-11-14-ab-testing-platform-design` |
 | 140 | 2026-11-16 | Designing a Calendar Service: Recurring Events, Time Zones, and Free/Busy | `2026-11-16-calendar-service-design` |
 | 141 | 2026-11-16 | Designing Vector Search: Embeddings, ANN Indexes, and Filtering | `2026-11-16-vector-search-design` |
+| 142 | 2026-11-17 | Designing a Flash Sale System: Traffic Spikes, Inventory, and Fairness | `2026-11-17-flash-sale-design` |
+| 143 | 2026-11-17 | Designing a Distributed File System: Metadata Server, Chunks, and Replication | `2026-11-17-distributed-file-system-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

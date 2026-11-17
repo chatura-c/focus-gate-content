@@ -1006,5 +1006,19 @@
     "title": "Designing Vector Search: Embeddings, ANN Indexes, and Filtering",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-17-flash-sale-design",
+    "date": "2026-11-17",
+    "title": "Designing a Flash Sale System: Traffic Spikes, Inventory, and Fairness",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-17-distributed-file-system-design",
+    "date": "2026-11-17",
+    "title": "Designing a Distributed File System: Metadata Server, Chunks, and Replication",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

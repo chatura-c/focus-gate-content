@@ -1,0 +1,68 @@
+{
+  "id": "2026-11-17-distributed-file-system-design",
+  "date": "2026-11-17",
+  "title": "Designing a Distributed File System: Metadata Server, Chunks, and Replication",
+  "category": "system-design",
+  "lesson": "A distributed file system such as GFS or HDFS stores very large files across many commodity machines and is optimized for large sequential reads and appends rather than small random writes. Files are split into big fixed-size chunks (blocks), commonly tens to hundreds of megabytes, and each chunk is stored on several machines. Large chunks keep the amount of metadata small and let clients stream data efficiently.\n\nThe architecture separates metadata from data. A coordinating node (the NameNode in HDFS, the master in GFS) holds the namespace, the mapping from files to chunks, and the locations of each chunk's replicas, typically in memory for speed. Data nodes store the chunk bytes. To read a file, the client asks the metadata server which nodes hold each chunk, then fetches the data directly from those data nodes, so file contents never flow through the coordinator and it does not become a bandwidth bottleneck.\n\nDurability comes from replication, commonly three copies, placed across different racks so that losing a machine or an entire rack does not lose data. Data nodes send periodic heartbeats and block reports to the metadata server. When a node stops responding, the server notices that some chunks are under-replicated and instructs other nodes to copy them until the target replication factor is restored. Writes are pushed along a pipeline of replicas, and checksums are verified on read to detect silent corruption.\n\nThe single metadata server is the main availability risk. It is protected by persisting an operation log and periodic checkpoints, and by running a standby that can take over, with shared or replicated journals so no acknowledged change is lost. Metadata size also limits scale: since all file and block entries live in the coordinator's memory, storing huge numbers of tiny files is a known weakness, which is why these systems favor fewer, larger files.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why do systems like HDFS use very large chunk sizes?",
+      "options": [
+        "Small files are not allowed by the OS",
+        "Fewer chunks means less metadata for the coordinator and efficient sequential streaming",
+        "Large chunks make replication unnecessary",
+        "Large chunks speed up random byte-level updates"
+      ],
+      "answer": 1,
+      "explanation": "Big chunks keep the in-memory metadata small and favor large sequential reads."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "In a GFS/HDFS-style read, the file bytes are streamed through the metadata server to the client.",
+      "answer": false,
+      "explanation": "The client gets chunk locations from the metadata server, then reads directly from data nodes."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "When a data node dies, the metadata server restores durability by re-____ the under-replicated chunks onto other nodes.",
+      "answer": "replicating",
+      "acceptable": [
+        "replicate",
+        "copying",
+        "re-replicating",
+        "rereplicating"
+      ],
+      "explanation": "Missing heartbeats reveal lost replicas, and surviving copies are cloned until the target factor is met."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why are replicas placed on different racks?",
+      "options": [
+        "To reduce network cost to zero",
+        "So a single rack failure (power or switch) does not destroy all copies of a chunk",
+        "Because racks hold only one chunk each",
+        "To avoid needing heartbeats"
+      ],
+      "answer": 1,
+      "explanation": "Rack-aware placement survives correlated failures that take out a whole rack."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the steps of reading a file.",
+      "items": [
+        "Client streams chunk data directly from a data node",
+        "Metadata server returns chunk locations",
+        "Client asks the metadata server for the file's chunks",
+        "Client verifies checksums on the data"
+      ],
+      "answer": [2, 1, 0, 3],
+      "explanation": "Look up metadata first, then read from data nodes directly, then verify integrity."
+    }
+  ]
+}
