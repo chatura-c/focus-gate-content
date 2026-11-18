@@ -154,6 +154,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 141 | 2026-11-16 | Designing Vector Search: Embeddings, ANN Indexes, and Filtering | `2026-11-16-vector-search-design` |
 | 142 | 2026-11-17 | Designing a Flash Sale System: Traffic Spikes, Inventory, and Fairness | `2026-11-17-flash-sale-design` |
 | 143 | 2026-11-17 | Designing a Distributed File System: Metadata Server, Chunks, and Replication | `2026-11-17-distributed-file-system-design` |
+| 144 | 2026-11-18 | Designing a Shopping Cart and Checkout: Persistence, Price Snapshots, and Order Placement | `2026-11-18-shopping-cart-checkout-design` |
+| 145 | 2026-11-18 | Designing Usage-Based Billing: Metering, Aggregation, and Invoicing | `2026-11-18-usage-based-billing-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

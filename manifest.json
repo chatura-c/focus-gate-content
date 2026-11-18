@@ -1020,5 +1020,19 @@
     "title": "Designing a Distributed File System: Metadata Server, Chunks, and Replication",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-18-shopping-cart-checkout-design",
+    "date": "2026-11-18",
+    "title": "Designing a Shopping Cart and Checkout: Persistence, Price Snapshots, and Order Placement",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-18-usage-based-billing-design",
+    "date": "2026-11-18",
+    "title": "Designing Usage-Based Billing: Metering, Aggregation, and Invoicing",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

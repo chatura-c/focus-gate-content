@@ -1,0 +1,66 @@
+{
+  "id": "2026-11-18-shopping-cart-checkout-design",
+  "date": "2026-11-18",
+  "title": "Designing a Shopping Cart and Checkout: Persistence, Price Snapshots, and Order Placement",
+  "category": "system-design",
+  "lesson": "A shopping cart looks trivial, but it has unusual requirements: it must be highly available (a failed add-to-cart loses a sale), it must follow users across devices and sessions, and it holds data that goes stale, since prices, promotions, and stock change while items sit in the cart. Carts are also mostly abandoned, so the storage should be cheap and the data expendable. A common design stores each cart as one document keyed by user ID (or an anonymous session ID) in a key-value store, with a TTL to expire abandoned carts. Because the cart is a single-key read and write with no cross-cart joins, it partitions trivially and favors availability over strict consistency. When an anonymous visitor logs in, the guest cart is merged into the account cart, typically by combining line items and keeping the larger quantity or summing them.\n\nThe cart should store only references and intent: product ID, variant, and quantity. It should not treat the price saved at add time as authoritative. Every time the cart is displayed, prices, availability, and promotions are re-read from the catalog and pricing services, so the user sees current numbers and any change is flagged ('price dropped' or 'now out of stock'). Showing a stale price at checkout is a correctness and trust problem, which is why the authoritative price is computed at the moment checkout begins.\n\nCheckout is where the system switches from a forgiving, available design to a strict, correct one. Starting checkout takes a snapshot: the server recomputes line prices, discounts, tax, and shipping, and stores them in a checkout session with an expiry. The client only submits an intent, never prices, because client-supplied totals cannot be trusted. Inventory is then reserved for a short window, which protects against overselling while the buyer enters payment details. Reservations expire if the checkout is abandoned, returning stock to the pool.\n\nPlacing the order must be idempotent. The client sends an idempotency key generated when the checkout session is created, so a double-click or a retry after a timeout returns the same order instead of creating a second one or charging twice. The order service writes the order and publishes an event atomically (for example with the outbox pattern), and downstream steps such as payment capture, fulfillment, and email run asynchronously, often coordinated as a saga with compensating actions like releasing inventory or refunding if a later step fails.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a cart typically stored as a single document keyed by user or session ID with a TTL?",
+      "options": [
+        "Carts need multi-row transactions across users",
+        "It is a single-key read/write that partitions easily, favors availability, and lets abandoned carts expire cheaply",
+        "It guarantees the saved price never changes",
+        "It removes the need to merge guest carts on login"
+      ],
+      "answer": 1,
+      "explanation": "Carts have no cross-cart joins and are mostly abandoned, so a simple partitioned key-value store with expiry fits well."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "At checkout the client should send the final totals so the server does not need to recompute prices.",
+      "answer": false,
+      "explanation": "Client-supplied prices cannot be trusted; the server recomputes prices, discounts, tax, and shipping when the checkout session starts."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "To prevent a double-click from creating two orders, the client sends an ____ key with the place-order request.",
+      "answer": "idempotency",
+      "acceptable": [
+        "Idempotency",
+        "idempotent"
+      ],
+      "explanation": "The server returns the original order for a repeated key instead of creating or charging again."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A user left an item in their cart for a week and its price has since changed. What is the best behavior?",
+      "options": [
+        "Charge the old saved price silently",
+        "Re-read the current price when displaying the cart and flag the change to the user",
+        "Delete the item from the cart",
+        "Block checkout until the user re-adds the item"
+      ],
+      "answer": 1,
+      "explanation": "The cart stores intent (product and quantity); authoritative pricing is fetched fresh and changes are surfaced."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the stages of a checkout flow.",
+      "items": [
+        "Order is placed idempotently and an event is published",
+        "Server snapshots prices, tax, and shipping into a checkout session",
+        "Inventory is reserved for a short window",
+        "Payment, fulfillment, and email run asynchronously as a saga"
+      ],
+      "answer": [1, 2, 0, 3],
+      "explanation": "Snapshot first, then reserve stock, then place the order, then let downstream steps proceed with compensation on failure."
+    }
+  ]
+}
