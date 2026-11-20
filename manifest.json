@@ -1034,5 +1034,19 @@
     "title": "Designing Usage-Based Billing: Metering, Aggregation, and Invoicing",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-20-fraud-detection-design",
+    "date": "2026-11-20",
+    "title": "Designing a Fraud Detection System: Real-Time Scoring, Features, and Feedback",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-20-social-graph-design",
+    "date": "2026-11-20",
+    "title": "Designing a Social Graph: Follows, Mutual Friends, and Friend Suggestions",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

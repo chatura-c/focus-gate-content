@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-20-fraud-detection-design",
+  "date": "2026-11-20",
+  "title": "Designing a Fraud Detection System: Real-Time Scoring, Features, and Feedback",
+  "category": "system-design",
+  "lesson": "A fraud detection system decides, usually within tens to a few hundred milliseconds, whether a transaction should be approved, challenged, or blocked. It sits in the synchronous path of a payment or login, so latency and availability matter as much as accuracy. A typical design has a decision service that gathers features, calls one or more models and a rules engine, and returns a score plus an action. If the fraud service is slow or down, the caller needs a defined fallback (fail open for low-risk flows, fail closed or step-up for high-risk ones) rather than an unplanned outage.\n\nThe hardest part is features. Strong signals are often aggregates over recent behaviour, such as the number of cards used from this device in the last hour or the total spent by this account today. These are computed by a streaming pipeline that updates counters in a low-latency feature store, while heavier historical features are computed in batch. Using the same feature definitions for training and for serving avoids training/serving skew, where the model sees different values online than it learned from offline.\n\nRules and models complement each other. Rules are transparent, instantly editable, and good for known attack patterns or compliance requirements; models generalise to patterns no one wrote a rule for. Scores are mapped to actions through thresholds that trade false positives (blocking good customers) against false negatives (letting fraud through), and the ambiguous middle band is often sent to step-up authentication or manual review queues rather than a hard decision.\n\nLabels arrive late and are biased. A chargeback may appear weeks after the transaction, and transactions you blocked never reveal whether they were really fraud. So the system logs every decision with its features, joins in delayed outcomes, retrains regularly, and often lets a small random sample of traffic through to measure true fraud rates. Fraudsters adapt, so monitoring for drift and shadow-testing new models before promotion are part of the design.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why is a fraud scoring service usually designed with an explicit fallback when it is slow or unavailable?",
+      "options": [
+        "Because it sits in the synchronous path of payments or logins, so an outage would otherwise block them",
+        "Because fraud models cannot run more than once a day",
+        "Because fallbacks improve model accuracy",
+        "Because rules engines require a database restart on failure"
+      ],
+      "answer": 0,
+      "explanation": "The decision is in the request path, so the caller must know whether to fail open, fail closed, or step up when the service is unavailable."
+    },
+    {
+      "id": "q2",
+      "type": "fill_blank",
+      "prompt": "When a model sees different feature values online than it saw during offline training, the problem is called training/serving ____.",
+      "answer": "skew",
+      "explanation": "Training/serving skew arises when feature computation differs between offline and online paths, degrading model performance."
+    },
+    {
+      "id": "q3",
+      "type": "true_false",
+      "prompt": "Transactions that were blocked still provide reliable fraud labels for retraining, since we know they were fraudulent.",
+      "answer": false,
+      "explanation": "Blocked transactions never reveal whether they were truly fraud, which is why systems let a small sample through and join in delayed outcomes."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order these steps of a real-time fraud decision, earliest first.",
+      "items": [
+        "Return approve, challenge, or block to the caller",
+        "Fetch aggregate features from the feature store",
+        "Map the score to an action using thresholds",
+        "Receive the transaction event",
+        "Run rules and model(s) to produce a score"
+      ],
+      "answer": [3, 1, 4, 2, 0],
+      "explanation": "The request arrives, features are gathered, the model and rules score it, thresholds pick an action, and the decision is returned."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What is the main advantage of keeping a rules engine alongside an ML model?",
+      "options": [
+        "Rules always have higher accuracy than models",
+        "Rules are transparent and can be changed instantly to block a known attack",
+        "Rules remove the need for any thresholds",
+        "Rules eliminate delayed labels"
+      ],
+      "answer": 1,
+      "explanation": "Rules can be edited immediately and explained, which suits known patterns and compliance, while models cover unseen patterns."
+    }
+  ]
+}

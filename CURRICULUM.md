@@ -156,6 +156,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 143 | 2026-11-17 | Designing a Distributed File System: Metadata Server, Chunks, and Replication | `2026-11-17-distributed-file-system-design` |
 | 144 | 2026-11-18 | Designing a Shopping Cart and Checkout: Persistence, Price Snapshots, and Order Placement | `2026-11-18-shopping-cart-checkout-design` |
 | 145 | 2026-11-18 | Designing Usage-Based Billing: Metering, Aggregation, and Invoicing | `2026-11-18-usage-based-billing-design` |
+| 146 | 2026-11-20 | Designing a Fraud Detection System: Real-Time Scoring, Features, and Feedback | `2026-11-20-fraud-detection-design` |
+| 147 | 2026-11-20 | Designing a Social Graph: Follows, Mutual Friends, and Friend Suggestions | `2026-11-20-social-graph-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
