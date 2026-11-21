@@ -1048,5 +1048,19 @@
     "title": "Designing a Social Graph: Follows, Mutual Friends, and Friend Suggestions",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-21-content-moderation-design",
+    "date": "2026-11-21",
+    "title": "Designing a Content Moderation Pipeline: Automated Filters, Human Review, and Appeals",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-21-music-streaming-design",
+    "date": "2026-11-21",
+    "title": "Designing a Music Streaming Service: Catalog, Chunked Delivery, and Offline Playback",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

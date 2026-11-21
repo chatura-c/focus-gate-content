@@ -158,6 +158,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 145 | 2026-11-18 | Designing Usage-Based Billing: Metering, Aggregation, and Invoicing | `2026-11-18-usage-based-billing-design` |
 | 146 | 2026-11-20 | Designing a Fraud Detection System: Real-Time Scoring, Features, and Feedback | `2026-11-20-fraud-detection-design` |
 | 147 | 2026-11-20 | Designing a Social Graph: Follows, Mutual Friends, and Friend Suggestions | `2026-11-20-social-graph-design` |
+| 148 | 2026-11-21 | Designing a Content Moderation Pipeline: Automated Filters, Human Review, and Appeals | `2026-11-21-content-moderation-design` |
+| 149 | 2026-11-21 | Designing a Music Streaming Service: Catalog, Chunked Delivery, and Offline Playback | `2026-11-21-music-streaming-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
