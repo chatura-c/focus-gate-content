@@ -160,6 +160,8 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 147 | 2026-11-20 | Designing a Social Graph: Follows, Mutual Friends, and Friend Suggestions | `2026-11-20-social-graph-design` |
 | 148 | 2026-11-21 | Designing a Content Moderation Pipeline: Automated Filters, Human Review, and Appeals | `2026-11-21-content-moderation-design` |
 | 149 | 2026-11-21 | Designing a Music Streaming Service: Catalog, Chunked Delivery, and Offline Playback | `2026-11-21-music-streaming-design` |
+| 150 | 2026-11-22 | Designing an Online Auction System: Bid Ordering, Auto-Extend, and Fair Closing | `2026-11-22-online-auction-design` |
+| 151 | 2026-11-22 | Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals | `2026-11-22-distributed-counters-view-counts-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

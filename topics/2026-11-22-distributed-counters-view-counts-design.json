@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-22-distributed-counters-view-counts-design",
+  "date": "2026-11-22",
+  "title": "Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals",
+  "category": "system-design",
+  "lesson": "A view or like counter seems trivial, yet for a viral video a single database row incremented on every view becomes a hot key: each update takes a row lock, writes serialize, and throughput collapses at a few hundred to a few thousand updates per second. The first design question is how exact the number must be. A public view count can be slightly stale or approximate; a bank balance or inventory count cannot. Most counters in social products fall into the first category, which opens up much cheaper designs.\n\nThe first technique is sharded counters: instead of one row, keep N rows for the same counter, increment a randomly chosen one, and sum them on read. Writes spread across N keys so contention drops roughly N-fold, at the cost of a more expensive read. Reads are then cached or the total is periodically rolled up into a single value.\n\nThe second technique is buffering and batching. Application servers or a stream processor accumulate increments in memory and flush a single 'add 500' every second, or events are written to a log such as a partitioned queue and a consumer aggregates them per key per window. This trades freshness for write efficiency, and the tradeoff is acceptable because users cannot tell the difference between 1,204,331 and 1,204,870 views. The risk is losing buffered increments if a server crashes, which is fine for approximate counts but not for billing.\n\nCorrectness questions then shift to deduplication and abuse. If a view should count once per user per period, the system needs a uniqueness check; for unique counts at huge scale, probabilistic structures such as HyperLogLog estimate cardinality in a few kilobytes with around one percent error, instead of storing every ID. Retried events need unique event IDs so at-least-once delivery does not double count. Finally, displayed counts are usually served from a cache and updated lazily, with a periodic reconciliation job recomputing from the raw event log to correct drift.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does incrementing a single database row for every view of a viral video scale poorly?",
+      "options": [
+        "Every update contends for the same row, so writes serialize on a hot key",
+        "Databases cannot store integers above one million",
+        "Reads become impossible while any write occurs",
+        "The row must be replicated to every user's device"
+      ],
+      "answer": 0,
+      "explanation": "All increments target one key, so lock contention caps throughput regardless of how many servers you add."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "With sharded counters, a read must typically sum across all the shards of that counter.",
+      "answer": true,
+      "explanation": "Sharding spreads writes over N rows, which makes reads more expensive since the total is the sum of the shards."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A probabilistic structure that estimates the number of distinct items in a few kilobytes with small error is called ____.",
+      "answer": "HyperLogLog",
+      "acceptable": ["hll", "hyperloglog++", "hyper log log"],
+      "explanation": "HyperLogLog gives approximate unique counts using tiny fixed memory instead of storing every ID."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Which counter is the WORST candidate for in-memory buffering with periodic flushes?",
+      "options": [
+        "Usage metering that is used to bill customers",
+        "A public video view count",
+        "A page-visit analytics tally",
+        "A trending hashtag estimate"
+      ],
+      "answer": 0,
+      "explanation": "Buffered increments can be lost on a crash, which is tolerable for approximate display counts but not for billing."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order a buffered view-counting pipeline, earliest first.",
+      "items": [
+        "Flush an aggregated increment to the counter store",
+        "Reconcile periodically against the raw event log",
+        "Servers accumulate view events in memory per video",
+        "A viewer's player sends a view event"
+      ],
+      "answer": [3, 2, 0, 1],
+      "explanation": "Events arrive, get batched in memory, flush as one aggregated write, and are later reconciled against the raw log to fix drift."
+    }
+  ]
+}

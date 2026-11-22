@@ -1,0 +1,63 @@
+{
+  "id": "2026-11-22-online-auction-design",
+  "date": "2026-11-22",
+  "title": "Designing an Online Auction System: Bid Ordering, Auto-Extend, and Fair Closing",
+  "category": "system-design",
+  "lesson": "An online auction looks like a simple 'highest number wins' problem, but the hard part is agreeing on exactly which bid was highest and exactly when the auction closed, while thousands of people bid at once on a popular item. The core rule is that every bid for a given item must be serialized. The common approach is to route all bids for one auction to a single owner, either a row lock in a relational database or a single-threaded partition keyed by auction ID, so that each bid is validated against the current highest bid in a strict order. Different auctions are independent, so the system scales by sharding on auction ID rather than by parallelizing within one auction.\n\nA bid is accepted only if it is at least the current price plus the minimum increment and the auction is still open. Validation and the write must be atomic, for example a conditional update such as 'set highest = X where highest < X and status = open', so two concurrent bids cannot both believe they won. Each bid should carry an idempotency key so a retried request from a flaky mobile connection does not place a second bid. Many sites also support proxy bidding: the user stores a private maximum, and the system bids on their behalf in minimum increments, revealing only the price needed to stay in front.\n\nClosing time is where fairness is decided. Clients' clocks cannot be trusted, so the server's clock is the only authority, and a bid counts if the server received and committed it before the deadline. To discourage last-second sniping, many auctions use soft close: a valid bid placed within the final minutes extends the deadline by a fixed amount, so everyone gets a chance to respond. Closing itself is a scheduled job or delayed task that must be idempotent, since it may fire twice; it flips the status from open to closed with a conditional update and then emits an event.\n\nBidders expect to see the price move in near real time, so the current price is pushed to watchers over WebSockets or server-sent events through a pub/sub channel, while the authoritative state stays in the database. Winner notification, payment capture, and seller payout are handled asynchronously after the close event, using the same retry-safe patterns as any payment flow. Because watchers can see slightly stale prices, the server must always re-validate on bid submission and tell the bidder when their bid was outbid.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "How do auction systems typically prevent two simultaneous bids from both being accepted as the highest?",
+      "options": [
+        "Serialize bids per auction, e.g. via a row lock or a partition keyed by auction ID",
+        "Trust the timestamp each client attaches to its bid",
+        "Cache the highest bid in every web server and compare locally",
+        "Accept both and pick the winner at closing time randomly"
+      ],
+      "answer": 0,
+      "explanation": "Serializing bids for one auction lets each be validated against the current highest in a strict order, while separate auctions still scale independently."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "For deciding whether a bid arrived before the deadline, the client's device clock is the most reliable source.",
+      "answer": false,
+      "explanation": "Client clocks can be wrong or manipulated, so the server's clock at commit time is the authority."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "An auction rule where a valid bid in the final minutes pushes back the end time, discouraging last-second bidding, is called a ____ close.",
+      "answer": "soft",
+      "acceptable": ["soft close", "soft-close"],
+      "explanation": "Soft close extends the deadline on late bids so other bidders can respond, reducing sniping."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "Why should each bid request carry an idempotency key?",
+      "options": [
+        "So a retried request after a network failure does not place a duplicate bid",
+        "So bids can be sorted alphabetically",
+        "So the CDN can cache bids",
+        "So bids bypass minimum increment checks"
+      ],
+      "answer": 0,
+      "explanation": "Mobile clients retry on timeouts, and the key lets the server recognise a repeat of the same bid and return the original result."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order the handling of a single bid, earliest first.",
+      "items": [
+        "Publish the new price to watchers via pub/sub",
+        "Atomically update the highest bid if it is still higher and the auction is open",
+        "Receive the bid and check its idempotency key",
+        "Validate against minimum increment and the auction's open status"
+      ],
+      "answer": [2, 3, 1, 0],
+      "explanation": "Dedup first, then validate, then commit atomically, and only then broadcast the committed price."
+    }
+  ]
+}

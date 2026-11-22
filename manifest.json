@@ -1062,5 +1062,19 @@
     "title": "Designing a Music Streaming Service: Catalog, Chunked Delivery, and Offline Playback",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-22-online-auction-design",
+    "date": "2026-11-22",
+    "title": "Designing an Online Auction System: Bid Ordering, Auto-Extend, and Fair Closing",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-22-distributed-counters-view-counts-design",
+    "date": "2026-11-22",
+    "title": "Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]
