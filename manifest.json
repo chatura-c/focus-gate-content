@@ -1076,5 +1076,19 @@
     "title": "Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-26-distributed-configuration-service-design",
+    "date": "2026-11-26",
+    "title": "Designing a Distributed Configuration Service: Versioned Config, Watches, and Safe Rollout",
+    "category": "system-design",
+    "questionCount": 5
+  },
+  {
+    "id": "2026-11-26-database-sharding-review",
+    "date": "2026-11-26",
+    "title": "Database Sharding",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

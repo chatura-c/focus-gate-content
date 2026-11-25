@@ -162,6 +162,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 149 | 2026-11-21 | Designing a Music Streaming Service: Catalog, Chunked Delivery, and Offline Playback | `2026-11-21-music-streaming-design` |
 | 150 | 2026-11-22 | Designing an Online Auction System: Bid Ordering, Auto-Extend, and Fair Closing | `2026-11-22-online-auction-design` |
 | 151 | 2026-11-22 | Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals | `2026-11-22-distributed-counters-view-counts-design` |
+| 152 | 2026-11-26 | Designing a Distributed Configuration Service: Versioned Config, Watches, and Safe Rollout | `2026-11-26-distributed-configuration-service-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 
@@ -170,6 +171,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 2026-09-02 | CAP Theorem (orig. `2026-08-21-cap-theorem`) | `2026-09-02-cap-theorem-review` | Same lesson text, fresh questions covering the CAP definition of availability, AP reconciliation, PACELC, and per-request quorum tuning. |
 | 2026-09-13 | Consistent Hashing (orig. `2026-08-20-consistent-hashing`) | `2026-09-13-consistent-hashing-review` | Same lesson text, fresh questions covering the naive-modulo failure mode, virtual nodes, removal behavior, and real-world users of the technique. |
 | 2026-09-21 | Database Replication (orig. `2026-08-24-database-replication`) | `2026-09-21-database-replication-review` | Same lesson text, fresh questions covering replication's purpose, semi-synchronous acking, split-brain, read-scaling rationale, and the synchronous write ordering. |
+| 2026-11-26 | Database Sharding (orig. `2026-08-21-database-sharding`) | `2026-11-26-database-sharding-review` | Same lesson text, fresh questions covering range-partition hotspots, replication vs sharding, tenant-based shard keys, scatter-gather, and the scale-up-then-shard progression. |
 
 Note: 2026-08-22 through 2026-08-25 were already filled by hand-seeded content (see `README.md`),
 so this run's topics were scheduled for 2026-08-26, the next open date, rather than colliding with

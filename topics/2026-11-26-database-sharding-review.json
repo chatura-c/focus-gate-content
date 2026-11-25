@@ -1,0 +1,70 @@
+{
+  "id": "2026-11-26-database-sharding-review",
+  "date": "2026-11-26",
+  "title": "Database Sharding",
+  "category": "system-design",
+  "lesson": "Sharding (also called partitioning) splits a large dataset across multiple database nodes, called shards, each holding a subset of the rows. Where replication (covered earlier) copies the *same* data onto multiple nodes for availability and read throughput, sharding splits the data itself so that no single node has to store or serve the entire dataset. This is what lets a system scale storage and write throughput past what one machine can hold, once vertical scaling (a bigger box) stops being economical or physically possible.\n\nThe two common ways to decide which shard a row belongs to are range-based and hash-based partitioning. Range-based partitioning assigns contiguous key ranges to shards (e.g. user IDs 1-1000 on shard A, 1001-2000 on shard B), which keeps range queries and ordered scans efficient but risks hotspots when writes cluster at one end of the range, such as monotonically increasing IDs or timestamps all landing on the newest shard. Hash-based partitioning instead hashes each row's shard key and uses the hash to pick a shard, which spreads load far more evenly but scatters related or sequential keys across shards, making range queries expensive since they now have to fan out to every shard. Consistent hashing, covered previously, is a common technique for the hash-based approach specifically because it limits how many keys have to move when a shard is added or removed, rather than reshuffling nearly everything the way a plain hash-modulo-N scheme would.\n\nSharding introduces problems that don't exist on a single node. Queries or transactions that need data from more than one shard, such as a join across two tables that live on different shards, either require an expensive scatter-gather across every shard or aren't supported at all. Multi-shard transactions need a distributed transaction protocol (or get avoided by design) since a single node can no longer just wrap the whole operation in a local ACID transaction. Rebalancing, moving data between shards as they grow unevenly or as shards are added, has to be done carefully to avoid downtime or data loss.\n\nBecause of these costs, the choice of shard key matters more than almost any other decision in a sharded system. A good shard key spreads both storage and traffic evenly across shards and, ideally, matches the application's query patterns so that most queries only need to touch one shard, for example sharding a multi-tenant SaaS product by tenant/organization ID so each customer's data and queries stay within a single shard. A poor shard key, such as one with skewed access patterns, creates hot shards that take disproportionate load while others sit underused, or forces most queries to become expensive cross-shard fan-outs.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "A sharded table uses range partitioning on an auto-incrementing order ID. What problem is most likely?",
+      "options": [
+        "All new writes land on the shard holding the highest range, creating a hotspot",
+        "Range queries on order ID must fan out to every shard",
+        "Data must be fully reshuffled when a shard is added",
+        "Reads cannot use indexes"
+      ],
+      "answer": 0,
+      "explanation": "Monotonically increasing keys cluster new writes at the end of the range, so one shard takes most of the write load."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Replication and sharding solve the same problem: both copy the full dataset to more nodes.",
+      "answer": false,
+      "explanation": "Replication copies the same data for availability and read throughput, while sharding splits the data so no node holds all of it."
+    },
+    {
+      "id": "q3",
+      "type": "mcq",
+      "prompt": "For a multi-tenant SaaS product where nearly every query is scoped to one customer, which shard key is usually best?",
+      "options": [
+        "Tenant or organisation ID",
+        "Row creation timestamp",
+        "A random UUID per row",
+        "The user's country"
+      ],
+      "answer": 0,
+      "explanation": "Sharding by tenant keeps each customer's data and queries on a single shard, avoiding cross-shard fan-out."
+    },
+    {
+      "id": "q4",
+      "type": "fill_blank",
+      "prompt": "A query that must be sent to every shard and have the partial results combined is called a scatter-____ query.",
+      "answer": "gather",
+      "acceptable": [
+        "gathered"
+      ],
+      "explanation": "Scatter-gather fans the query out to all shards and merges the results, which is far more expensive than a single-shard lookup."
+    },
+    {
+      "id": "q5",
+      "type": "ordering",
+      "prompt": "Order these scaling steps as a growing database typically encounters them, earliest first.",
+      "items": [
+        "Shard the data across multiple nodes",
+        "Run on a single database server",
+        "Hit the practical limit of vertical scaling",
+        "Move to a bigger machine"
+      ],
+      "answer": [
+        1,
+        3,
+        2,
+        0
+      ],
+      "explanation": "Teams usually scale up first and only shard once a bigger box stops being economical or possible."
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "id": "2026-11-26-distributed-configuration-service-design",
+  "date": "2026-11-26",
+  "title": "Designing a Distributed Configuration Service: Versioned Config, Watches, and Safe Rollout",
+  "category": "system-design",
+  "lesson": "A distributed configuration service stores settings that many services read at runtime: connection strings, timeouts, feature toggles, rate-limit values, routing tables. Putting configuration in a central store instead of baking it into each deploy lets operators change behaviour without rebuilding or restarting, but it also means a single bad edit can reach every server in the fleet within seconds. The design therefore has two goals that pull against each other: fast propagation and safe change.\n\nThe store itself is usually a small, strongly consistent, replicated key-value system, often built on a consensus protocol such as Raft (etcd and ZooKeeper are common examples). Config data is tiny compared to application data, and reads vastly outnumber writes, so it is reasonable to pay the cost of consensus on every write in exchange for a single agreed-upon order of changes. Every change produces a new monotonically increasing version or revision number, and the previous versions are kept, which gives a full history, makes rollback a matter of re-publishing an older version, and lets clients ask whether what they hold is current.\n\nClients should not poll the central store on every request. Instead each service keeps a local in-memory copy and subscribes to changes using a watch (or long poll): the client says 'notify me of anything after revision N', and the server pushes updates as they commit. Because the client remembers the last revision it saw, a reconnect after a network blip can resume from that point without missing changes. Crucially, the local copy is also a safety net: if the configuration service becomes unavailable, services keep running on their last known good config, often persisted to local disk so it survives a restart, rather than failing. The config service should be off the request path, so its outage degrades the ability to change settings, not the ability to serve traffic.\n\nSafe rollout treats config like code. Changes are validated against a schema before they are accepted, reviewed, and ideally rolled out progressively: first to a canary group of hosts or one region, with health metrics watched, then wider. Clients should validate a new config before swapping it in and keep the old one if parsing or validation fails. Many large outages have been caused by a bad configuration push that propagated everywhere at once, which is why staged rollout, fast rollback to a previous version, and keeping the last known good copy are the core reliability features, not optional extras.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "If the central configuration service goes down, what should well-designed client services do?",
+      "options": [
+        "Keep serving traffic using their last known good config held locally",
+        "Immediately stop serving traffic until config is reachable",
+        "Fall back to hardcoded defaults for every setting",
+        "Retry the config service on every incoming request"
+      ],
+      "answer": 0,
+      "explanation": "Keeping the config service off the request path means its outage only blocks changes, not normal operation."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Because reads vastly outnumber writes and the data is small, it is reasonable for a config store to use consensus on every write.",
+      "answer": true,
+      "explanation": "Writes are rare, so paying consensus cost for a single agreed order of changes is cheap relative to the safety it buys."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "Instead of polling, clients subscribe to changes after a known revision using a ____.",
+      "answer": "watch",
+      "acceptable": [
+        "watcher",
+        "watches",
+        "long poll",
+        "long-poll",
+        "long polling"
+      ],
+      "explanation": "A watch pushes committed changes to the client, and the remembered revision lets it resume after reconnecting."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of a safe configuration change, earliest first.",
+      "items": [
+        "Roll the change out to the rest of the fleet",
+        "Validate the new config against its schema",
+        "Apply it to a canary group and watch health metrics",
+        "An operator proposes a config edit"
+      ],
+      "answer": [
+        3,
+        1,
+        2,
+        0
+      ],
+      "explanation": "Edits are validated first, proven on a small canary group, and only then propagated widely."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why does each config change get a new monotonically increasing version?",
+      "options": [
+        "It enables history, rollback by re-publishing an old version, and resuming watches without missing changes",
+        "It compresses the config",
+        "It lets clients skip schema validation",
+        "It allows writes to bypass consensus"
+      ],
+      "answer": 0,
+      "explanation": "Ordered versions give an audit trail, cheap rollback, and a cursor clients can resume from."
+    }
+  ]
+}
