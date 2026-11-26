@@ -1090,5 +1090,12 @@
     "title": "Database Sharding",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-26-trending-topics-design",
+    "date": "2026-11-26",
+    "title": "Designing Trending Topics: Sliding Windows, Heavy Hitters, and Spike Detection",
+    "category": "system-design",
+    "questionCount": 5
   }
 ]

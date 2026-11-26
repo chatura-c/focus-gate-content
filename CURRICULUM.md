@@ -163,6 +163,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 150 | 2026-11-22 | Designing an Online Auction System: Bid Ordering, Auto-Extend, and Fair Closing | `2026-11-22-online-auction-design` |
 | 151 | 2026-11-22 | Designing Distributed Counters: View Counts, Sharded Writes, and Approximate Totals | `2026-11-22-distributed-counters-view-counts-design` |
 | 152 | 2026-11-26 | Designing a Distributed Configuration Service: Versioned Config, Watches, and Safe Rollout | `2026-11-26-distributed-configuration-service-design` |
+| 153 | 2026-11-26 | Designing Trending Topics: Sliding Windows, Heavy Hitters, and Spike Detection | `2026-11-26-trending-topics-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

@@ -1,0 +1,73 @@
+{
+  "id": "2026-11-26-trending-topics-design",
+  "date": "2026-11-26",
+  "title": "Designing Trending Topics: Sliding Windows, Heavy Hitters, and Spike Detection",
+  "category": "system-design",
+  "lesson": "A trending-topics feature surfaces the hashtags, search terms, or items whose activity is rising right now. That is a different question from 'what is most popular overall': a term that is always busy, like a common word or a perennial celebrity, is popular but not trending. Trending means the current rate of mentions is unusually high compared with that term's own normal baseline. The system therefore has to count events per term over recent time windows, compare against history, and do it continuously over a very high-volume stream of posts or searches.\n\nIngestion is usually a streaming pipeline: events land on a partitioned log such as Kafka, and stream processors extract terms and count them in time buckets (for example one-minute buckets). A sliding window, such as 'the last hour', is built by summing the most recent buckets and dropping the oldest as time advances, which avoids recounting raw events. Counting every distinct term exactly is expensive because the long tail is enormous, so systems often use approximate structures: a Count-Min Sketch gives fixed-memory frequency estimates that can overcount but never undercount, and heavy-hitter algorithms such as Space-Saving or Misra-Gries track only the top candidates. Partitioning the stream by term lets each worker own a subset of terms, with a final merge step that combines each worker's local top-K into a global top-K.\n\nRanking compares the recent rate with a baseline. A simple score is the ratio or difference between the current window's count and the term's longer-term average for that time of day, or a statistical measure like a z-score that asks how many standard deviations above normal the current count is. Exponentially decayed counts are another common tool: each event's weight shrinks over time, so a term needs sustained recent activity to stay near the top and naturally falls away as interest fades. Minimum-volume thresholds stop tiny terms from looking explosive, since going from 1 to 10 mentions is a large ratio but not a real trend.\n\nThe serving side is cheap by comparison: the pipeline periodically writes the computed top-K list per region or locale into a cache, and clients read that precomputed list, so reads never touch the counting pipeline. Production systems also add filtering on top of the raw ranking: removing spam and coordinated manipulation (many new accounts pushing the same tag), deduplicating near-identical terms, and applying content policy. Because trends are inherently approximate and refreshed every minute or so, the design deliberately trades exact counts and strong consistency for low memory, low latency, and freshness.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which term is most likely to be flagged as trending?",
+      "options": [
+        "A term with a usual 200 mentions/hour now getting 5,000 mentions/hour",
+        "A term that always gets 50,000 mentions/hour and is getting 50,000 now",
+        "A term that went from 1 to 6 mentions in the last hour",
+        "A term with the highest all-time mention count"
+      ],
+      "answer": 0,
+      "explanation": "Trending means a sharp rise over the term's own baseline with meaningful volume, not raw popularity or tiny-number ratios."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "A Count-Min Sketch can underestimate how often a term appeared.",
+      "answer": false,
+      "explanation": "Hash collisions only add to counters, so a Count-Min Sketch can overcount but never undercount."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A 'last hour' count built by summing recent one-minute buckets and dropping the oldest is called a ____ window.",
+      "answer": "sliding",
+      "acceptable": [
+        "sliding window",
+        "rolling",
+        "rolling window",
+        "hopping"
+      ],
+      "explanation": "Sliding windows reuse pre-aggregated buckets so advancing time never requires recounting raw events."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the stages of a trending-topics pipeline, from event to user.",
+      "items": [
+        "Clients read the precomputed top-K list from a cache",
+        "Stream processors count terms in per-minute buckets",
+        "Posts and searches are written to a partitioned log",
+        "Worker-local top-K lists are merged, scored against baselines, and filtered for spam"
+      ],
+      "answer": [
+        2,
+        1,
+        3,
+        0
+      ],
+      "explanation": "Events are ingested, counted per bucket, merged and ranked, and only the finished list is served from cache."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "What is the main benefit of exponentially decayed counts for trending?",
+      "options": [
+        "Old activity fades automatically, so a term must keep getting recent mentions to stay on top",
+        "They give exact counts with no memory cost",
+        "They eliminate the need for spam filtering",
+        "They make all terms rank equally"
+      ],
+      "answer": 0,
+      "explanation": "Decay weights recent events more heavily, so stale bursts drop off without explicit window bookkeeping."
+    }
+  ]
+}
