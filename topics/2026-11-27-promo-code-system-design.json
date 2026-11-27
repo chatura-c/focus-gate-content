@@ -1,0 +1,70 @@
+{
+  "id": "2026-11-27-promo-code-system-design",
+  "date": "2026-11-27",
+  "title": "Designing a Promo Code System: Redemption Limits, Atomic Claims, and Abuse Prevention",
+  "category": "system-design",
+  "lesson": "A promo code system lets a business hand out discount codes and enforce rules on how they are used: a code might be valid only between two dates, only for new customers, only on orders above a minimum, only once per user, or only for the first 1,000 redemptions overall. It looks like a simple lookup table, but it is really a concurrency and correctness problem. Codes are often shared publicly or announced at a fixed time, so many users try the same code at once, and every redemption has real money attached. The two things that must never happen are a code being used more times than its limit and a user being charged without the discount they were promised, or given a discount on an order that never completed.\n\nThe data model usually separates a campaign (the rules: discount amount, validity window, eligibility, global cap, per-user cap) from codes (either one shared code like SAVE20, or many unique single-use codes generated in bulk) and from redemptions (one row per use, linking code, user, and order). Validation happens in two phases. At cart time the system checks the cheap rules (exists, not expired, order meets minimum, user eligible) to show the user a discounted price. That check is advisory only; the authoritative check must happen again at checkout, because conditions can change between viewing the cart and paying.\n\nEnforcing limits under concurrency is the core problem. The naive approach of reading the current redemption count, checking it against the cap, and then inserting a redemption is a classic check-then-act race: two requests can both read 999 and both succeed, producing 1,001 redemptions. Correct designs make the claim atomic. Options include a conditional update such as 'UPDATE campaigns SET used = used + 1 WHERE id = ? AND used < cap' and checking that exactly one row changed, an atomic counter in Redis decremented with a check in a single operation or script, or for unique single-use codes, an update that flips a code from 'available' to 'claimed' only if it is still available. Per-user limits are naturally enforced with a unique constraint on (campaign, user) in the redemptions table, so the database itself rejects a duplicate claim.\n\nThe claim also has to stay consistent with the order. A common pattern is to reserve the redemption when checkout starts, with a short expiry, then confirm it when payment succeeds and release it if payment fails or the reservation times out; otherwise abandoned checkouts would permanently burn limited codes. Checkout requests should carry an idempotency key so a retried request does not claim twice. Finally, abuse prevention matters because codes leak: unique codes should be long and random enough that they cannot be guessed, redemption attempts should be rate limited per user and IP to stop brute-force guessing, and 'one per customer' rules are usually tied to signals stronger than an email address, such as a verified phone number or payment method fingerprint, since new email addresses are free.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "A code is capped at 1,000 uses. The service reads the current count, checks it is below 1,000, then inserts a redemption. What goes wrong under load?",
+      "options": [
+        "Nothing, as long as the read is from the primary database",
+        "Concurrent requests can all read 999 and all succeed, exceeding the cap",
+        "The code expires early because of clock skew",
+        "Users are charged twice for the same order"
+      ],
+      "answer": 1,
+      "explanation": "Read-check-insert is a check-then-act race; the check and the claim must happen atomically to enforce the cap."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "If the promo code was validated when the user added it to their cart, checkout can safely skip re-validating it.",
+      "answer": false,
+      "explanation": "Cart-time validation is advisory; the code may have expired or hit its cap before payment, so checkout must re-check authoritatively."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "The simplest way to make the database itself reject a second redemption of a once-per-user code is a ____ constraint on (campaign, user) in the redemptions table.",
+      "answer": "unique",
+      "acceptable": ["uniqueness", "unique index", "unique key"],
+      "explanation": "A unique constraint causes a duplicate (campaign, user) insert to fail atomically, even under concurrent requests."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the steps of redeeming a limited code during checkout, earliest first.",
+      "items": [
+        "Payment succeeds and the reservation is confirmed as a redemption",
+        "The code is re-validated and a redemption is atomically reserved with an expiry",
+        "The user applies the code in the cart and sees an advisory discounted price",
+        "The user starts checkout"
+      ],
+      "answer": [2, 3, 1, 0],
+      "explanation": "The cart shows an advisory price, checkout re-validates and reserves atomically, and the reservation is only confirmed once payment succeeds."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "Why reserve a limited-use code with an expiry at checkout instead of permanently consuming it immediately?",
+      "options": [
+        "So abandoned or failed checkouts release the use back instead of permanently burning it",
+        "Because databases cannot store permanent redemptions",
+        "To let the same user redeem the code multiple times",
+        "To avoid needing an idempotency key"
+      ],
+      "answer": 0,
+      "explanation": "An expiring reservation keeps the cap correct while ensuring a failed or abandoned payment doesn't waste one of the limited uses."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Rate limiting redemption attempts per user and IP helps defend against attackers brute-forcing unique single-use codes.",
+      "answer": true,
+      "explanation": "Limiting attempts makes guessing valid codes impractical, complementing long random codes that are hard to guess in the first place."
+    }
+  ]
+}

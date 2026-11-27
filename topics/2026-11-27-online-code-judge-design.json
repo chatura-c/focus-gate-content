@@ -1,0 +1,70 @@
+{
+  "id": "2026-11-27-online-code-judge-design",
+  "date": "2026-11-27",
+  "title": "Designing an Online Code Judge: Sandboxed Execution, Submission Queues, and Verdicts",
+  "category": "system-design",
+  "lesson": "An online code judge, the kind of system behind competitive-programming sites and coding-interview platforms, accepts source code from users, compiles and runs it against a set of hidden test cases, and returns a verdict such as Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded, Runtime Error, or Compilation Error. The defining challenge is that the system's core job is to run arbitrary, untrusted code written by strangers. Every design decision is shaped by two goals: keep that code from harming the platform or other users, and give each submission a fair, repeatable measurement of correctness and resource use.\n\nSubmissions are handled asynchronously. The API server validates the request, stores the source code and metadata with a status of 'queued', and pushes a job onto a message queue; it immediately returns a submission ID rather than holding the HTTP request open while code runs. A pool of judge workers consumes jobs, executes them, and writes the verdict back to the database. Clients learn the result by polling the submission ID or through a push channel such as WebSockets. The queue absorbs bursts, which matter a lot here: during a timed contest thousands of people may submit in the final minutes, and the queue lets the worker pool drain that spike at its own pace (and autoscale) instead of the API falling over.\n\nIsolation is the heart of the worker. Each run happens in a sandbox: typically a container or lightweight VM with no network access, a read-only filesystem apart from a small scratch directory, a non-root user, and a restricted set of allowed system calls (for example via seccomp). Resource limits are enforced by the kernel, commonly with cgroups, capping CPU time, memory, number of processes (to stop fork bombs), and output size. Time limits are usually measured as CPU time with a separate wall-clock cap, so a program that sleeps or blocks forever still gets killed. Sandboxes are discarded or reset after each run so nothing one submission writes can leak into the next.\n\nFairness and correctness of the verdict come next. Test cases and expected outputs live in storage that workers can read but submissions cannot, and the worker compares program output to the expected output, sometimes with a custom checker when many answers are valid (for example, any shortest path). Judges often stop at the first failing test to save resources and report which test failed. To keep timing comparable, workers run on consistent hardware and avoid packing too many runs onto one machine, since noisy neighbors can push a borderline solution over the time limit. Finally, because judging is idempotent for a given submission and test set, a job that fails mid-run due to a crashed worker can simply be retried, and the same mechanism supports 'rejudging' all submissions when a problem's test data is corrected.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Why does the API server return a submission ID immediately instead of waiting for the code to finish running?",
+      "options": [
+        "Because compiled languages cannot be run synchronously",
+        "So execution happens asynchronously via a queue, absorbing bursts and keeping API requests short",
+        "Because the submission ID is needed to encrypt the source code",
+        "So that the client can choose which test cases to run"
+      ],
+      "answer": 1,
+      "explanation": "Decoupling submission from execution with a queue lets workers drain spikes like contest deadlines without tying up API connections."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Enforcing only a CPU-time limit is enough to stop a submission that calls sleep() in an infinite loop from occupying a worker forever.",
+      "answer": false,
+      "explanation": "A sleeping program uses almost no CPU time, so a separate wall-clock limit is needed to kill it."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "On Linux, the kernel feature commonly used to cap a sandboxed process's memory, CPU, and process count is called ____.",
+      "answer": "cgroups",
+      "acceptable": ["cgroup", "control groups", "control group"],
+      "explanation": "Control groups (cgroups) let the kernel enforce per-group resource limits such as memory, CPU, and max PIDs."
+    },
+    {
+      "id": "q4",
+      "type": "ordering",
+      "prompt": "Order the lifecycle of a single submission, earliest first.",
+      "items": [
+        "A judge worker runs the code in a sandbox against the test cases",
+        "The API stores the code with status 'queued' and enqueues a job",
+        "The verdict is written to the database and the client sees it",
+        "The user submits source code to the API"
+      ],
+      "answer": [3, 1, 0, 2],
+      "explanation": "The code is submitted, persisted and queued, executed by a worker, and then the stored verdict is surfaced to the client."
+    },
+    {
+      "id": "q5",
+      "type": "mcq",
+      "prompt": "A problem accepts any valid shortest path as a correct answer, and there can be several. How should the judge check output?",
+      "options": [
+        "Byte-for-byte comparison against one stored expected output",
+        "Accept any output that compiles",
+        "Use a custom checker program that verifies the output's validity",
+        "Compare only the length of the output file"
+      ],
+      "answer": 2,
+      "explanation": "When multiple answers are correct, a custom checker validates the output's properties instead of matching one fixed string."
+    },
+    {
+      "id": "q6",
+      "type": "true_false",
+      "prompt": "Packing as many concurrent runs as possible onto each judge machine can make verdicts unfair, because contention can push a borderline solution past its time limit.",
+      "answer": true,
+      "explanation": "Noisy neighbors make timing inconsistent, so judges limit co-located runs to keep time measurements comparable."
+    }
+  ]
+}

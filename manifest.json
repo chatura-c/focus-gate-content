@@ -1097,5 +1097,19 @@
     "title": "Designing Trending Topics: Sliding Windows, Heavy Hitters, and Spike Detection",
     "category": "system-design",
     "questionCount": 5
+  },
+  {
+    "id": "2026-11-27-online-code-judge-design",
+    "date": "2026-11-27",
+    "title": "Designing an Online Code Judge: Sandboxed Execution, Submission Queues, and Verdicts",
+    "category": "system-design",
+    "questionCount": 6
+  },
+  {
+    "id": "2026-11-27-promo-code-system-design",
+    "date": "2026-11-27",
+    "title": "Designing a Promo Code System: Redemption Limits, Atomic Claims, and Abuse Prevention",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
