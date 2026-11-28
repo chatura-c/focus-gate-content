@@ -166,6 +166,7 @@ Seeded by hand on 2026-08-20 (see `README.md` — seed content, not generated).
 | 153 | 2026-11-26 | Designing Trending Topics: Sliding Windows, Heavy Hitters, and Spike Detection | `2026-11-26-trending-topics-design` |
 | 154 | 2026-11-27 | Designing an Online Code Judge: Sandboxed Execution, Submission Queues, and Verdicts | `2026-11-27-online-code-judge-design` |
 | 155 | 2026-11-27 | Designing a Promo Code System: Redemption Limits, Atomic Claims, and Abuse Prevention | `2026-11-27-promo-code-system-design` |
+| 156 | 2026-11-28 | Designing Threaded Comments: Storing, Querying, and Paginating Nested Replies | `2026-11-28-threaded-comments-design` |
 
 ## Repetitions (spaced re-quizzes, not new concepts)
 

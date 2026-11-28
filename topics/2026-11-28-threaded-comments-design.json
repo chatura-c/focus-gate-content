@@ -1,0 +1,70 @@
+{
+  "id": "2026-11-28-threaded-comments-design",
+  "date": "2026-11-28",
+  "title": "Designing Threaded Comments: Storing, Querying, and Paginating Nested Replies",
+  "category": "system-design",
+  "lesson": "Threaded comments (as on Reddit or Hacker News) let any comment have replies, which can have their own replies, forming a tree per post. The hard part is not storing a comment, it is answering the read queries efficiently: 'show the top of this thread', 'load the whole subtree under this comment', 'how many replies does this have', and 'show me more replies' without loading a 50,000-comment thread at once. Reads vastly outnumber writes, threads are usually shallow but can occasionally be very deep, and popular threads are hot keys, so the storage model should be chosen around the read patterns.\n\nThere are four classic ways to store a tree in a relational database. An adjacency list stores just a parent_id on each comment; it is simple and makes inserts and moves cheap, but fetching a whole subtree needs either one query per level or a recursive query (a recursive common table expression, WITH RECURSIVE, supported by PostgreSQL, MySQL 8, and others). A materialized path stores each comment's ancestor chain as a string such as '0001.0007.0003'; a subtree is then a single prefix query ('path LIKE 0001.0007.%'), and sorting by path returns comments in depth-first display order, at the cost of rewriting paths if a subtree is ever moved. A closure table stores one row for every (ancestor, descendant) pair plus depth; any subtree or ancestor query becomes a simple indexed join, but storage grows with depth, since each new comment inserts one row per ancestor. Nested sets store left/right numbers so a subtree is a range query, but inserting a comment can renumber a large part of the tree, which makes them a poor fit for write-heavy comment threads.\n\nPagination and ranking shape the design as much as storage does. Comments are rarely shown purely by time; siblings are ranked by score (votes, often with a time decay or a confidence-based formula), and only the top N children at each level are loaded, with 'load more replies' links that fetch the next page of a specific parent's children using cursor pagination on (score, id). Deep chains are cut off at a maximum display depth with a 'continue this thread' link that re-roots the view at that comment. Counters like reply_count and score are denormalized onto the comment row and updated asynchronously or via atomic increments, because counting a subtree on every page view would be far too expensive.\n\nAt scale, threads are usually sharded by post_id, so all comments of one post live together and a thread can be read from a single shard. The rendered top of a popular thread is cached, and the cache is updated or invalidated when new comments arrive, often tolerating a few seconds of staleness. Votes are high-volume and are typically buffered and aggregated rather than written straight onto the hot comment row. Deleting a comment that has replies usually becomes a soft delete that keeps the node as a '[deleted]' placeholder, because removing it outright would orphan its children and break the tree.",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "prompt": "Which tree-storage model lets you fetch an entire subtree of comments with a single prefix query and get them back in depth-first display order by sorting on one column?",
+      "options": [
+        "Adjacency list (parent_id only)",
+        "Materialized path",
+        "Nested sets",
+        "Storing replies as a JSON array on the parent"
+      ],
+      "answer": 1,
+      "explanation": "A materialized path encodes the ancestor chain in each row, so a subtree is a prefix match and sorting by path yields depth-first order."
+    },
+    {
+      "id": "q2",
+      "type": "true_false",
+      "prompt": "Nested sets are a good fit for a busy comment system because inserting a new reply only touches the new row.",
+      "answer": false,
+      "explanation": "Inserting into a nested set can require renumbering the left/right values of many existing rows, which makes it costly for write-heavy trees."
+    },
+    {
+      "id": "q3",
+      "type": "fill_blank",
+      "prompt": "A tree model that stores one row for every (ancestor, descendant) pair, so subtree and ancestor lookups become simple indexed joins, is called a ____ table.",
+      "answer": "closure",
+      "acceptable": ["closure table"],
+      "explanation": "A closure table precomputes all ancestor-descendant relationships, trading extra storage and insert work for very simple reads."
+    },
+    {
+      "id": "q4",
+      "type": "mcq",
+      "prompt": "A post has 40,000 comments. What is the best way to serve its comment page?",
+      "options": [
+        "Load the full tree in one query and let the client collapse it",
+        "Load the top-ranked N children per level up to a max depth, with cursor-paginated 'load more replies' per parent",
+        "Show only top-level comments and never show replies",
+        "Count every subtree on each request to decide what to show"
+      ],
+      "answer": 1,
+      "explanation": "Bounded per-level loading with per-parent cursor pagination keeps each request small while still letting users drill into any branch."
+    },
+    {
+      "id": "q5",
+      "type": "true_false",
+      "prompt": "Sharding comments by post_id is a common choice because it keeps an entire thread on one shard, so loading a thread doesn't require a cross-shard query.",
+      "answer": true,
+      "explanation": "Co-locating a post's comments means thread reads hit a single shard, though very popular posts can still become hot spots that need caching."
+    },
+    {
+      "id": "q6",
+      "type": "ordering",
+      "prompt": "Order the steps for handling a user deleting a comment that has replies, earliest first.",
+      "items": [
+        "Render the node as a '[deleted]' placeholder so its replies still display under it",
+        "Receive the delete request and verify the user owns the comment",
+        "Invalidate or update the cached rendering of the thread",
+        "Mark the comment as soft-deleted and clear its body, keeping the row and its tree position"
+      ],
+      "answer": [1, 3, 2, 0],
+      "explanation": "After authorizing, the comment is soft-deleted in place to preserve the tree, the cached thread is refreshed, and readers then see a placeholder with replies intact."
+    }
+  ]
+}

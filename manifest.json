@@ -1111,5 +1111,12 @@
     "title": "Designing a Promo Code System: Redemption Limits, Atomic Claims, and Abuse Prevention",
     "category": "system-design",
     "questionCount": 6
+  },
+  {
+    "id": "2026-11-28-threaded-comments-design",
+    "date": "2026-11-28",
+    "title": "Designing Threaded Comments: Storing, Querying, and Paginating Nested Replies",
+    "category": "system-design",
+    "questionCount": 6
   }
 ]
